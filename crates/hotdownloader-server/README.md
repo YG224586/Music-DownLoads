@@ -25,12 +25,14 @@ HOTDOWNLOADER_TOKEN=请替换为随机生成的长令牌
 ```bash
 docker pull ghcr.io/lerdb/hotdownloader:latest
 docker run -d --name hotdownloader --restart unless-stopped \
-  --env-file .env -p 8787:8787 \
+  --env-file .env -p 127.0.0.1:8787:8787 \
   -v hotdownloader-data:/data \
   ghcr.io/lerdb/hotdownloader:latest
 ```
 
-浏览器访问 `http://服务器地址:8787`，输入 `.env` 中的访问令牌。
+在服务器本机访问 `http://127.0.0.1:8787`，输入 `.env` 中的访问令牌。Docker 仅将端口绑定到宿主机回环地址；容器内服务仍监听 `0.0.0.0:8787`，以便端口映射正常工作。
+
+从其他设备访问时，请在宿主机配置 HTTPS 反向代理，将请求转发到 `127.0.0.1:8787`，并通过 HTTPS 域名打开网页。不要将令牌通过公网明文 HTTP 传输。
 
 命名卷 `hotdownloader-data` 挂载到容器的 `/data`，保存以下数据：
 
@@ -75,7 +77,7 @@ docker rm -f hotdownloader
 服务进程重启后，先前未完成的任务显示在“已中断”标签中。
 点击恢复后，任务重新入队。
 
-公网访问请配置 HTTPS 反向代理，保护浏览器与服务之间的访问令牌。
+远程访问请使用上述 HTTPS 反向代理，保护浏览器与服务之间的访问令牌。
 当前部署使用单个访问令牌，适合单管理员使用。
 
 ## 本机运行与配置
