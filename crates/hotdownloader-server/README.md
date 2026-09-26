@@ -13,7 +13,8 @@ HOTDOWNLOADER_TOKEN=请替换为随机生成的长令牌
 从仓库根目录启动服务：
 
 ```bash
-docker compose up --build -d
+docker compose pull
+docker compose up -d
 ```
 
 浏览器访问 `http://服务器地址:8787`，输入 `.env` 中的访问令牌。Compose 将容器的 `/data` 挂载到 `hotdownloader-data` 卷，用于保存设置、QQ 凭据、任务记录和下载文件。下载任务由服务进程持续执行；重新打开网页即可查看进度。页面顶部显示服务连接状态和最近响应时间。

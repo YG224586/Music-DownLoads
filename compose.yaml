@@ -1,6 +1,6 @@
 services:
   hotdownloader:
-    build: .
+    image: ghcr.io/lerdb/hotdownloader:latest
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://127.0.0.1:8787/healthz"]
