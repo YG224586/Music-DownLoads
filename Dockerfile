@@ -23,6 +23,9 @@ RUN apt-get update \
 WORKDIR /app
 COPY --from=rust-builder /build/crates/hotdownloader-server/target/release/hotdownloader-server /app/hotdownloader-server
 COPY --from=web-builder /build/dist /app/dist
+COPY LICENSE /app/LICENSE
+COPY crates/hotdownloader-server/NOTICE /app/NOTICE
+COPY crates/hotdownloader-server/THIRD_PARTY_LICENSES.txt /app/THIRD_PARTY_LICENSES.txt
 
 # 任务、凭据、设置和下载文件都放在持久化目录，网页连接中断不影响任务。
 ENV HOTDOWNLOADER_BIND=0.0.0.0:8787 \

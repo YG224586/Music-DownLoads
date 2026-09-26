@@ -2,10 +2,10 @@
 /**
  * 生成第三方许可证声明。
  *
- * 输出（三份文件都需要提交到 git）：
+ * 输出：
  *   - src/data/licenses.ts          前端 TypeScript 模块
- *   - NOTICE                        简表（打包资源）
- *   - THIRD_PARTY_LICENSES.txt      合并全文（打包资源）
+ *   - NOTICE / THIRD_PARTY_LICENSES.txt                          桌面端
+ *   - crates/hotdownloader-server/NOTICE / THIRD_PARTY_LICENSES.txt  服务端
  *
  * 用法：npm run generate:licenses
  *
@@ -28,7 +28,9 @@ const spdx = require('spdx-license-list/full');
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..');
 const srcTauri = path.join(projectRoot, 'src-tauri');
+const serverCrate = path.join(projectRoot, 'crates', 'hotdownloader-server');
 const dataDir = path.join(projectRoot, 'src', 'data');
+const FIRST_PARTY_CRATES = new Set(['hotdownloader', 'hotdownloader-core', 'hotdownloader-server']);
 
 // ---------------------------------------------------------------------------
 // 常量
@@ -117,7 +119,9 @@ function sortByName(arr) {
  */
 function extractText(entry) {
     if (!entry) return '';
-    return (entry.licenseText || entry.text || '').trim();
+    return (entry.licenseText || entry.text || '')
+        .replace(/[ \t]+$/gm, '')
+        .trim();
 }
 
 /**
@@ -177,24 +181,22 @@ function collectNpmDeps() {
 // 收集 cargo 依赖（含传递依赖，排除 workspace 自身）
 // ---------------------------------------------------------------------------
 
-function collectCargoDeps() {
-    console.log('📦 收集 Rust 依赖（cargo metadata）...');
+function collectCargoDeps(manifestDir) {
+    console.log(`📦 收集 Rust 依赖（${path.relative(projectRoot, manifestDir)}）...`);
     const output = execFileSync(
         'cargo',
-        ['metadata', '--format-version', '1'],
+        ['metadata', '--locked', '--format-version', '1'],
         {
-            cwd: srcTauri,
+            cwd: manifestDir,
             maxBuffer: 64 * 1024 * 1024,
             encoding: 'utf8',
             stdio: ['ignore', 'pipe', 'inherit'],
         }
     );
     const metadata = JSON.parse(output);
-    const workspaceMembers = new Set(metadata.workspace_members);
-
     const result = [];
     for (const pkg of metadata.packages) {
-        if (workspaceMembers.has(pkg.id)) continue;
+        if (pkg.source === null && FIRST_PARTY_CRATES.has(pkg.name)) continue;
 
         let license = normalizeLicense(pkg.license);
         if (hasOwn(CARGO_OVERRIDES, pkg.name)) license = CARGO_OVERRIDES[pkg.name];
@@ -300,7 +302,7 @@ export const licenseTexts: LicenseText[] = ${JSON.stringify(texts, null, 2)};
 // 输出 2：NOTICE（简表）
 // ---------------------------------------------------------------------------
 
-function writeNotice(rust, frontend) {
+function writeNotice(rust, frontend, outputPath) {
     const all = [...rust, ...frontend];
     const { nameWidth, versionWidth } = computeColumnWidths(
         all,
@@ -326,15 +328,15 @@ Rust:
     out += `\nFrontend:\n`;
     for (const c of frontend) out += line(c) + '\n';
 
-    fs.writeFileSync(path.join(projectRoot, 'NOTICE'), out, 'utf8');
-    console.log('  ✓ NOTICE');
+    fs.writeFileSync(outputPath, out, 'utf8');
+    console.log(`  ✓ ${path.relative(projectRoot, outputPath)}`);
 }
 
 // ---------------------------------------------------------------------------
 // 输出 3：THIRD_PARTY_LICENSES.txt（合并全文）
 // ---------------------------------------------------------------------------
 
-function writeThirdPartyLicenses(rust, frontend, texts) {
+function writeThirdPartyLicenses(rust, frontend, texts, outputPath) {
     const header = (title) =>
         `\n${'='.repeat(LICENSE_RULE_WIDTH)}\n${title}\n${'='.repeat(LICENSE_RULE_WIDTH)}\n\n`;
 
@@ -372,11 +374,11 @@ function writeThirdPartyLicenses(rust, frontend, texts) {
     }
 
     fs.writeFileSync(
-        path.join(projectRoot, 'THIRD_PARTY_LICENSES.txt'),
+        outputPath,
         out,
         'utf8'
     );
-    console.log('  ✓ THIRD_PARTY_LICENSES.txt');
+    console.log(`  ✓ ${path.relative(projectRoot, outputPath)}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -384,18 +386,22 @@ function writeThirdPartyLicenses(rust, frontend, texts) {
 // ---------------------------------------------------------------------------
 
 async function main() {
-    const rust = collectCargoDeps();
+    const desktopRust = collectCargoDeps(srcTauri);
+    const serverRust = collectCargoDeps(serverCrate);
     const frontend = await collectNpmDeps();
 
     console.log('📝 生成许可证文件...');
-    const texts = collectLicenseTexts([...rust, ...frontend]);
+    const desktopTexts = collectLicenseTexts([...desktopRust, ...frontend]);
+    const serverTexts = collectLicenseTexts([...serverRust, ...frontend]);
 
-    writeLicensesTs(rust, frontend, texts);
-    writeNotice(rust, frontend);
-    writeThirdPartyLicenses(rust, frontend, texts);
+    writeLicensesTs(desktopRust, frontend, desktopTexts);
+    writeNotice(desktopRust, frontend, path.join(projectRoot, 'NOTICE'));
+    writeThirdPartyLicenses(desktopRust, frontend, desktopTexts, path.join(projectRoot, 'THIRD_PARTY_LICENSES.txt'));
+    writeNotice(serverRust, frontend, path.join(serverCrate, 'NOTICE'));
+    writeThirdPartyLicenses(serverRust, frontend, serverTexts, path.join(serverCrate, 'THIRD_PARTY_LICENSES.txt'));
 
     console.log(
-        `\n✅ 完成：${rust.length} 个 Rust 组件 + ${frontend.length} 个前端组件，共 ${texts.length} 种许可证。\n`
+        `\n✅ 完成：桌面端 ${desktopRust.length}、服务端 ${serverRust.length} 个 Rust 组件，前端 ${frontend.length} 个组件。\n`
     );
 }
 

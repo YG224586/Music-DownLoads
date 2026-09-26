@@ -71,7 +71,6 @@ Rust:
   compression-core                                     0.4.33                         MIT OR Apache-2.0
   concurrent-queue                                     2.5.0                          Apache-2.0 OR MIT
   cookie                                               0.18.2                         MIT OR Apache-2.0
-  cookie_store                                         0.22.1                         MIT OR Apache-2.0
   core_detect                                          1.0.0                          MIT OR Apache-2.0
   core-foundation                                      0.10.1                         MIT OR Apache-2.0
   core-foundation-sys                                  0.8.7                          MIT OR Apache-2.0
@@ -105,7 +104,6 @@ Rust:
   displaydoc                                           0.2.7                          MIT OR Apache-2.0
   dlopen2                                              0.8.2                          MIT
   dlopen2_derive                                       0.4.3                          MIT
-  document-features                                    0.2.12                         MIT OR Apache-2.0
   dom_query                                            0.27.0                         MIT
   dpi                                                  0.1.2                          Apache-2.0 AND MIT
   dtoa                                                 1.0.11                         MIT OR Apache-2.0
@@ -233,7 +231,6 @@ Rust:
   libredox                                             0.1.24                         MIT
   linux-raw-sys                                        0.12.1                         Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT
   litemap                                              0.8.3                          Unicode-3.0
-  litrs                                                1.0.0                          MIT OR Apache-2.0
   lock_api                                             0.4.14                         MIT OR Apache-2.0
   lofty                                                0.22.4                         MIT OR Apache-2.0
   lofty_attr                                           0.11.1                         MIT OR Apache-2.0
@@ -317,8 +314,6 @@ Rust:
   proc-macro-error                                     1.0.4                          MIT OR Apache-2.0
   proc-macro-error-attr                                1.0.4                          MIT OR Apache-2.0
   proc-macro2                                          1.0.107                        MIT OR Apache-2.0
-  psl-types                                            2.0.11                         MIT OR Apache-2.0
-  publicsuffix                                         2.3.0                          MIT OR Apache-2.0
   quick-xml                                            0.42.0                         MIT
   quinn                                                0.11.12                        MIT OR Apache-2.0
   quinn-proto                                          0.11.18                        MIT OR Apache-2.0
@@ -484,7 +479,6 @@ Rust:
   unicode-segmentation                                 1.13.3                         MIT OR Apache-2.0
   untrusted                                            0.9.0                          ISC
   url                                                  2.5.8                          MIT OR Apache-2.0
-  urlencoding                                          2.1.3                          MIT
   urlpattern                                           0.3.0                          MIT
   utf-8                                                0.7.6                          MIT OR Apache-2.0
   utf8_iter                                            1.0.4                          Apache-2.0 OR MIT
