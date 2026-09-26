@@ -35,8 +35,8 @@
 
 ## 🖥️ 技术栈
 
-| 前端                    | 后端                    |
-| ----------------------- | ----------------------- |
+| 前端                    | 后端                     |
+| ----------------------- | ------------------------ |
 | Vue 3 (Composition API) | Rust 共享核心            |
 | TypeScript              | Tokio (异步运行时)       |
 | Vite                    | Reqwest (HTTP 客户端)    |
@@ -49,9 +49,8 @@
 
 ## 📦 环境要求
 
-请根据目标平台准备对应环境：
-
-- **通用**：Rust、Node.js 22.12+ 与 npm
+- **Docker/Web**：Docker。
+- **源码开发**：Rust、Node.js 22.12+ 与 npm
 - **桌面端**：参考 [Tauri 桌面端前置要求](https://tauri.app/start/prerequisites/#system-dependencies)
 - **Android 端**：参考 [Tauri Android 前置要求](https://tauri.app/start/prerequisites/#android)
 
@@ -59,26 +58,54 @@
 
 ## 🚀 快速开始
 
-### 1. 克隆仓库
+### Docker/Web 部署
+
+#### 1. 设置访问令牌
+
+创建 `.env`，填入至少 16 个字符的随机访问令牌：
+
+```dotenv
+HOTDOWNLOADER_TOKEN=请替换为随机生成的长令牌
+```
+
+#### 2. 启动容器
+
+从 GHCR 拉取镜像并启动服务：
+
+```bash
+docker pull ghcr.io/lerdb/hotdownloader:latest
+docker run -d --name hotdownloader --restart unless-stopped \
+  --env-file .env -p 8787:8787 \
+  -v hotdownloader-data:/data \
+  ghcr.io/lerdb/hotdownloader:latest
+```
+
+#### 3. 打开网页
+
+浏览器访问 `http://服务器地址:8787`，输入 `.env` 中的访问令牌。
+
+命名卷 `hotdownloader-data` 保存设置、登录凭据、任务记录和下载文件。
+Compose 部署、镜像更新与日志查看见 [独立服务部署文档](crates/hotdownloader-server/README.md)。
+
+### 从源码运行桌面端与 Android 端
+
+克隆仓库并安装依赖：
 
 ```bash
 git clone https://github.com/lerdb/HotDownloader.git
 cd HotDownloader
-```
-
-### 2. 安装依赖
-
-```bash
 npm install
 ```
 
-### 3. 桌面端开发运行
+#### 桌面端
+
+开发运行：
 
 ```bash
 npm run tauri dev
 ```
 
-### 4. 桌面端构建
+构建安装包：
 
 ```bash
 npm run tauri build
@@ -86,17 +113,15 @@ npm run tauri build
 
 构建产物位于 `src-tauri/target/release/bundle/`。
 
-### 5. Docker/Web 部署
+#### Android 端
 
-容器中的服务进程持续执行下载任务，网页用于控制任务和查看进度。令牌配置、Compose 启动、数据持久化与接口说明见 [独立服务部署文档](crates/hotdownloader-server/README.md)。
-
-### 6. Android 端开发运行
+开发运行：
 
 ```bash
 npx tauri android dev
 ```
 
-### 7. Android 端构建
+构建安装包：
 
 ```bash
 npx tauri android build
