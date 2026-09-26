@@ -9,9 +9,9 @@ use tokio_util::sync::CancellationToken;
 
 use futures_util::FutureExt;
 
-use super::platform::Platform;
+use super::context::{SongInfo, TaskContext};
 use super::ports::{CompletionNotifier, FileDeleter};
-use super::task_context::{SongInfo, TaskContext};
+use crate::platforms::Platform;
 
 /// 引擎中没有对应任务上下文时的错误码。
 /// Rust 重试命令据此从持久化任务记录重建下载器上下文。
@@ -547,7 +547,7 @@ mod tests {
     use std::time::Duration;
 
     use super::*;
-    use crate::local_file_deleter::LocalFileDeleter;
+    use crate::adapters::local::file_deleter::LocalFileDeleter;
 
     struct StubRunner(Arc<AtomicUsize>);
 

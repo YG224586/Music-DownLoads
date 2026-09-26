@@ -2,13 +2,13 @@
 
 use std::sync::Arc;
 
-use hotdownloader_core::qq_login::{self, LoginCredentialStore};
+use hotdownloader_core::platforms::qqmusic::login::{self as qq_login, LoginCredentialStore};
 use serde_json::Value;
 use tauri::AppHandle;
 
 use crate::storage::store_wrapper;
 
-pub use hotdownloader_core::qq_login::LoginCredentials;
+pub use hotdownloader_core::platforms::qqmusic::login::LoginCredentials;
 
 struct TauriLoginStore {
     app: AppHandle,
@@ -44,12 +44,21 @@ impl LoginCredentialStore for TauriLoginStore {
             };
             let target = latest.as_object_mut().ok_or("设置必须是 JSON 对象")?;
             for key in [
-                "loginUin", "authst", "refreshToken", "refreshKey", "accessToken",
-                "openid", "loginResponseData",
+                "loginUin",
+                "authst",
+                "refreshToken",
+                "refreshKey",
+                "accessToken",
+                "openid",
+                "loginResponseData",
             ] {
                 match settings.get(key) {
-                    Some(value) => { target.insert(key.to_string(), value.clone()); }
-                    None => { target.remove(key); }
+                    Some(value) => {
+                        target.insert(key.to_string(), value.clone());
+                    }
+                    None => {
+                        target.remove(key);
+                    }
                 }
             }
             Ok(latest.to_string())

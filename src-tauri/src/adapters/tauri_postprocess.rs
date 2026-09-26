@@ -3,8 +3,11 @@
 use std::path::Path;
 
 use futures_util::future::BoxFuture;
-use hotdownloader_core::ports::{DownloadPostprocessor, DownloadProgressSink, PostprocessRequest};
-use hotdownloader_core::postprocess::{prepare_assets, write_audio_metadata, write_local_lrc};
+use hotdownloader_core::adapters::local::postprocess::{write_audio_metadata, write_local_lrc};
+use hotdownloader_core::download::ports::{
+    DownloadPostprocessor, DownloadProgressSink, PostprocessRequest,
+};
+use hotdownloader_core::download::postprocess::prepare_assets;
 use tauri::AppHandle;
 
 use crate::download::task_lrc::write_saf_lrc_file;

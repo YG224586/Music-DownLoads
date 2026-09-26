@@ -5,8 +5,8 @@ use std::time::Duration;
 use futures_util::future::BoxFuture;
 use reqwest::Client;
 
-use crate::platform::Platform;
-use crate::qq_credentials::{FileQqCredentialSource, QqCredentialSource};
+use crate::platforms::qqmusic::credentials::{FileQqCredentialSource, QqCredentialSource};
+use crate::platforms::Platform;
 
 /// 平台链接和凭据由运行时提供；核心只决定何时重新请求链接。
 pub trait DownloadLinkProvider: Send + Sync {
@@ -72,7 +72,7 @@ impl DownloadLinkProvider for PlatformDownloadLinkProvider {
             match platform {
                 Platform::QqMusic => {
                     let credentials = self.qq_credentials.current().await?;
-                    crate::qqmusic_link::fetch_vkey_link(
+                    crate::platforms::qqmusic::link::fetch_vkey_link(
                         &self.client,
                         song_mid,
                         filename,
@@ -82,7 +82,12 @@ impl DownloadLinkProvider for PlatformDownloadLinkProvider {
                 }
                 // 酷我当前接口不使用 QQ 登录态，不能因 QQ 凭据文件出错而阻止酷我任务。
                 Platform::Kuwo => {
-                    crate::kuwo_link::get_download_link(&self.client, song_mid, filename).await
+                    crate::platforms::kuwo::link::get_download_link(
+                        &self.client,
+                        song_mid,
+                        filename,
+                    )
+                    .await
                 }
             }
         })
@@ -139,7 +144,7 @@ mod tests {
     use super::{
         fetch_download_link_with_retry, DownloadLinkProvider, PlatformDownloadLinkProvider,
     };
-    use crate::platform::Platform;
+    use crate::platforms::Platform;
     use futures_util::future::BoxFuture;
 
     struct RejectedLink {

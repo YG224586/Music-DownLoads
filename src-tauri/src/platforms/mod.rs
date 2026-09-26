@@ -1,5 +1,5 @@
 // 平台标识与查询解析位于共享核心；登录存储和下载事件仍由 Tauri 适配。
-pub use hotdownloader_core::platform::Platform;
+pub use hotdownloader_core::platforms::Platform;
 
 pub use hotdownloader_core::platforms::lyric;
 

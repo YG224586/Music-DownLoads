@@ -1,7 +1,7 @@
 use std::path::Path;
 
-use crate::filename;
-use crate::task_context::SongInfo;
+use super::filename;
+use crate::download::context::SongInfo;
 
 /// 根据任务设置计算最终文件位置，返回 SAF 标志、路径或文件名、SAF 文件夹 URI。
 /// SAF 只在 Android 构建中生效；普通服务端始终使用本地文件系统路径。
@@ -40,7 +40,7 @@ pub fn map_decrypted_extension(extension: &str) -> &str {
 #[cfg(test)]
 mod tests {
     use super::{map_decrypted_extension, resolve_download_path};
-    use crate::task_context::SongInfo;
+    use crate::download::context::SongInfo;
 
     #[test]
     fn encrypted_extension_uses_playable_output_format() {

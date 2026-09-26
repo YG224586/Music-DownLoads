@@ -1,6 +1,6 @@
+use std::sync::Mutex;
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
-use std::sync::Mutex;
 
 static SETTINGS_WRITE_LOCK: Mutex<()> = Mutex::new(());
 
@@ -45,7 +45,10 @@ pub fn update_settings(
         .unwrap_or_default();
     let next = update(&previous)?;
     if next != previous {
-        store.set("settings".to_string(), serde_json::Value::String(next.clone()));
+        store.set(
+            "settings".to_string(),
+            serde_json::Value::String(next.clone()),
+        );
         store.save().map_err(|error| error.to_string())?;
     }
     Ok(next)

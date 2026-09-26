@@ -2,8 +2,8 @@ use std::fs;
 use std::io::{BufWriter, Seek};
 use std::path::Path;
 
-use hotdownloader_core::local_download_file::open_local_download_file;
-use hotdownloader_core::ports::DownloadProgressSink;
+use hotdownloader_core::adapters::local::download_file::open_local_download_file;
+use hotdownloader_core::download::ports::DownloadProgressSink;
 use tauri::AppHandle;
 use tauri_plugin_android_fs::{AndroidFsExt, FileAccessMode, FsUri};
 

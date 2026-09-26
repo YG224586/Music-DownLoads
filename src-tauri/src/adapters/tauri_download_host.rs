@@ -1,23 +1,24 @@
 use futures_util::future::BoxFuture;
-use hotdownloader_core::download_config::{DownloadConfig, DownloadConfigProvider};
-use hotdownloader_core::download_link::{DownloadLinkProvider, PlatformDownloadLinkProvider};
-use hotdownloader_core::platform::Platform;
-use hotdownloader_core::qq_credentials::{QqAuth, QqCredentialSource};
+use hotdownloader_core::download::config::{DownloadConfig, DownloadConfigProvider};
+use hotdownloader_core::download::link::{DownloadLinkProvider, PlatformDownloadLinkProvider};
+use hotdownloader_core::platforms::qqmusic::credentials::{QqAuth, QqCredentialSource};
+use hotdownloader_core::platforms::Platform;
 use std::sync::Arc;
 use tauri::AppHandle;
 use tauri::Emitter;
 use tauri_plugin_android_fs::{AndroidFsExt, FsUri};
 
-use crate::download::engine::{DownloadTaskRunner, TaskController};
-use crate::download::local_file_deleter::LocalFileDeleter;
-use crate::download::ports::{
+use crate::download::progress;
+use crate::download::task_file::open_download_file;
+use crate::storage::store_wrapper;
+use hotdownloader_core::adapters::local::file_deleter::LocalFileDeleter;
+use hotdownloader_core::download::context::TaskContext;
+use hotdownloader_core::download::engine::{DownloadTaskRunner, TaskController};
+use hotdownloader_core::download::ports::{
     CompletionNotifier, DownloadFileOpener, DownloadProgressSink, FileDeleter, FileOpenRequest,
     OpenedDownloadFile,
 };
-use crate::download::progress;
-use crate::download::task::{download_task, TaskContext};
-use crate::download::task_file::open_download_file;
-use crate::storage::store_wrapper;
+use hotdownloader_core::download::worker::download_task;
 
 use super::tauri_postprocess::TauriDownloadPostprocessor;
 
@@ -74,6 +75,11 @@ impl TauriDownloadFileOpener {
 }
 
 impl DownloadFileOpener for TauriDownloadFileOpener {
+    fn prepare_parent(&self, file_path: &str) -> std::io::Result<()> {
+        // 普通路径沿用共享文件规则；SAF 路径由 worker 在调用前排除。
+        hotdownloader_core::adapters::local::download_file::ensure_parent_directory(file_path)
+    }
+
     fn open<'a>(
         &'a self,
         request: FileOpenRequest<'a>,

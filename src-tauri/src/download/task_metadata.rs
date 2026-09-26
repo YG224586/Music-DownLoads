@@ -3,9 +3,10 @@
 use std::io::{Read, Seek, Write};
 use std::path::{Path, PathBuf};
 
-use hotdownloader_core::ports::DownloadProgressSink;
-use hotdownloader_core::postprocess::{write_audio_metadata, PostprocessAssets};
-use hotdownloader_core::task_context::TaskContext;
+use hotdownloader_core::adapters::local::postprocess::write_audio_metadata;
+use hotdownloader_core::download::context::TaskContext;
+use hotdownloader_core::download::ports::DownloadProgressSink;
+use hotdownloader_core::download::postprocess::PostprocessAssets;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_android_fs::{AndroidFsExt, FileAccessMode, FsUri};
 

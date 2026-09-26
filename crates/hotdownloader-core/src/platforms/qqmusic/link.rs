@@ -8,7 +8,7 @@
 use reqwest::Client;
 use serde_json::{json, Value};
 
-use crate::qq_credentials::QqAuth;
+use crate::platforms::qqmusic::credentials::QqAuth;
 
 /// 保持原客户端的随机 GUID 格式，避免多个任务共享固定设备标识。
 fn get_guid() -> String {

@@ -1,12 +1,12 @@
-use crate::contract::{
+use crate::download::config::DownloadConfig;
+use crate::download::context::SongInfo;
+use crate::download::engine::{DownloadEngine, ERR_TASK_CONTEXT_MISSING};
+use crate::platforms::Platform;
+use crate::task::contract::{
     BatchResult, CreateTaskRequest, CreateTaskResult, DuplicateAction, TaskRecord, TaskStatus,
 };
-use crate::download_config::DownloadConfig;
-use crate::engine::{DownloadEngine, ERR_TASK_CONTEXT_MISSING};
-use crate::platform::Platform;
-use crate::task_context::SongInfo;
-use crate::task_rules::TaskRules;
-use crate::task_state::TaskState;
+use crate::task::rules::TaskRules;
+use crate::task::state::TaskState;
 
 /// 运行时只提供设置快照和文件系统查询。任务的创建、冲突处理和重试规则留在核心。
 /// SAF 的路径解释由 Tauri 实现；普通服务端只需检查本地文件。
@@ -478,7 +478,7 @@ impl<'a> TaskService<'a> {
         };
         // 路径检查与 worker 使用同一套核心配置规则，避免创建和实际下载选择不同的目录。
         let config = self.environment.download_config();
-        let (is_saf, download_dir, saf_folder_uri) = crate::download_path::resolve_download_path(
+        let (is_saf, download_dir, saf_folder_uri) = crate::download::path::resolve_download_path(
             &config.download_dir,
             &config.naming_template,
             config.saf_folder_uri.as_deref(),
@@ -548,16 +548,16 @@ mod tests {
     use futures_util::future::BoxFuture;
 
     use super::{TaskEnvironment, TaskService};
-    use crate::contract::{
+    use crate::adapters::local::file_deleter::LocalFileDeleter;
+    use crate::download::config::DownloadConfig;
+    use crate::download::context::TaskContext;
+    use crate::download::engine::{DownloadEngine, DownloadTaskRunner, TaskController};
+    use crate::download::ports::NoopCompletionNotifier;
+    use crate::task::contract::{
         CreateTaskRequest, CreateTaskResult, DuplicateAction, QualityItem, SongInput, TaskRecord,
     };
-    use crate::download_config::DownloadConfig;
-    use crate::engine::{DownloadEngine, DownloadTaskRunner, TaskController};
-    use crate::local_file_deleter::LocalFileDeleter;
-    use crate::ports::NoopCompletionNotifier;
-    use crate::task_context::TaskContext;
-    use crate::task_rules::TaskRules;
-    use crate::task_state::{TaskEventSink, TaskRepository, TaskState};
+    use crate::task::rules::TaskRules;
+    use crate::task::state::{TaskEventSink, TaskRepository, TaskState};
 
     struct MemoryRepository(Mutex<Vec<TaskRecord>>);
 
@@ -703,7 +703,7 @@ mod tests {
         assert!(!service.retry_task("interrupted-1".into()).await.unwrap());
         service.resume_task("interrupted-1".into()).await.unwrap();
         let resumed = state.get("interrupted-1").unwrap();
-        assert_eq!(resumed.status, crate::contract::TaskStatus::Waiting);
+        assert_eq!(resumed.status, crate::task::contract::TaskStatus::Waiting);
         assert_eq!(resumed.retry_count, 3);
         assert_eq!(resumed.quality, "320kmp3");
         assert_eq!(resumed.downloaded, 40);

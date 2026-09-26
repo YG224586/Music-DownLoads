@@ -2,8 +2,10 @@
 
 use tauri::{command, AppHandle};
 
-use crate::download::contract::{BatchResult, CreateTaskRequest, CreateTaskResult, TaskRecord};
 use crate::download::task_service;
+use hotdownloader_core::task::contract::{
+    BatchResult, CreateTaskRequest, CreateTaskResult, TaskRecord,
+};
 
 // store_wrapper 的整表写盘可能较慢，命令保持 async，避免阻塞 Tauri 主线程。
 #[command]

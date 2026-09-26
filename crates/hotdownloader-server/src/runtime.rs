@@ -4,24 +4,24 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
 
 use futures_util::future::BoxFuture;
-use hotdownloader_core::contract::{TaskRecord, TaskStatus};
-use hotdownloader_core::download_config::{DownloadConfig, DownloadConfigProvider};
-use hotdownloader_core::download_link::PlatformDownloadLinkProvider;
-use hotdownloader_core::download_worker::download_task;
-use hotdownloader_core::engine::{DownloadEngine, DownloadTaskRunner, TaskController};
-use hotdownloader_core::json_task_repository::JsonTaskRepository;
-use hotdownloader_core::local_download_file::LocalDownloadFileOpener;
-use hotdownloader_core::local_file_deleter::LocalFileDeleter;
-use hotdownloader_core::ports::{DownloadProgressSink, NoopCompletionNotifier};
-use hotdownloader_core::postprocess::LocalDownloadPostprocessor;
-use hotdownloader_core::qq_login::FileLoginStore;
-use hotdownloader_core::settings_patch::{
+use hotdownloader_core::adapters::local::download_file::LocalDownloadFileOpener;
+use hotdownloader_core::adapters::local::file_deleter::LocalFileDeleter;
+use hotdownloader_core::adapters::local::postprocess::LocalDownloadPostprocessor;
+use hotdownloader_core::adapters::local::task_repository::JsonTaskRepository;
+use hotdownloader_core::download::config::{DownloadConfig, DownloadConfigProvider};
+use hotdownloader_core::download::context::TaskContext;
+use hotdownloader_core::download::engine::{DownloadEngine, DownloadTaskRunner, TaskController};
+use hotdownloader_core::download::link::PlatformDownloadLinkProvider;
+use hotdownloader_core::download::ports::{DownloadProgressSink, NoopCompletionNotifier};
+use hotdownloader_core::download::worker::download_task;
+use hotdownloader_core::platforms::qqmusic::login::FileLoginStore;
+use hotdownloader_core::settings::patch::{
     apply_patch, snapshot, SettingsPatch, SettingsPatchError, SettingsScope, SettingsSnapshot,
 };
-use hotdownloader_core::task_context::TaskContext;
-use hotdownloader_core::task_rules::TaskRules;
-use hotdownloader_core::task_service::TaskEnvironment;
-use hotdownloader_core::task_state::{TaskEventSink, TaskState};
+use hotdownloader_core::task::contract::{TaskRecord, TaskStatus};
+use hotdownloader_core::task::rules::TaskRules;
+use hotdownloader_core::task::service::TaskEnvironment;
+use hotdownloader_core::task::state::{TaskEventSink, TaskState};
 use serde_json::Value;
 use tokio::sync::broadcast;
 

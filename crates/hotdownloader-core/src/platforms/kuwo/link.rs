@@ -17,7 +17,7 @@ use std::path::Path;
 use reqwest::{Client, Url};
 use serde_json::Value;
 
-use crate::kwdes;
+use super::des;
 use rand::Rng;
 
 /// 为每次调用生成随机 `user`（32 位无符号整数）和 `android_id`（16 位小写 hex）。
@@ -221,7 +221,7 @@ fn is_encrypted_format(format: &str) -> bool {
 /// 去前缀后的真实解密密钥字符串。
 fn decrypt_ekey(raw_ekey: &str, user: &str) -> Result<String, String> {
     // kwDES 解密（内部包含 Base64 解码）
-    let decrypted = kwdes::base64_decrypt(raw_ekey, kwdes::DEFAULT_KEY)?;
+    let decrypted = des::base64_decrypt(raw_ekey, des::DEFAULT_KEY)?;
 
     // 验证并去掉 user 前缀
     if let Some(stripped) = decrypted.strip_prefix(user) {

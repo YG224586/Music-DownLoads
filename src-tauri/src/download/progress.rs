@@ -1,5 +1,5 @@
-use super::task_state::TaskState;
 use crate::events;
+use hotdownloader_core::task::state::TaskState;
 use tauri::{AppHandle, Emitter, Manager};
 
 pub fn emit_progress(

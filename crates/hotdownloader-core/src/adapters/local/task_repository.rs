@@ -2,8 +2,8 @@ use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use super::contract::TaskRecord;
-use super::task_state::TaskRepository;
+use crate::task::contract::TaskRecord;
+use crate::task::state::TaskRepository;
 
 /// 普通文件系统实现，供独立 Rust 进程保存任务快照。
 /// 文件写入同目录临时文件后替换目标，Linux 上 rename 保证读者只看到完整 JSON。

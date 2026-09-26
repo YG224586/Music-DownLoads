@@ -7,10 +7,10 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use futures_util::stream;
-use hotdownloader_core::contract::CreateTaskRequest;
-use hotdownloader_core::qq_login::{self, LoginCredentialStore};
-use hotdownloader_core::settings_patch::{SettingsPatch, SettingsPatchError};
-use hotdownloader_core::task_service::TaskService;
+use hotdownloader_core::platforms::qqmusic::login::{self as qq_login, LoginCredentialStore};
+use hotdownloader_core::settings::patch::{SettingsPatch, SettingsPatchError};
+use hotdownloader_core::task::contract::CreateTaskRequest;
+use hotdownloader_core::task::service::TaskService;
 use http_body_util::{BodyExt, Full, Limited, StreamBody};
 use hyper::body::{Frame, Incoming};
 use hyper::{Method, Request, Response, StatusCode};

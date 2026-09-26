@@ -7,9 +7,9 @@ use std::time::{Duration, Instant};
 use futures_util::StreamExt;
 use reqwest::header::{CONTENT_LENGTH, CONTENT_RANGE, RANGE};
 
-use crate::decryption::{self, DecryptContext};
-use crate::engine::TaskController;
-use crate::ports::DownloadProgressSink;
+use crate::download::decryption::{self, DecryptContext};
+use crate::download::engine::TaskController;
+use crate::download::ports::DownloadProgressSink;
 
 /// 下载专用客户端不设置总超时，大文件只限制连接和单次读取等待时间。
 static DOWNLOAD_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
@@ -279,7 +279,7 @@ mod tests {
     use std::sync::Mutex;
 
     use super::{classify_response, retry_or_fail, ResponseAction, StreamOutcome};
-    use crate::ports::DownloadProgressSink;
+    use crate::download::ports::DownloadProgressSink;
 
     #[derive(Default)]
     struct RecordingProgressSink {

@@ -1,9 +1,9 @@
 //! 酷我音乐歌词获取模块。
 //!
 //! 负责构造酷我歌词请求参数、调用接口获取加密响应，并调用
-//! [`crate::kwlyric`] 进行解密和格式化，最终返回 [`LyricData`]。
+//! [`super::lyric_decoder`] 进行解密和格式化，最终返回 [`LyricData`]。
 
-use crate::kwlyric;
+use super::lyric_decoder;
 use crate::platforms::lyric::LyricData;
 use crate::platforms::CLIENT;
 use base64::{engine::general_purpose::STANDARD, Engine as _};
@@ -79,17 +79,17 @@ pub async fn get_lyric_by_id(song_id: u64) -> Result<LyricData, String> {
         .map_err(|e| format!("读取歌词响应失败: {}", e))?;
 
     // 调用 utils 模块解密响应体
-    let decoded = kwlyric::decode_lyric(&data, true);
+    let decoded = lyric_decoder::decode_lyric(&data, true);
     if decoded.is_empty() {
         return Err("歌词解密失败".into());
     }
 
     // 调用 utils 模块解析歌词文本
-    let (tags, lyric_lines, enhanced_lines) = kwlyric::parse_lyric(&decoded);
+    let (tags, lyric_lines, enhanced_lines) = lyric_decoder::parse_lyric(&decoded);
 
     // 调用 utils 模块构建 LRC 和 ELRC 文本
-    let lrc = kwlyric::build_lrc_text(&tags, &lyric_lines);
-    let elrc = kwlyric::build_enhanced_lrc_text(&tags, &enhanced_lines);
+    let lrc = lyric_decoder::build_lrc_text(&tags, &lyric_lines);
+    let elrc = lyric_decoder::build_enhanced_lrc_text(&tags, &enhanced_lines);
 
     // 简单的纯音乐检测（可选）
     let instrumental = lrc.contains("纯音乐") || lrc.contains("Instrumental");

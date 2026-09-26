@@ -1,8 +1,8 @@
 use tauri::{AppHandle, Emitter};
 
-use crate::download::contract::TaskRecord;
-use crate::download::task_state::{TaskEventSink, TaskRepository};
 use crate::storage::store_wrapper;
+use hotdownloader_core::task::contract::TaskRecord;
+use hotdownloader_core::task::state::{TaskEventSink, TaskRepository};
 
 const TASK_UPDATED: &str = "task-updated";
 const TASK_REMOVED: &str = "task-removed";

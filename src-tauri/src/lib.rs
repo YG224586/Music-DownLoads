@@ -6,8 +6,8 @@ mod platforms;
 mod storage;
 mod utils;
 
-use download::engine::DownloadEngine;
-use download::task_state::TaskState;
+use hotdownloader_core::download::engine::DownloadEngine;
+use hotdownloader_core::task::state::TaskState;
 use std::sync::Arc;
 use storage::store_wrapper;
 use tauri::Manager;

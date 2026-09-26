@@ -2,21 +2,20 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use std::sync::atomic::Ordering;
 
-use crate::decryption;
-use crate::download_config::DownloadConfig;
-use crate::download_link::{fetch_download_link_with_retry, DownloadLinkProvider};
-use crate::download_path::resolve_download_path;
-use crate::engine::TaskController;
-use crate::http_transfer::{
-    classify_http_response, request_download_response, write_response_stream, ResponseAction,
-    StreamOutcome,
-};
-use crate::local_download_file::ensure_parent_directory;
-use crate::ports::{
+use super::decryption;
+use crate::download::config::DownloadConfig;
+use crate::download::context::TaskContext;
+use crate::download::engine::TaskController;
+use crate::download::link::{fetch_download_link_with_retry, DownloadLinkProvider};
+use crate::download::path::resolve_download_path;
+use crate::download::ports::{
     DownloadFileOpener, DownloadPostprocessor, DownloadProgressSink, FileDeleter, FileOpenRequest,
     PostprocessRequest,
 };
-use crate::task_context::TaskContext;
+use crate::download::transfer::{
+    classify_http_response, request_download_response, write_response_stream, ResponseAction,
+    StreamOutcome,
+};
 
 /// 与 Tauri 无关的完整下载任务循环。运行时提供设置、链接、文件、状态和收尾端口。
 /// 返回任务是否成功完成，供调度器决定是否清理任务上下文。
@@ -56,7 +55,7 @@ pub async fn download_task(
 
     // 2. 创建目录并验证（仅普通模式需要）
     if !is_saf {
-        if let Err(error) = ensure_parent_directory(&download_dir) {
+        if let Err(error) = file_opener.prepare_parent(&download_dir) {
             log::error!("创建下载目录失败: {}", error);
             progress_sink.error(&ctx.task_id, "下载目录无法访问");
             return false;
@@ -328,14 +327,14 @@ mod tests {
     use tokio_util::sync::CancellationToken;
 
     use super::download_task;
-    use crate::download_config::DownloadConfig;
-    use crate::download_link::DownloadLinkProvider;
-    use crate::engine::TaskController;
-    use crate::local_download_file::LocalDownloadFileOpener;
-    use crate::local_file_deleter::LocalFileDeleter;
-    use crate::platform::Platform;
-    use crate::ports::{DownloadProgressSink, NoopDownloadPostprocessor};
-    use crate::task_context::{SongInfo, TaskContext};
+    use crate::adapters::local::download_file::LocalDownloadFileOpener;
+    use crate::adapters::local::file_deleter::LocalFileDeleter;
+    use crate::download::config::DownloadConfig;
+    use crate::download::context::{SongInfo, TaskContext};
+    use crate::download::engine::TaskController;
+    use crate::download::link::DownloadLinkProvider;
+    use crate::download::ports::{DownloadProgressSink, NoopDownloadPostprocessor};
+    use crate::platforms::Platform;
 
     struct RejectedLink;
 

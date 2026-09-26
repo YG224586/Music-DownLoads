@@ -2,7 +2,7 @@
 //!
 //! 通过 QQ 音乐歌曲 ID 获取歌词，支持 QRC 解密、转换为 LRC 和增强 LRC 格式。
 
-use crate::qrc;
+use crate::platforms::qqmusic::qrc;
 use serde::Serialize;
 use serde_json::{json, Value};
 

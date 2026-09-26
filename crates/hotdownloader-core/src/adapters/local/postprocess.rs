@@ -1,5 +1,4 @@
-//! 下载后的平台数据获取、普通文件歌词写入和音频标签写入。
-//! Android SAF 只负责把文件复制到本地临时路径并写回；标签规则由这里统一执行。
+//! 普通文件系统的 LRC 与音频标签写入，以及完整下载收尾实现。
 
 use std::path::Path;
 
@@ -9,66 +8,10 @@ use lofty::file::{AudioFile, TaggedFileExt};
 use lofty::picture::{MimeType, Picture, PictureType};
 use lofty::tag::{ItemKey, Tag, TagType};
 
-use crate::platform::Platform;
+use crate::download::context::TaskContext;
+use crate::download::ports::{DownloadPostprocessor, DownloadProgressSink, PostprocessRequest};
+use crate::download::postprocess::{prepare_assets, PostprocessAssets};
 use crate::platforms::lyric::LyricData;
-use crate::ports::{DownloadPostprocessor, DownloadProgressSink, PostprocessRequest};
-use crate::task_context::TaskContext;
-
-/// 一次获取的歌词与封面会同时供音频标签及独立 LRC 使用。
-pub struct PostprocessAssets {
-    pub lyric: Option<LyricData>,
-    pub cover_bytes: Option<Vec<u8>>,
-}
-
-/// 根据任务配置准备收尾数据。平台接口失败只影响对应的可选内容。
-pub async fn prepare_assets(
-    context: &TaskContext,
-    write_metadata: bool,
-    download_lrc: bool,
-) -> PostprocessAssets {
-    let lyric = if write_metadata || download_lrc {
-        let result = match context.platform {
-            Platform::QqMusic => {
-                crate::platforms::qqmusic::lyrics::get_lyric_by_id(context.song_id).await
-            }
-            Platform::Kuwo => {
-                crate::platforms::kuwo::lyrics::get_lyric_by_id(context.song_id).await
-            }
-        };
-        match result {
-            Ok(lyric) => Some(lyric),
-            Err(error) => {
-                log::warn!("获取歌词失败: {error}");
-                None
-            }
-        }
-    } else {
-        None
-    };
-
-    // 酷我搜索结果可能缺封面。只有需要写标签时才补取，避免无用的网络请求。
-    let mut cover_url = context.song_info.cover_url.clone();
-    if write_metadata && cover_url.is_empty() && matches!(context.platform, Platform::Kuwo) {
-        match crate::platforms::kuwo::cover::fetch_cover(context.song_id).await {
-            Ok(url) => cover_url = url,
-            Err(error) => log::warn!("任务 {} 获取酷我封面失败: {error}", context.task_id),
-        }
-    }
-
-    let cover_bytes = if write_metadata && !cover_url.is_empty() {
-        match crate::platforms::CLIENT.get(&cover_url).send().await {
-            Ok(response) if response.status().is_success() => {
-                response.bytes().await.ok().map(|bytes| bytes.to_vec())
-            }
-            _ => None,
-        }
-    } else {
-        None
-    };
-
-    PostprocessAssets { lyric, cover_bytes }
-}
-
 /// 将普通 LRC 写在音频旁边；无歌词或写入失败都不改变音频下载结果。
 pub fn write_local_lrc(audio_path: &str, lyric: &LyricData) -> Option<String> {
     let content = lyric
@@ -186,6 +129,7 @@ impl DownloadPostprocessor for LocalDownloadPostprocessor {
             )
             .await;
 
+            // 先写音频标签，再处理独立 LRC；标签失败只发警告，仍继续尝试歌词文件。
             if request.config.write_metadata {
                 if let Err(error) =
                     write_audio_metadata(Path::new(request.audio_path), request.context, &assets)
@@ -197,6 +141,7 @@ impl DownloadPostprocessor for LocalDownloadPostprocessor {
 
             if request.config.download_lrc {
                 if let Some(lyric) = assets.lyric.as_ref() {
+                    // 独立歌词是可选产物，写入失败不会回退已经完成的音频下载。
                     return write_local_lrc(request.audio_path, lyric);
                 }
                 log::info!("无普通歌词，跳过 LRC 文件创建");

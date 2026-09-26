@@ -1,14 +1,14 @@
 //! Tauri 设置命令。与独立服务共用字段验证和冲突判定，存储仍使用现有 data.json。
 
-use hotdownloader_core::settings_patch::{
+use hotdownloader_core::settings::patch::{
     apply_patch, snapshot, SettingsPatch, SettingsPatchError, SettingsScope, SettingsSnapshot,
 };
 use serde_json::{json, Value};
 use std::sync::Mutex;
 use tauri::{command, AppHandle, Emitter, Manager};
 
-use crate::download::engine::DownloadEngine;
 use crate::storage::store_wrapper;
+use hotdownloader_core::download::engine::DownloadEngine;
 
 // 覆盖完整的写盘、调度器更新和事件广播，保持同一进程内的修订顺序。
 static PATCH_COMMAND_LOCK: Mutex<()> = Mutex::new(());
@@ -54,7 +54,11 @@ pub async fn patch_settings(
     store_wrapper::update_settings(&app, |previous| {
         let current = read_stored(previous)?;
         let applied = apply_patch(&current, patch, SettingsScope::Tauri).map_err(patch_error)?;
-        if applied.changed_fields.iter().any(|field| field == "maxConcurrent") {
+        if applied
+            .changed_fields
+            .iter()
+            .any(|field| field == "maxConcurrent")
+        {
             concurrency_changed = true;
         }
         if !applied.changed_fields.is_empty() {
@@ -65,8 +69,8 @@ pub async fn patch_settings(
 
     if concurrency_changed {
         // 两个命令可能在写盘后以相反顺序恢复执行，因此以当前持久化值更新调度器。
-        let latest = store_wrapper::load_string(&app, "settings")
-            .map_err(|error| error.to_string())?;
+        let latest =
+            store_wrapper::load_string(&app, "settings").map_err(|error| error.to_string())?;
         let max = read_stored(&latest)?["maxConcurrent"]
             .as_u64()
             .unwrap_or(3)
@@ -78,8 +82,8 @@ pub async fn patch_settings(
         let _ = app.emit("settings-updated", &saved);
         Ok(saved)
     } else {
-        let raw = store_wrapper::load_string(&app, "settings")
-            .map_err(|error| error.to_string())?;
+        let raw =
+            store_wrapper::load_string(&app, "settings").map_err(|error| error.to_string())?;
         Ok(snapshot(&read_stored(&raw)?))
     }
 }

@@ -1,16 +1,18 @@
 //! Tauri 任务服务适配层。业务方法位于共享核心，这里只连接设置存储、SAF 和托管状态。
 
-use hotdownloader_core::download_config::{DownloadConfig, DownloadConfigProvider};
-use hotdownloader_core::task_rules::TaskRules;
-use hotdownloader_core::task_service::{TaskEnvironment, TaskService};
+use hotdownloader_core::download::config::{DownloadConfig, DownloadConfigProvider};
+use hotdownloader_core::task::rules::TaskRules;
+use hotdownloader_core::task::service::{TaskEnvironment, TaskService};
 use tauri::{AppHandle, Manager};
 use tauri_plugin_android_fs::{AndroidFsExt, FsUri};
 
 use crate::adapters::tauri_download_host::TauriDownloadConfigProvider;
-use crate::download::contract::{BatchResult, CreateTaskRequest, CreateTaskResult, TaskRecord};
-use crate::download::engine::DownloadEngine;
-use crate::download::task_state::TaskState;
 use crate::storage::store_wrapper;
+use hotdownloader_core::download::engine::DownloadEngine;
+use hotdownloader_core::task::contract::{
+    BatchResult, CreateTaskRequest, CreateTaskResult, TaskRecord,
+};
+use hotdownloader_core::task::state::TaskState;
 
 /// 创建、重试时读取当下设置，避免页面持有过期的重试和降级策略。
 /// 本地文件长度直接从磁盘读取；SAF 文件名必须由 Android 插件在授权目录内解析。

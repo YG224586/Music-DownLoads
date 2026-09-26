@@ -1,7 +1,7 @@
 //! Web 音乐查询入口。只做请求参数校验和平台分派，解析与网络请求复用共享核心。
 
-use hotdownloader_core::platform::Platform;
 use hotdownloader_core::platforms;
+use hotdownloader_core::platforms::Platform;
 use serde::Deserialize;
 use serde_json::Value;
 

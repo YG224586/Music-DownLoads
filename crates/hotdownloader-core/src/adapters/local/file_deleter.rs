@@ -2,7 +2,7 @@ use std::io::ErrorKind;
 
 use futures_util::future::BoxFuture;
 
-use super::ports::FileDeleter;
+use crate::download::ports::FileDeleter;
 
 /// 普通文件系统删除实现；Docker 运行时可直接使用。
 pub struct LocalFileDeleter;

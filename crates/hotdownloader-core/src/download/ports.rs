@@ -3,8 +3,8 @@ use std::io::BufWriter;
 
 use futures_util::future::BoxFuture;
 
-use crate::download_config::DownloadConfig;
-use crate::task_context::TaskContext;
+use crate::download::config::DownloadConfig;
+use crate::download::context::TaskContext;
 
 /// 删除普通文件或平台专有 URI。下载引擎只知道目标路径，不解析 SAF。
 pub trait FileDeleter: Send + Sync {
@@ -45,6 +45,9 @@ pub struct OpenedDownloadFile {
 
 /// 平台文件打开端口。SAF 插件仅出现在 Tauri 实现中，普通文件可由核心实现。
 pub trait DownloadFileOpener: Send + Sync {
+    /// 在获取链接前准备普通文件的父目录；SAF 路径由 worker 跳过此步骤。
+    fn prepare_parent(&self, file_path: &str) -> std::io::Result<()>;
+
     fn open<'a>(
         &'a self,
         request: FileOpenRequest<'a>,

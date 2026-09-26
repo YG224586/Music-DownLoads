@@ -1,4 +1,4 @@
-use crate::task_context::SongInfo;
+use crate::download::context::SongInfo;
 
 /// 过滤各平台常见的非法文件名字符，保持已有文件命名规则。
 pub fn sanitize_name(raw: &str) -> String {

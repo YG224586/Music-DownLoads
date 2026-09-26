@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tokio::sync::Mutex;
 
-use super::platform::Platform;
+use crate::platforms::Platform;
 
 /// 歌曲信息，用于文件命名及元数据写入。
 #[derive(Clone)]

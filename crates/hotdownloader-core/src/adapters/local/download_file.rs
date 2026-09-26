@@ -4,7 +4,9 @@ use std::path::Path;
 
 use futures_util::future::BoxFuture;
 
-use crate::ports::{DownloadFileOpener, DownloadProgressSink, FileOpenRequest, OpenedDownloadFile};
+use crate::download::ports::{
+    DownloadFileOpener, DownloadProgressSink, FileOpenRequest, OpenedDownloadFile,
+};
 
 /// 普通文件下载使用与 SAF 写入相同的 64 KB 缓冲区大小。
 const FILE_BUFFER_CAPACITY: usize = 64 * 1024;
@@ -91,6 +93,10 @@ pub fn open_local_download_file(
 pub struct LocalDownloadFileOpener;
 
 impl DownloadFileOpener for LocalDownloadFileOpener {
+    fn prepare_parent(&self, file_path: &str) -> io::Result<()> {
+        ensure_parent_directory(file_path)
+    }
+
     fn open<'a>(
         &'a self,
         request: FileOpenRequest<'a>,
