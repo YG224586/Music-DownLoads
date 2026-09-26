@@ -12,6 +12,24 @@ permissions:
   contents: read
 
 jobs:
+  # ---------- 发布前检查 ----------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test shared core
+        run: cargo test --locked --manifest-path crates/hotdownloader-core/Cargo.toml
+
+      - name: Test server
+        run: cargo test --locked --manifest-path crates/hotdownloader-server/Cargo.toml
+
   # ---------- 桌面端构建 ----------
   build:
     strategy:
@@ -203,23 +221,23 @@ jobs:
 
   # ---------- 创建 Release（仅 tag 触发，且只执行一次） ----------
   release:
-    needs: [build, build-android]   # 等待所有构建完成
-    if: github.ref_type == 'tag'    # 仅标签推送时运行
+    needs: [test, build, build-android]   # 等待测试和所有构建完成
+    if: github.ref_type == 'tag'          # 仅标签推送时运行
     runs-on: ubuntu-latest
     permissions:
-      contents: write               # 仅此 job 需要写权限
+      contents: write                     # 仅此 job 需要写权限
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0            # 获取全部历史，否则 git-cliff 可能找不到旧 tag
+          fetch-depth: 0                  # 获取全部历史，否则 git-cliff 可能找不到旧 tag
           submodules: recursive
 
       - name: Download all artifacts
         uses: actions/download-artifact@v8
         with:
-          path: release-assets      # 下载到该目录
-          merge-multiple: true      # 合并所有 artifact，不保留 artifact 名称子目录
+          path: release-assets            # 下载到该目录
+          merge-multiple: true            # 合并所有 artifact，不保留 artifact 名称子目录
 
       - name: Install git-cliff
         uses: taiki-e/install-action@v2
@@ -233,7 +251,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           name: Release ${{ github.ref_name }}
-          body_path: release_notes.md   # 使用文件内容作为 Release 说明
+          body_path: release_notes.md     # 使用文件内容作为 Release 说明
           draft: false
           prerelease: false
           files: |
