@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { isTauri } from '@tauri-apps/api/core'
+import { isNativeRuntime } from '../api/runtimeApi'
 import { taskTransport } from '../api/taskTransport'
 import { useSettingsStore } from './settingsStore'
 import type { BatchTaskResult } from '../api/taskTransport'
@@ -15,7 +15,7 @@ import type {
 export const useTaskStore = defineStore('tasks', () => {
     const tasks = ref<TaskRecord[]>([])
     const connectionStatus = ref<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>(
-        isTauri() ? 'connected' : 'connecting'
+        isNativeRuntime() ? 'connected' : 'connecting'
     )
     const lastServerActivityAt = ref<number | null>(null)
     let loading = false

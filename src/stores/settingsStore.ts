@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { isTauri } from '@tauri-apps/api/core'
+import { isNativeRuntime } from '../api/runtimeApi'
 import * as settingsApi from '../api/settingsApi'
 import type { Settings } from '../types'
 import { DEFAULT_SETTINGS, normalizeQualityDowngradeOrder } from '../types'
@@ -46,7 +46,7 @@ export const useSettingsStore = defineStore('settings', () => {
     const settings = ref<Settings>(createDefaultSettings())
     const conflictFields = ref<SettingKey[]>([])
     const saveError = ref('')
-    const native = isTauri()
+    const native = isNativeRuntime()
     const persistedKeys = native ? NATIVE_KEYS : SHARED_KEYS
     const dirty = new Set<SettingKey>()
     const pendingWrites = new Map<SettingKey, unknown>()
