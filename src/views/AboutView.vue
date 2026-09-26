@@ -9,7 +9,7 @@
             <div class="app-version">版本 {{ version }}</div>
             <!-- 更新为与 README 一致的跨平台描述 -->
             <p class="app-description">
-                基于 Tauri 2 + Vue 3 的跨平台音乐下载应用，支持桌面端（Windows/macOS/Linux）与 Android 端，提供搜索、歌单导入、多任务下载、自动降级、音频解密等功能。
+                基于共享 Rust 下载核心和 Vue 3 的音乐下载工具，支持 Tauri 桌面端、Android 端与 Docker/Web 部署，提供搜索、歌单导入、多任务下载、自动降级、音频解密等功能。
             </p>
         </div>
 
