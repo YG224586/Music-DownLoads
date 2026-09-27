@@ -1,5 +1,5 @@
 # 前端使用仓库的 npm 锁文件，保证容器构建与本地 npm 依赖一致。
-FROM node:22-bookworm-slim AS web-builder
+FROM node:24-trixie-slim AS web-builder
 WORKDIR /build
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -10,13 +10,13 @@ COPY src-tauri/tauri.conf.json ./src-tauri/tauri.conf.json
 RUN npm run build
 
 # Rust 构建需要完整的共享核心和加密库源码。锁文件属于服务 crate。
-FROM rust:1-bookworm AS rust-builder
+FROM rust:1-trixie AS rust-builder
 WORKDIR /build
 COPY crates ./crates
 COPY libs/um_crypto ./libs/um_crypto
 RUN cargo build --release --locked --manifest-path crates/hotdownloader-server/Cargo.toml
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
