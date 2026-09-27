@@ -37,7 +37,7 @@ jobs:
       - name: Set lowercase image name
         id: image
         run: |
-          echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/hotdownloader" >> "$GITHUB_OUTPUT"
+          echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
       - name: Docker metadata
         id: meta
