@@ -13,8 +13,11 @@ services:
     environment:
       # 服务对外监听时要求至少 16 个字符；请在本机 .env 中设置随机令牌。
       HOTDOWNLOADER_TOKEN: ${HOTDOWNLOADER_TOKEN:?请先设置 HOTDOWNLOADER_TOKEN}
+      HOTDOWNLOADER_DOWNLOAD_DIR: ${HOTDOWNLOADER_DOWNLOAD_DIR:-/downloads}
     volumes:
       - hotdownloader-data:/data
+      - ${HOTDOWNLOADER_DOWNLOAD_MOUNT:-hotdownloader-downloads}:${HOTDOWNLOADER_DOWNLOAD_DIR:-/downloads}
 
 volumes:
   hotdownloader-data:
+  hotdownloader-downloads:

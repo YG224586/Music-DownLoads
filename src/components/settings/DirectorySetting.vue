@@ -3,7 +3,7 @@
         <template v-if="isWeb">
             <div class="current-dir">
                 <n-text>服务器下载目录：{{ settingsStore.settings.downloadDir }}</n-text>
-                <n-text depth="3">目录由服务部署环境设置，文件保存在服务器上。</n-text>
+                <n-text depth="3">通过 HOTDOWNLOADER_DOWNLOAD_DIR 设置容器内路径，并为该路径挂载下载卷。</n-text>
             </div>
         </template>
         <template v-else-if="!isAndroid">

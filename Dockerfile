@@ -27,7 +27,7 @@ COPY LICENSE /app/LICENSE
 COPY crates/hotdownloader-server/NOTICE /app/NOTICE
 COPY crates/hotdownloader-server/THIRD_PARTY_LICENSES.txt /app/THIRD_PARTY_LICENSES.txt
 
-# 任务、凭据、设置和下载文件都放在持久化目录，网页连接中断不影响任务。
+# 数据目录保存任务、凭据和设置；下载目录可通过环境变量独立指定并挂载。
 ENV HOTDOWNLOADER_BIND=0.0.0.0:8787 \
     HOTDOWNLOADER_DATA_DIR=/data \
     HOTDOWNLOADER_WEB_DIR=/app/dist

@@ -14,10 +14,11 @@
 
 ### 启动容器
 
-创建 `.env`，填入至少 16 个字符的随机访问令牌：
+创建 `.env`，填入至少 16 个字符的随机访问令牌和容器内下载目录：
 
 ```dotenv
 HOTDOWNLOADER_TOKEN=请替换为随机生成的长令牌
+HOTDOWNLOADER_DOWNLOAD_DIR=/downloads
 ```
 
 拉取镜像并启动服务：
@@ -27,22 +28,36 @@ docker pull ghcr.io/lerdb/hotdownloader:latest
 docker run -d --name hotdownloader --restart unless-stopped \
   --env-file .env -p 127.0.0.1:8787:8787 \
   -v hotdownloader-data:/data \
+  -v hotdownloader-downloads:/downloads \
   ghcr.io/lerdb/hotdownloader:latest
 ```
 
-在服务器本机访问 `http://127.0.0.1:8787`，输入 `.env` 中的访问令牌。Docker 仅将端口绑定到宿主机回环地址；容器内服务仍监听 `0.0.0.0:8787`，以便端口映射正常工作。
+在服务器本机访问 `http://127.0.0.1:8787`，输入 `.env` 中的访问令牌。
+Docker 仅将端口绑定到宿主机回环地址，容器内服务仍监听 `0.0.0.0:8787`，以便端口映射正常工作。
 
-从其他设备访问时，请在宿主机配置 HTTPS 反向代理，将请求转发到 `127.0.0.1:8787`，并通过 HTTPS 域名打开网页。不要将令牌通过公网明文 HTTP 传输。
-
-命名卷 `hotdownloader-data` 挂载到容器的 `/data`，保存以下数据：
-
-- 设置
-- QQ 凭据
-- 任务记录
-- 下载文件
+从其他设备访问时，请在宿主机配置 HTTPS 反向代理，将请求转发到 `127.0.0.1:8787`，并通过 HTTPS 域名打开网页。
+不要将令牌通过公网明文 HTTP 传输。
 
 下载任务由服务进程持续执行。重新打开网页即可查看进度。
 页面顶部显示服务连接状态和最近响应时间。
+
+### 数据与下载目录
+
+容器使用两个独立的卷：
+
+- `hotdownloader-data` 挂载到 `/data`，保存设置、QQ 凭据和任务记录。
+- `hotdownloader-downloads` 挂载到 `/downloads`，保存新下载的文件。
+
+如需使用宿主机目录，将第二个 `-v` 改为：
+
+```text
+-v /srv/music:/downloads
+```
+
+`HOTDOWNLOADER_DOWNLOAD_DIR` 应与容器内的下载目录挂载目标一致。
+
+从旧版 Docker 部署升级时，已有下载文件仍位于 `hotdownloader-data` 卷中的 `/data/downloads`，已有任务记录也继续引用该路径。
+新任务将写入独立的下载卷。请保留原数据卷，以便访问历史文件。
 
 ### 使用 Compose
 
@@ -53,6 +68,16 @@ docker run -d --name hotdownloader --restart unless-stopped \
 docker compose pull
 docker compose up -d
 ```
+
+Compose 默认使用独立的 `hotdownloader-downloads` 卷。
+如需改用宿主机目录，在 `.env` 中加入：
+
+```dotenv
+HOTDOWNLOADER_DOWNLOAD_MOUNT=/srv/music
+```
+
+`HOTDOWNLOADER_DOWNLOAD_MOUNT` 控制挂载源。
+如需更改容器内路径，再将 `HOTDOWNLOADER_DOWNLOAD_DIR` 设为绝对路径，Compose 会用它作为挂载目标。
 
 ### 更新镜像
 
@@ -94,7 +119,7 @@ cargo run --manifest-path crates/hotdownloader-server/Cargo.toml
 | `HOTDOWNLOADER_BIND` | 监听地址，默认 `127.0.0.1:8787`。 |
 | `HOTDOWNLOADER_TOKEN` | 对外监听时设置至少 16 个字符的访问令牌。`/api` 请求使用 `Authorization: Bearer <token>`。 |
 | `HOTDOWNLOADER_WEB_DIR` | 前端构建产物目录，默认 `./dist`。 |
-| `HOTDOWNLOADER_DOWNLOAD_DIR` | 下载文件的绝对目录，默认数据目录下的 `downloads`。 |
+| `HOTDOWNLOADER_DOWNLOAD_DIR` | 下载文件的绝对目录。本机或直接使用镜像时默认是数据目录下的 `downloads`；仓库的 Compose 配置默认是 `/downloads`。 |
 | `HOTDOWNLOADER_LOG_LEVEL` | 日志级别，可设为 `off`、`error`、`warn`、`info`、`debug` 或 `trace`，默认 `info`。 |
 
 数据目录包含：

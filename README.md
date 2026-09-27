@@ -60,32 +60,9 @@
 
 ### Docker/Web 部署
 
-#### 1. 设置访问令牌
+使用 Docker 镜像运行独立服务。
 
-创建 `.env`，填入至少 16 个字符的随机访问令牌：
-
-```dotenv
-HOTDOWNLOADER_TOKEN=请替换为随机生成的长令牌
-```
-
-#### 2. 启动容器
-
-从 GHCR 拉取镜像并启动服务：
-
-```bash
-docker pull ghcr.io/lerdb/hotdownloader:latest
-docker run -d --name hotdownloader --restart unless-stopped \
-  --env-file .env -p 127.0.0.1:8787:8787 \
-  -v hotdownloader-data:/data \
-  ghcr.io/lerdb/hotdownloader:latest
-```
-
-#### 3. 打开网页
-
-在服务器本机访问 `http://127.0.0.1:8787`，输入 `.env` 中的访问令牌。端口默认只绑定宿主机回环地址，若需从其他设备访问，请配置 HTTPS 反向代理转发到 `127.0.0.1:8787`，再通过 HTTPS 域名打开网页，避免访问令牌在网络中明文传输。
-
-命名卷 `hotdownloader-data` 保存设置、登录凭据、任务记录和下载文件。
-Compose 部署、镜像更新与日志查看见 [独立服务部署文档](crates/hotdownloader-server/README.md)。
+启动方式、目录挂载与更新说明见 [服务端部署文档](crates/hotdownloader-server/README.md)。
 
 ### 从源码运行桌面端与 Android 端
 
