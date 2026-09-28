@@ -31,7 +31,7 @@ const DEFAULT_TTL_MS = 5 * 60 * 1000
 export function cachedInvoke<T>(
     command: string,
     args?: Record<string, unknown>,
-    options: { ttlMs?: number; key?: string } = {}
+    options: { ttlMs?: number; key?: string } = {},
 ): Promise<T> {
     const { ttlMs = DEFAULT_TTL_MS, key } = options
     const cacheKey = key ?? `${command}:${JSON.stringify(args ?? {})}`

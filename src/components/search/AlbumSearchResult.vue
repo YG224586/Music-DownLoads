@@ -2,23 +2,53 @@
     <div class="album-search-result">
         <template v-if="albums.length > 0">
             <div class="album-card-list">
-                <div v-for="album in albums" :key="album.id" class="album-card" @click="$emit('click-album', album)">
-                    <img v-if="album.coverUrl" :src="album.coverUrl" class="album-card-cover" alt="专辑封面" />
+                <div
+                    v-for="album in albums"
+                    :key="album.id"
+                    class="album-card"
+                    @click="$emit('click-album', album)"
+                >
+                    <img
+                        v-if="album.coverUrl"
+                        :src="album.coverUrl"
+                        class="album-card-cover"
+                        alt="专辑封面"
+                    />
                     <div class="album-card-info">
                         <div class="album-card-name">
-                            <n-button text @click.stop="$emit('click-album', album)">{{ album.name }}</n-button>
+                            <n-button
+                                text
+                                @click.stop="$emit('click-album', album)"
+                                >{{ album.name }}</n-button
+                            >
                         </div>
                         <div class="album-card-creator">
-                            <ArtistNames :platform="platform" :artists="album.artists" :fallback="album.artist"
-                                @click-artist="(platform, artist) => $emit('click-artist', platform, artist)" />
+                            <ArtistNames
+                                :platform="platform"
+                                :artists="album.artists"
+                                :fallback="album.artist"
+                                @click-artist="
+                                    (platform, artist) =>
+                                        $emit('click-artist', platform, artist)
+                                "
+                            />
                         </div>
                         <div class="album-card-meta">
-                            {{ album.songCount }} 首<span v-if="album.publishDate"> · {{ album.publishDate }}</span>
+                            {{ album.songCount }} 首<span
+                                v-if="album.publishDate"
+                            >
+                                · {{ album.publishDate }}</span
+                            >
                         </div>
                     </div>
                 </div>
             </div>
-            <LoadMoreButton v-if="hasMore" :loading="loadingMore" :disabled="loadingMore" @click="$emit('load-more')" />
+            <LoadMoreButton
+                v-if="hasMore"
+                :loading="loadingMore"
+                :disabled="loadingMore"
+                @click="$emit('load-more')"
+            />
         </template>
         <div v-else class="empty-result">
             <n-empty description="未找到相关专辑" />

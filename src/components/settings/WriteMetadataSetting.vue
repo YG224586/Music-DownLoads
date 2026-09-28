@@ -3,15 +3,23 @@
         <!-- 移动端：开关行内布局，与其他开关组件保持一致 -->
         <div class="setting-row">
             <span class="setting-label">下载完成后写入歌曲标签</span>
-            <n-switch :value="settingsStore.settings.writeMetadata"
-                @update:value="(val) => (settingsStore.settings.writeMetadata = val)" />
+            <n-switch
+                :value="settingsStore.settings.writeMetadata"
+                @update:value="
+                    (val) => (settingsStore.settings.writeMetadata = val)
+                "
+            />
         </div>
     </template>
     <template v-else>
         <!-- 桌面端：原有表单布局 -->
         <n-form-item label="下载完成后写入歌曲标签">
-            <n-switch :value="settingsStore.settings.writeMetadata"
-                @update:value="(val) => (settingsStore.settings.writeMetadata = val)" />
+            <n-switch
+                :value="settingsStore.settings.writeMetadata"
+                @update:value="
+                    (val) => (settingsStore.settings.writeMetadata = val)
+                "
+            />
         </n-form-item>
     </template>
 </template>

@@ -42,30 +42,43 @@ export const tauriTaskTransport: TaskTransport = {
         const unlisteners: UnlistenFn[] = []
         try {
             // 逐个注册，以便后续注册失败时取消已经成功的监听器。
-            unlisteners.push(await listen<SettingsSnapshot>('settings-updated', event => {
-                handlers.settings(event.payload)
-            }))
-            unlisteners.push(await listen<TaskRecord>('task-updated', event => {
-                handlers.updated(event.payload)
-            }))
-            unlisteners.push(await listen<string>('task-removed', event => {
-                handlers.removed(event.payload)
-            }))
-            unlisteners.push(await listen<DownloadMetadataErrorPayload>('download-metadata-error', event => {
-                handlers.metadataError(event.payload)
-            }))
-            unlisteners.push(await listen<string>('login-refresh-failed', event => {
-                handlers.loginRefreshFailed(event.payload)
-            }))
+            unlisteners.push(
+                await listen<SettingsSnapshot>('settings-updated', (event) => {
+                    handlers.settings(event.payload)
+                }),
+            )
+            unlisteners.push(
+                await listen<TaskRecord>('task-updated', (event) => {
+                    handlers.updated(event.payload)
+                }),
+            )
+            unlisteners.push(
+                await listen<string>('task-removed', (event) => {
+                    handlers.removed(event.payload)
+                }),
+            )
+            unlisteners.push(
+                await listen<DownloadMetadataErrorPayload>(
+                    'download-metadata-error',
+                    (event) => {
+                        handlers.metadataError(event.payload)
+                    },
+                ),
+            )
+            unlisteners.push(
+                await listen<string>('login-refresh-failed', (event) => {
+                    handlers.loginRefreshFailed(event.payload)
+                }),
+            )
         } catch (error) {
-            unlisteners.forEach(unlisten => unlisten())
+            unlisteners.forEach((unlisten) => unlisten())
             throw error
         }
 
         handlers.connection('connected')
 
         return () => {
-            unlisteners.forEach(unlisten => unlisten())
+            unlisteners.forEach((unlisten) => unlisten())
             handlers.connection('disconnected')
         }
     },

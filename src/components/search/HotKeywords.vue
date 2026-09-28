@@ -2,7 +2,13 @@
     <div v-if="!loading && keywords.length > 0" class="hot-keywords">
         <div class="hot-header">热搜推荐</div>
         <div class="hot-list">
-            <n-tag v-for="word in keywords" :key="word" class="hot-tag" size="medium" @click="$emit('select', word)">
+            <n-tag
+                v-for="word in keywords"
+                :key="word"
+                class="hot-tag"
+                size="medium"
+                @click="$emit('select', word)"
+            >
                 {{ word }}
             </n-tag>
         </div>

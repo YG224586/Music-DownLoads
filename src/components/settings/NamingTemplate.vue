@@ -1,7 +1,12 @@
 <template>
     <n-form-item label="文件命名模板">
-        <n-input :value="settingsStore.settings.namingTemplate"
-            @update:value="(val) => (settingsStore.settings.namingTemplate = val)" placeholder="{song} - {artist}" />
+        <n-input
+            :value="settingsStore.settings.namingTemplate"
+            @update:value="
+                (val) => (settingsStore.settings.namingTemplate = val)
+            "
+            placeholder="{song} - {artist}"
+        />
         <template #feedback>
             <div class="template-help">
                 可使用变量：<code>{song}</code>（歌名）、<code>{artist}</code>（歌手）、<code>{album}</code>（专辑）、<code>{quality}</code>（音质）<br />

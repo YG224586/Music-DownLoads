@@ -2,9 +2,15 @@
     <span>
         <template v-if="artists?.length">
             <template v-for="(artist, index) in artists" :key="index">
-                <template v-if="index">{{ settingsStore.settings.artistSeparator }}</template>
-                <n-button v-if="getMusicEntityId(platform, artist.id, artist.mid)" text size="small"
-                    @click.stop="$emit('click-artist', platform, artist)">
+                <template v-if="index">{{
+                    settingsStore.settings.artistSeparator
+                }}</template>
+                <n-button
+                    v-if="getMusicEntityId(platform, artist.id, artist.mid)"
+                    text
+                    size="small"
+                    @click.stop="$emit('click-artist', platform, artist)"
+                >
                     {{ artist.name }}
                 </n-button>
                 <span v-else>{{ artist.name }}</span>

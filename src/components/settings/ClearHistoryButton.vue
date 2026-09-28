@@ -2,12 +2,16 @@
     <template v-if="isNarrow">
         <div class="setting-row">
             <span class="setting-label">搜索历史</span>
-            <n-button size="small" @click="historyStore.clearHistory()">清除</n-button>
+            <n-button size="small" @click="historyStore.clearHistory()"
+                >清除</n-button
+            >
         </div>
     </template>
     <template v-else>
         <n-form-item label="搜索历史">
-            <n-button @click="historyStore.clearHistory()">清除搜索历史</n-button>
+            <n-button @click="historyStore.clearHistory()"
+                >清除搜索历史</n-button
+            >
         </n-form-item>
     </template>
 </template>

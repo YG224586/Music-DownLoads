@@ -3,15 +3,23 @@
         <!-- 移动端：开关行内布局，与其他开关组件保持一致 -->
         <div class="setting-row">
             <span class="setting-label">下载时同步保存 LRC 歌词文件</span>
-            <n-switch :value="settingsStore.settings.downloadLrc"
-                @update:value="(val) => (settingsStore.settings.downloadLrc = val)" />
+            <n-switch
+                :value="settingsStore.settings.downloadLrc"
+                @update:value="
+                    (val) => (settingsStore.settings.downloadLrc = val)
+                "
+            />
         </div>
     </template>
     <template v-else>
         <!-- 桌面端：原有表单布局 -->
         <n-form-item label="下载时同步保存 LRC 歌词文件">
-            <n-switch :value="settingsStore.settings.downloadLrc"
-                @update:value="(val) => (settingsStore.settings.downloadLrc = val)" />
+            <n-switch
+                :value="settingsStore.settings.downloadLrc"
+                @update:value="
+                    (val) => (settingsStore.settings.downloadLrc = val)
+                "
+            />
         </n-form-item>
     </template>
 </template>

@@ -14,32 +14,36 @@
  *   - 无法解析的许可证直接报错，由 OVERRIDES 或 MANUAL_TEXTS 表补全
  */
 
-import { execFileSync } from 'node:child_process';
-import { createRequire } from 'node:module';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process'
+import { createRequire } from 'node:module'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const require = createRequire(import.meta.url);
-const licenseChecker = require('license-checker-rseidelsohn');
+const require = createRequire(import.meta.url)
+const licenseChecker = require('license-checker-rseidelsohn')
 // /full 子入口在每条 SPDX 条目上附带 licenseText 字段。
-const spdx = require('spdx-license-list/full');
+const spdx = require('spdx-license-list/full')
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(__dirname, '..');
-const srcTauri = path.join(projectRoot, 'src-tauri');
-const serverCrate = path.join(projectRoot, 'crates', 'hotdownloader-server');
-const dataDir = path.join(projectRoot, 'src', 'data');
-const FIRST_PARTY_CRATES = new Set(['hotdownloader', 'hotdownloader-core', 'hotdownloader-server']);
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const projectRoot = path.resolve(__dirname, '..')
+const srcTauri = path.join(projectRoot, 'src-tauri')
+const serverCrate = path.join(projectRoot, 'crates', 'hotdownloader-server')
+const dataDir = path.join(projectRoot, 'src', 'data')
+const FIRST_PARTY_CRATES = new Set([
+    'hotdownloader',
+    'hotdownloader-core',
+    'hotdownloader-server',
+])
 
 // ---------------------------------------------------------------------------
 // 常量
 // ---------------------------------------------------------------------------
-const NOTICE_MIN_NAME_WIDTH = 20;
-const NOTICE_MIN_VERSION_WIDTH = 8;
-const LICENSE_TABLE_COLUMN_SEPARATOR = 2;
-const LICENSE_RULE_WIDTH = 78;
-const LICENSE_TABLE_RULE_WIDTH = 30;
+const NOTICE_MIN_NAME_WIDTH = 20
+const NOTICE_MIN_VERSION_WIDTH = 8
+const LICENSE_TABLE_COLUMN_SEPARATOR = 2
+const LICENSE_RULE_WIDTH = 78
+const LICENSE_TABLE_RULE_WIDTH = 30
 
 // ---------------------------------------------------------------------------
 // 手动覆盖表
@@ -48,12 +52,12 @@ const LICENSE_TABLE_RULE_WIDTH = 30;
 // npm 表以含 scope 的包名为键，cargo 表以 crate 名为键。
 const NPM_OVERRIDES = {
     '@sahil-vartak/tauri-plugin-safe-area-insets-css-api': 'MIT',
-};
+}
 
 const CARGO_OVERRIDES = {
-    'umc_qmc': 'Apache-2.0 OR MIT',
-    'umc_utils': 'Apache-2.0 OR MIT',
-};
+    umc_qmc: 'Apache-2.0 OR MIT',
+    umc_utils: 'Apache-2.0 OR MIT',
+}
 
 // ---------------------------------------------------------------------------
 // 手动许可证全文表
@@ -62,29 +66,31 @@ const CARGO_OVERRIDES = {
 // 值为 { name, text }。
 const MANUAL_TEXTS = {
     // 目前为空。
-};
+}
 
 // ---------------------------------------------------------------------------
 // 工具函数
 // ---------------------------------------------------------------------------
 
 function hasOwn(obj, key) {
-    return Object.prototype.hasOwnProperty.call(obj, key);
+    return Object.prototype.hasOwnProperty.call(obj, key)
 }
 
 function normalizeLicense(lic) {
-    if (!lic) return 'Unknown';
+    if (!lic) return 'Unknown'
     if (Array.isArray(lic)) {
-        return lic.map(normalizeLicense).filter(Boolean).join(' OR ');
+        return lic.map(normalizeLicense).filter(Boolean).join(' OR ')
     }
     if (typeof lic === 'object' && lic.type) {
-        return normalizeLicense(lic.type);
+        return normalizeLicense(lic.type)
     }
-    return String(lic)
-        .trim()
-        // SPDX 早期语法用 "/" 表示 OR，许多老 crate 沿用此写法。
-        .replace(/\s*\/\s*/g, ' OR ')
-        .replace(/\s+/g, ' ');
+    return (
+        String(lic)
+            .trim()
+            // SPDX 早期语法用 "/" 表示 OR，许多老 crate 沿用此写法。
+            .replace(/\s*\/\s*/g, ' OR ')
+            .replace(/\s+/g, ' ')
+    )
 }
 
 /**
@@ -93,24 +99,24 @@ function normalizeLicense(lic) {
  * 跳过 WITH 后面的 exception 名称。
  */
 function parseSpdxIds(expr) {
-    if (!expr || expr === 'Unknown') return [];
-    const tokens = expr
-        .replace(/[()]/g, ' ')
-        .split(/\s+/)
-        .filter(Boolean);
+    if (!expr || expr === 'Unknown') return []
+    const tokens = expr.replace(/[()]/g, ' ').split(/\s+/).filter(Boolean)
 
-    const ids = [];
+    const ids = []
     for (let i = 0; i < tokens.length; i++) {
-        const tok = tokens[i];
-        if (tok === 'OR' || tok === 'AND') continue;
-        if (tok === 'WITH') { i++; continue; }
-        ids.push(tok);
+        const tok = tokens[i]
+        if (tok === 'OR' || tok === 'AND') continue
+        if (tok === 'WITH') {
+            i++
+            continue
+        }
+        ids.push(tok)
     }
-    return [...new Set(ids)];
+    return [...new Set(ids)]
 }
 
 function sortByName(arr) {
-    return arr.slice().sort((a, b) => a.name.localeCompare(b.name, 'en'));
+    return arr.slice().sort((a, b) => a.name.localeCompare(b.name, 'en'))
 }
 
 /**
@@ -118,10 +124,10 @@ function sortByName(arr) {
  * 优先读 licenseText 字段，缺失时读 text 字段。
  */
 function extractText(entry) {
-    if (!entry) return '';
+    if (!entry) return ''
     return (entry.licenseText || entry.text || '')
         .replace(/[ \t]+$/gm, '')
-        .trim();
+        .trim()
 }
 
 /**
@@ -129,15 +135,13 @@ function extractText(entry) {
  * 每列宽度取组件字段最大长度与保底宽度的较大值，再加列间距。
  */
 function computeColumnWidths(components, minName, minVersion) {
-    const nameWidth = components.reduce(
-        (m, c) => Math.max(m, c.name.length),
-        minName
-    ) + LICENSE_TABLE_COLUMN_SEPARATOR;
-    const versionWidth = components.reduce(
-        (m, c) => Math.max(m, c.version.length),
-        minVersion
-    ) + LICENSE_TABLE_COLUMN_SEPARATOR;
-    return { nameWidth, versionWidth };
+    const nameWidth =
+        components.reduce((m, c) => Math.max(m, c.name.length), minName) +
+        LICENSE_TABLE_COLUMN_SEPARATOR
+    const versionWidth =
+        components.reduce((m, c) => Math.max(m, c.version.length), minVersion) +
+        LICENSE_TABLE_COLUMN_SEPARATOR
+    return { nameWidth, versionWidth }
 }
 
 // ---------------------------------------------------------------------------
@@ -145,7 +149,7 @@ function computeColumnWidths(components, minName, minVersion) {
 // ---------------------------------------------------------------------------
 
 function collectNpmDeps() {
-    console.log('📦 收集前端依赖（license-checker-rseidelsohn）...');
+    console.log('📦 收集前端依赖（license-checker-rseidelsohn）...')
     return new Promise((resolve, reject) => {
         licenseChecker.init(
             {
@@ -156,25 +160,28 @@ function collectNpmDeps() {
             (err, packages) => {
                 if (err) {
                     return reject(
-                        new Error(`license-checker-rseidelsohn 初始化失败：${err.message}`)
-                    );
+                        new Error(
+                            `license-checker-rseidelsohn 初始化失败：${err.message}`,
+                        ),
+                    )
                 }
 
-                const result = [];
+                const result = []
                 for (const [key, info] of Object.entries(packages)) {
-                    const atIdx = key.lastIndexOf('@');
-                    const name = key.slice(0, atIdx);
-                    const version = key.slice(atIdx + 1);
+                    const atIdx = key.lastIndexOf('@')
+                    const name = key.slice(0, atIdx)
+                    const version = key.slice(atIdx + 1)
 
-                    let license = normalizeLicense(info.licenses);
-                    if (hasOwn(NPM_OVERRIDES, name)) license = NPM_OVERRIDES[name];
+                    let license = normalizeLicense(info.licenses)
+                    if (hasOwn(NPM_OVERRIDES, name))
+                        license = NPM_OVERRIDES[name]
 
-                    result.push({ name, version, license });
+                    result.push({ name, version, license })
                 }
-                resolve(sortByName(result));
-            }
-        );
-    });
+                resolve(sortByName(result))
+            },
+        )
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -182,7 +189,9 @@ function collectNpmDeps() {
 // ---------------------------------------------------------------------------
 
 function collectCargoDeps(manifestDir) {
-    console.log(`📦 收集 Rust 依赖（${path.relative(projectRoot, manifestDir)}）...`);
+    console.log(
+        `📦 收集 Rust 依赖（${path.relative(projectRoot, manifestDir)}）...`,
+    )
     const output = execFileSync(
         'cargo',
         ['metadata', '--locked', '--format-version', '1'],
@@ -191,19 +200,20 @@ function collectCargoDeps(manifestDir) {
             maxBuffer: 64 * 1024 * 1024,
             encoding: 'utf8',
             stdio: ['ignore', 'pipe', 'inherit'],
-        }
-    );
-    const metadata = JSON.parse(output);
-    const result = [];
+        },
+    )
+    const metadata = JSON.parse(output)
+    const result = []
     for (const pkg of metadata.packages) {
-        if (pkg.source === null && FIRST_PARTY_CRATES.has(pkg.name)) continue;
+        if (pkg.source === null && FIRST_PARTY_CRATES.has(pkg.name)) continue
 
-        let license = normalizeLicense(pkg.license);
-        if (hasOwn(CARGO_OVERRIDES, pkg.name)) license = CARGO_OVERRIDES[pkg.name];
+        let license = normalizeLicense(pkg.license)
+        if (hasOwn(CARGO_OVERRIDES, pkg.name))
+            license = CARGO_OVERRIDES[pkg.name]
 
-        result.push({ name: pkg.name, version: pkg.version, license });
+        result.push({ name: pkg.name, version: pkg.version, license })
     }
-    return sortByName(result);
+    return sortByName(result)
 }
 
 // ---------------------------------------------------------------------------
@@ -211,60 +221,70 @@ function collectCargoDeps(manifestDir) {
 // ---------------------------------------------------------------------------
 
 function collectLicenseTexts(allComponents) {
-    const missingMetadata = [];
-    const missingText = [];
-    const ids = new Set();
+    const missingMetadata = []
+    const missingText = []
+    const ids = new Set()
 
     for (const comp of allComponents) {
-        const lic = comp.license;
+        const lic = comp.license
         if (!lic || lic === 'Unknown' || lic === 'UNLICENSED') {
-            missingMetadata.push(`${comp.name} (${lic || 'missing'})`);
-            continue;
+            missingMetadata.push(`${comp.name} (${lic || 'missing'})`)
+            continue
         }
-        const parsed = parseSpdxIds(lic);
+        const parsed = parseSpdxIds(lic)
         if (parsed.length === 0) {
-            missingMetadata.push(`${comp.name} (${lic})`);
-            continue;
+            missingMetadata.push(`${comp.name} (${lic})`)
+            continue
         }
-        for (const id of parsed) ids.add(id);
+        for (const id of parsed) ids.add(id)
     }
 
-    const texts = [];
+    const texts = []
     for (const id of [...ids].sort()) {
-        const fromPkg = hasOwn(spdx, id) ? spdx[id] : undefined;
-        const fromManual = hasOwn(MANUAL_TEXTS, id) ? MANUAL_TEXTS[id] : undefined;
+        const fromPkg = hasOwn(spdx, id) ? spdx[id] : undefined
+        const fromManual = hasOwn(MANUAL_TEXTS, id)
+            ? MANUAL_TEXTS[id]
+            : undefined
 
-        const text = extractText(fromPkg) || (fromManual?.text || '').trim();
-        const name = fromPkg?.name || fromManual?.name || id;
+        const text = extractText(fromPkg) || (fromManual?.text || '').trim()
+        const name = fromPkg?.name || fromManual?.name || id
 
         if (!text) {
-            missingText.push(id);
-            continue;
+            missingText.push(id)
+            continue
         }
-        texts.push({ id, name, text });
+        texts.push({ id, name, text })
     }
 
     if (missingMetadata.length > 0 || missingText.length > 0) {
-        console.error('\n❌ 生成失败：\n');
+        console.error('\n❌ 生成失败：\n')
 
         if (missingMetadata.length > 0) {
-            console.error('  组件许可证元数据缺失或不可解析。');
-            console.error('  请在 NPM_OVERRIDES 或 CARGO_OVERRIDES 表中补全：\n');
-            for (const u of missingMetadata.slice().sort()) console.error('     - ' + u);
-            console.error('');
+            console.error('  组件许可证元数据缺失或不可解析。')
+            console.error(
+                '  请在 NPM_OVERRIDES 或 CARGO_OVERRIDES 表中补全：\n',
+            )
+            for (const u of missingMetadata.slice().sort())
+                console.error('     - ' + u)
+            console.error('')
         }
 
         if (missingText.length > 0) {
-            console.error('  以下 SPDX ID 无法从 spdx-license-list/full 取到全文。');
-            console.error('  ID 拼写有误时请修正 NPM_OVERRIDES 或 CARGO_OVERRIDES 中的条目；');
-            console.error('  ID 合法但未收录时请把全文加入 MANUAL_TEXTS：\n');
-            for (const u of missingText.slice().sort()) console.error('     - ' + u);
-            console.error('');
+            console.error(
+                '  以下 SPDX ID 无法从 spdx-license-list/full 取到全文。',
+            )
+            console.error(
+                '  ID 拼写有误时请修正 NPM_OVERRIDES 或 CARGO_OVERRIDES 中的条目；',
+            )
+            console.error('  ID 合法但未收录时请把全文加入 MANUAL_TEXTS：\n')
+            for (const u of missingText.slice().sort())
+                console.error('     - ' + u)
+            console.error('')
         }
 
-        process.exit(1);
+        process.exit(1)
     }
-    return texts;
+    return texts
 }
 
 // ---------------------------------------------------------------------------
@@ -292,10 +312,10 @@ export const rustComponents: ComponentInfo[] = ${JSON.stringify(rust, null, 2)};
 export const frontendComponents: ComponentInfo[] = ${JSON.stringify(frontend, null, 2)};
 
 export const licenseTexts: LicenseText[] = ${JSON.stringify(texts, null, 2)};
-`;
-    fs.mkdirSync(dataDir, { recursive: true });
-    fs.writeFileSync(path.join(dataDir, 'licenses.ts'), content, 'utf8');
-    console.log('  ✓ src/data/licenses.ts');
+`
+    fs.mkdirSync(dataDir, { recursive: true })
+    fs.writeFileSync(path.join(dataDir, 'licenses.ts'), content, 'utf8')
+    console.log('  ✓ src/data/licenses.ts')
 }
 
 // ---------------------------------------------------------------------------
@@ -303,15 +323,15 @@ export const licenseTexts: LicenseText[] = ${JSON.stringify(texts, null, 2)};
 // ---------------------------------------------------------------------------
 
 function writeNotice(rust, frontend, outputPath) {
-    const all = [...rust, ...frontend];
+    const all = [...rust, ...frontend]
     const { nameWidth, versionWidth } = computeColumnWidths(
         all,
         NOTICE_MIN_NAME_WIDTH,
-        NOTICE_MIN_VERSION_WIDTH
-    );
+        NOTICE_MIN_VERSION_WIDTH,
+    )
 
     const line = (c) =>
-        `  ${c.name.padEnd(nameWidth)}${c.version.padEnd(versionWidth)}${c.license}`;
+        `  ${c.name.padEnd(nameWidth)}${c.version.padEnd(versionWidth)}${c.license}`
 
     let out = `HotDownloader
 Copyright 2026 lerd
@@ -323,13 +343,13 @@ below. For full license texts, see THIRD_PARTY_LICENSES.txt.
 Third-party components:
 
 Rust:
-`;
-    for (const c of rust) out += line(c) + '\n';
-    out += `\nFrontend:\n`;
-    for (const c of frontend) out += line(c) + '\n';
+`
+    for (const c of rust) out += line(c) + '\n'
+    out += `\nFrontend:\n`
+    for (const c of frontend) out += line(c) + '\n'
 
-    fs.writeFileSync(outputPath, out, 'utf8');
-    console.log(`  ✓ ${path.relative(projectRoot, outputPath)}`);
+    fs.writeFileSync(outputPath, out, 'utf8')
+    console.log(`  ✓ ${path.relative(projectRoot, outputPath)}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -338,47 +358,43 @@ Rust:
 
 function writeThirdPartyLicenses(rust, frontend, texts, outputPath) {
     const header = (title) =>
-        `\n${'='.repeat(LICENSE_RULE_WIDTH)}\n${title}\n${'='.repeat(LICENSE_RULE_WIDTH)}\n\n`;
+        `\n${'='.repeat(LICENSE_RULE_WIDTH)}\n${title}\n${'='.repeat(LICENSE_RULE_WIDTH)}\n\n`
 
-    const all = [...rust, ...frontend];
+    const all = [...rust, ...frontend]
     const { nameWidth, versionWidth } = computeColumnWidths(
         all,
         'Component'.length,
-        'Version'.length
-    );
+        'Version'.length,
+    )
 
     const tableHeader =
         `${'Component'.padEnd(nameWidth)}${'Version'.padEnd(versionWidth)}License\n` +
-        `${'-'.repeat(nameWidth)}${'-'.repeat(versionWidth)}${'-'.repeat(LICENSE_TABLE_RULE_WIDTH)}\n`;
+        `${'-'.repeat(nameWidth)}${'-'.repeat(versionWidth)}${'-'.repeat(LICENSE_TABLE_RULE_WIDTH)}\n`
 
     const tableRow = (c) =>
-        `${c.name.padEnd(nameWidth)}${c.version.padEnd(versionWidth)}${c.license}\n`;
+        `${c.name.padEnd(nameWidth)}${c.version.padEnd(versionWidth)}${c.license}\n`
 
-    let out = `HotDownloader — Third-Party License Notices\n`;
-    out += `\n`;
-    out += `This file lists all third-party components distributed with this\n`;
-    out += `software, along with the full text of each license used.\n`;
+    let out = `HotDownloader — Third-Party License Notices\n`
+    out += `\n`
+    out += `This file lists all third-party components distributed with this\n`
+    out += `software, along with the full text of each license used.\n`
 
-    out += header('Rust Components');
-    out += tableHeader;
-    for (const c of rust) out += tableRow(c);
+    out += header('Rust Components')
+    out += tableHeader
+    for (const c of rust) out += tableRow(c)
 
-    out += header('Frontend Components');
-    out += tableHeader;
-    for (const c of frontend) out += tableRow(c);
+    out += header('Frontend Components')
+    out += tableHeader
+    for (const c of frontend) out += tableRow(c)
 
-    out += header('License Texts');
+    out += header('License Texts')
     for (const t of texts) {
-        out += `\n${'-'.repeat(LICENSE_RULE_WIDTH)}\n${t.name} (${t.id})\n${'-'.repeat(LICENSE_RULE_WIDTH)}\n\n`;
-        out += t.text + '\n';
+        out += `\n${'-'.repeat(LICENSE_RULE_WIDTH)}\n${t.name} (${t.id})\n${'-'.repeat(LICENSE_RULE_WIDTH)}\n\n`
+        out += t.text + '\n'
     }
 
-    fs.writeFileSync(
-        outputPath,
-        out,
-        'utf8'
-    );
-    console.log(`  ✓ ${path.relative(projectRoot, outputPath)}`);
+    fs.writeFileSync(outputPath, out, 'utf8')
+    console.log(`  ✓ ${path.relative(projectRoot, outputPath)}`)
 }
 
 // ---------------------------------------------------------------------------
@@ -386,26 +402,36 @@ function writeThirdPartyLicenses(rust, frontend, texts, outputPath) {
 // ---------------------------------------------------------------------------
 
 async function main() {
-    const desktopRust = collectCargoDeps(srcTauri);
-    const serverRust = collectCargoDeps(serverCrate);
-    const frontend = await collectNpmDeps();
+    const desktopRust = collectCargoDeps(srcTauri)
+    const serverRust = collectCargoDeps(serverCrate)
+    const frontend = await collectNpmDeps()
 
-    console.log('📝 生成许可证文件...');
-    const desktopTexts = collectLicenseTexts([...desktopRust, ...frontend]);
-    const serverTexts = collectLicenseTexts([...serverRust, ...frontend]);
+    console.log('📝 生成许可证文件...')
+    const desktopTexts = collectLicenseTexts([...desktopRust, ...frontend])
+    const serverTexts = collectLicenseTexts([...serverRust, ...frontend])
 
-    writeLicensesTs(desktopRust, frontend, desktopTexts);
-    writeNotice(desktopRust, frontend, path.join(projectRoot, 'NOTICE'));
-    writeThirdPartyLicenses(desktopRust, frontend, desktopTexts, path.join(projectRoot, 'THIRD_PARTY_LICENSES.txt'));
-    writeNotice(serverRust, frontend, path.join(serverCrate, 'NOTICE'));
-    writeThirdPartyLicenses(serverRust, frontend, serverTexts, path.join(serverCrate, 'THIRD_PARTY_LICENSES.txt'));
+    writeLicensesTs(desktopRust, frontend, desktopTexts)
+    writeNotice(desktopRust, frontend, path.join(projectRoot, 'NOTICE'))
+    writeThirdPartyLicenses(
+        desktopRust,
+        frontend,
+        desktopTexts,
+        path.join(projectRoot, 'THIRD_PARTY_LICENSES.txt'),
+    )
+    writeNotice(serverRust, frontend, path.join(serverCrate, 'NOTICE'))
+    writeThirdPartyLicenses(
+        serverRust,
+        frontend,
+        serverTexts,
+        path.join(serverCrate, 'THIRD_PARTY_LICENSES.txt'),
+    )
 
     console.log(
-        `\n✅ 完成：桌面端 ${desktopRust.length}、服务端 ${serverRust.length} 个 Rust 组件，前端 ${frontend.length} 个组件。\n`
-    );
+        `\n✅ 完成：桌面端 ${desktopRust.length}、服务端 ${serverRust.length} 个 Rust 组件，前端 ${frontend.length} 个组件。\n`,
+    )
 }
 
 main().catch((err) => {
-    console.error('❌ 生成失败：', err);
-    process.exit(1);
-});
+    console.error('❌ 生成失败：', err)
+    process.exit(1)
+})

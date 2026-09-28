@@ -14,9 +14,9 @@ import type {
 /** Rust 持有任务和状态流转；此 store 仅保存页面展示用的投影。 */
 export const useTaskStore = defineStore('tasks', () => {
     const tasks = ref<TaskRecord[]>([])
-    const connectionStatus = ref<'connecting' | 'connected' | 'reconnecting' | 'disconnected'>(
-        isNativeRuntime() ? 'connected' : 'connecting'
-    )
+    const connectionStatus = ref<
+        'connecting' | 'connected' | 'reconnecting' | 'disconnected'
+    >(isNativeRuntime() ? 'connected' : 'connecting')
     const lastServerActivityAt = ref<number | null>(null)
     let loading = false
     let pendingEvents: Array<() => void> = []
@@ -31,7 +31,7 @@ export const useTaskStore = defineStore('tasks', () => {
     }
 
     function upsert(task: TaskRecord) {
-        const index = tasks.value.findIndex(t => t.id === task.id)
+        const index = tasks.value.findIndex((t) => t.id === task.id)
         if (index < 0) {
             tasks.value.push(task)
         } else {
@@ -48,12 +48,20 @@ export const useTaskStore = defineStore('tasks', () => {
             // 加载失败时也要重放事件，避免页面永远停留在旧状态。
             const queued = pendingEvents
             pendingEvents = []
-            queued.forEach(apply => apply())
+            queued.forEach((apply) => apply())
         }
     }
 
-    function createTask(song: SongInfo, desiredQuality: string, duplicateAction?: DuplicateAction) {
-        const request: CreateTaskRequest = { song, desiredQuality, duplicateAction }
+    function createTask(
+        song: SongInfo,
+        desiredQuality: string,
+        duplicateAction?: DuplicateAction,
+    ) {
+        const request: CreateTaskRequest = {
+            song,
+            desiredQuality,
+            duplicateAction,
+        }
         // 不在前端预写任务；命令返回及 task-updated 事件都以 Rust 的记录为准。
         return taskTransport.create(request)
     }
@@ -62,7 +70,10 @@ export const useTaskStore = defineStore('tasks', () => {
         await taskTransport.cancel(taskId, deleteFile)
     }
 
-    async function removeTasks(taskIds: string[], deleteFile = false): Promise<BatchTaskResult> {
+    async function removeTasks(
+        taskIds: string[],
+        deleteFile = false,
+    ): Promise<BatchTaskResult> {
         if (taskIds.length === 0) {
             return { succeeded: 0, failed: 0, errors: [] }
         }
@@ -82,7 +93,9 @@ export const useTaskStore = defineStore('tasks', () => {
     }
 
     /** 按顺序请求恢复中断任务；是否可恢复由 Rust 根据任务状态决定。 */
-    async function resumeTasks(taskIds: string[]): Promise<{ total: number; succeeded: number; failed: number }> {
+    async function resumeTasks(
+        taskIds: string[],
+    ): Promise<{ total: number; succeeded: number; failed: number }> {
         let succeeded = 0
         let failed = 0
         for (const id of taskIds) {
@@ -103,7 +116,9 @@ export const useTaskStore = defineStore('tasks', () => {
     }
 
     /** 逐个发起重试命令，实际下载并发仍由 Rust 调度器控制。 */
-    async function retryTasks(taskIds: string[]): Promise<{ total: number; succeeded: number; failed: number }> {
+    async function retryTasks(
+        taskIds: string[],
+    ): Promise<{ total: number; succeeded: number; failed: number }> {
         let succeeded = 0
         let failed = 0
         for (const id of taskIds) {
@@ -136,11 +151,13 @@ export const useTaskStore = defineStore('tasks', () => {
             },
             snapshot(snapshot) {
                 // SSE 重连会重新发完整快照；由后端记录直接替换只读投影。
-                projectEvent(() => { tasks.value = snapshot })
+                projectEvent(() => {
+                    tasks.value = snapshot
+                })
             },
             updated(task) {
                 projectEvent(() => {
-                    const previous = tasks.value.find(t => t.id === task.id)
+                    const previous = tasks.value.find((t) => t.id === task.id)
                     upsert(task)
 
                     // 只在状态变化时提醒，下载进度事件不会反复弹通知。
@@ -163,12 +180,12 @@ export const useTaskStore = defineStore('tasks', () => {
             },
             removed(taskId) {
                 projectEvent(() => {
-                    tasks.value = tasks.value.filter(t => t.id !== taskId)
+                    tasks.value = tasks.value.filter((t) => t.id !== taskId)
                 })
             },
             // 元数据写入失败不等于文件下载失败，保留独立的提示事件。
             metadataError(error) {
-                const task = tasks.value.find(t => t.id === error.task_id)
+                const task = tasks.value.find((t) => t.id === error.task_id)
                 window.$notify?.warning({
                     title: '元数据写入失败',
                     description: `歌曲“${task?.songTitle ?? error.task_id}”元数据写入失败：${error.error_msg}`,

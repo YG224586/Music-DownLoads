@@ -38,7 +38,12 @@ export function usePlaylistSearch() {
         currentPage.value = 1
 
         try {
-            const res = await musicApi.searchPlaylists(platform, term, currentPage.value, PAGE_SIZE)
+            const res = await musicApi.searchPlaylists(
+                platform,
+                term,
+                currentPage.value,
+                PAGE_SIZE,
+            )
             playlists.value = res.playlists
             hasMore.value = res.has_more
         } catch (error) {
@@ -62,7 +67,12 @@ export function usePlaylistSearch() {
         loadingMore.value = true
 
         try {
-            const res = await musicApi.searchPlaylists(platform, keyword.trim(), nextPage, PAGE_SIZE)
+            const res = await musicApi.searchPlaylists(
+                platform,
+                keyword.trim(),
+                nextPage,
+                PAGE_SIZE,
+            )
             const more = res.playlists
 
             // 去重

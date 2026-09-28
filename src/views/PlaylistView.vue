@@ -62,12 +62,8 @@ const {
     reset,
 } = usePlaylistImport()
 const { downloadSingle, batchDownload } = useDownloadActions()
-const {
-    openRelatedArtist,
-    openSongAlbum,
-    goBack,
-    backLabel,
-} = useMusicNavigation('/playlist')
+const { openRelatedArtist, openSongAlbum, goBack, backLabel } =
+    useMusicNavigation('/playlist')
 
 function handleImport(platform: string, input: string) {
     void router.push({
@@ -110,7 +106,7 @@ async function loadDetail(force = false) {
         typeof id !== 'string' ||
         !id ||
         typeof platform !== 'string' ||
-        !PLATFORMS.some(option => option.key === platform)
+        !PLATFORMS.some((option) => option.key === platform)
     ) {
         routeError.value = '歌单地址无效，请返回上一页重新选择'
         return
@@ -134,7 +130,9 @@ async function loadDetail(force = false) {
 }
 
 function onBatchDownload() {
-    const selectedSongs = songs.value.filter(song => selectedIds.value.includes(song.mid))
+    const selectedSongs = songs.value.filter((song) =>
+        selectedIds.value.includes(song.mid),
+    )
     if (selectedSongs.length) {
         batchDownload(selectedSongs)
     }

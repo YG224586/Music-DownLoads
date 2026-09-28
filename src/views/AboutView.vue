@@ -9,7 +9,9 @@
             <div class="app-version">版本 {{ version }}</div>
             <!-- 更新为与 README 一致的跨平台描述 -->
             <p class="app-description">
-                基于共享 Rust 下载核心和 Vue 3 的音乐下载工具，支持 Tauri 桌面端、Android 端与 Docker/Web 部署，提供搜索、歌单导入、多任务下载、自动降级、音频解密等功能。
+                基于共享 Rust 下载核心和 Vue 3 的音乐下载工具，支持 Tauri
+                桌面端、Android 端与 Docker/Web
+                部署，提供搜索、歌单导入、多任务下载、自动降级、音频解密等功能。
             </p>
         </div>
 
@@ -17,7 +19,10 @@
             <h2 class="section-title">开源链接</h2>
             <n-ul class="link-list">
                 <n-li>
-                    <n-a href="https://github.com/lerdb/HotDownloader" target="_blank">
+                    <n-a
+                        href="https://github.com/lerdb/HotDownloader"
+                        target="_blank"
+                    >
                         GitHub 仓库
                     </n-a>
                 </n-li>
@@ -27,7 +32,12 @@
         <div class="about-section">
             <h2 class="section-title">开放源代码许可</h2>
             <p class="license-text">
-                本项目基于 <n-a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache License 2.0</n-a>
+                本项目基于
+                <n-a
+                    href="https://www.apache.org/licenses/LICENSE-2.0"
+                    target="_blank"
+                    >Apache License 2.0</n-a
+                >
                 开源。
             </p>
         </div>
@@ -37,26 +47,41 @@
 
             <h3 class="sub-title">Rust ({{ rustComponents.length }})</h3>
             <n-ul class="component-list">
-                <n-li v-for="item in rustComponents" :key="item.name" class="component-item component-item--clickable"
-                    @click="openLicense(item)">
+                <n-li
+                    v-for="item in rustComponents"
+                    :key="item.name"
+                    class="component-item component-item--clickable"
+                    @click="openLicense(item)"
+                >
                     <span class="component-name">{{ item.name }}</span>
                     <span class="component-license">{{ item.license }}</span>
                 </n-li>
             </n-ul>
 
-            <h3 class="sub-title">Frontend ({{ frontendComponents.length }})</h3>
+            <h3 class="sub-title">
+                Frontend ({{ frontendComponents.length }})
+            </h3>
             <n-ul class="component-list">
-                <n-li v-for="item in frontendComponents" :key="item.name"
-                    class="component-item component-item--clickable" @click="openLicense(item)">
+                <n-li
+                    v-for="item in frontendComponents"
+                    :key="item.name"
+                    class="component-item component-item--clickable"
+                    @click="openLicense(item)"
+                >
                     <span class="component-name">{{ item.name }}</span>
                     <span class="component-license">{{ item.license }}</span>
                 </n-li>
             </n-ul>
         </div>
 
-        <n-modal v-model:show="showModal" preset="card" :title="modalTitle"
-            style="width: min(720px, 92vw); max-height: 80vh;" :bordered="false">
-            <n-scrollbar style="max-height: 60vh;">
+        <n-modal
+            v-model:show="showModal"
+            preset="card"
+            :title="modalTitle"
+            style="width: min(720px, 92vw); max-height: 80vh"
+            :bordered="false"
+        >
+            <n-scrollbar style="max-height: 60vh">
                 <pre class="license-fulltext">{{ modalText }}</pre>
             </n-scrollbar>
         </n-modal>
@@ -102,18 +127,23 @@ function openLicense(item: ComponentInfo) {
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i]
         if (t === 'OR' || t === 'AND') continue
-        if (t === 'WITH') { i++; continue }
+        if (t === 'WITH') {
+            i++
+            continue
+        }
         ids.add(t)
     }
 
     const parts: string[] = []
     for (const id of ids) {
         const found = licenseTexts.find((l) => l.id === id)
-        if (found) parts.push(`── ${found.name} (${found.id}) ──\n\n${found.text}`)
+        if (found)
+            parts.push(`── ${found.name} (${found.id}) ──\n\n${found.text}`)
     }
 
     modalTitle.value = `${item.name} @ ${item.version}`
-    modalText.value = parts.length > 0 ? parts.join('\n\n') : '未找到许可证全文。'
+    modalText.value =
+        parts.length > 0 ? parts.join('\n\n') : '未找到许可证全文。'
     showModal.value = true
 }
 </script>

@@ -1,6 +1,10 @@
 <template>
     <div class="load-more-wrapper">
-        <n-button :loading="loading" :disabled="disabled" @click="$emit('click')">
+        <n-button
+            :loading="loading"
+            :disabled="disabled"
+            @click="$emit('click')"
+        >
             {{ loading ? '加载中...' : '加载更多' }}
         </n-button>
     </div>

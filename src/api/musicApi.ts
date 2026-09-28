@@ -13,7 +13,7 @@ import type {
     ArtistSongsResponse,
     ArtistAlbumsResponse,
     UpdateInfo,
-    LyricResponse
+    LyricResponse,
 } from '../types'
 import { cachedInvoke } from './cachedInvoke'
 import { webRequest } from './webClient'
@@ -39,27 +39,31 @@ export async function searchSongs(
     platform: string,
     keyword: string,
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
 ): Promise<SearchResponse> {
-    const parsed = await musicCall<SearchResponse>('search_songs', 'songs/search', {
-        platform,
-        keyword,
-        page,
-        limit
-    })
+    const parsed = await musicCall<SearchResponse>(
+        'search_songs',
+        'songs/search',
+        {
+            platform,
+            keyword,
+            page,
+            limit,
+        },
+    )
     if (Array.isArray(parsed)) {
         return {
-            songs: (parsed as unknown as SongInfo[]).map(s => ({
+            songs: (parsed as unknown as SongInfo[]).map((s) => ({
                 ...s,
-                platform
+                platform,
             })),
-            has_more: false
+            has_more: false,
         }
     }
     // 为返回的歌曲补充平台信息
-    parsed.songs = parsed.songs.map(s => ({
+    parsed.songs = parsed.songs.map((s) => ({
         ...s,
-        platform
+        platform,
     }))
     return parsed
 }
@@ -70,23 +74,33 @@ export async function getHotKeywords(platform: string): Promise<string[]> {
 }
 
 // 获取搜索建议
-export async function fetchSuggestions(platform: string, keyword: string): Promise<SearchSuggestionData> {
+export async function fetchSuggestions(
+    platform: string,
+    keyword: string,
+): Promise<SearchSuggestionData> {
     return musicCall('fetch_suggestions', 'suggestions', {
         platform,
-        keyword
+        keyword,
     })
 }
 
 // 获取歌单
-export async function fetchPlaylistSongs(platform: string, input: string): Promise<PlaylistSongsResponse> {
-    const parsed = await musicCall<PlaylistSongsResponse>('fetch_playlist_songs', 'playlists/fetch', {
-        platform,
-        input
-    })
+export async function fetchPlaylistSongs(
+    platform: string,
+    input: string,
+): Promise<PlaylistSongsResponse> {
+    const parsed = await musicCall<PlaylistSongsResponse>(
+        'fetch_playlist_songs',
+        'playlists/fetch',
+        {
+            platform,
+            input,
+        },
+    )
     // 为返回的歌曲补充平台信息
-    parsed.songs = parsed.songs.map(s => ({
+    parsed.songs = parsed.songs.map((s) => ({
         ...s,
-        platform
+        platform,
     }))
     return parsed
 }
@@ -98,7 +112,7 @@ export async function fetchCreatedPlaylists(): Promise<CreatedPlaylistsResponse>
         'playlists/created',
         { platform: 'qqmusic' },
     )
-    parsed.playlists = parsed.playlists.map(playlist => ({
+    parsed.playlists = parsed.playlists.map((playlist) => ({
         ...playlist,
         platform: 'qqmusic',
     }))
@@ -115,7 +129,7 @@ export async function fetchCreatedPlaylistSongs(
         'playlists/created/fetch',
         { platform: 'qqmusic', id, dirid },
     )
-    parsed.songs = parsed.songs.map(song => ({
+    parsed.songs = parsed.songs.map((song) => ({
         ...song,
         platform: 'qqmusic',
     }))
@@ -127,18 +141,22 @@ export async function searchPlaylists(
     platform: string,
     keyword: string,
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
 ): Promise<PlaylistSearchResponse> {
-    const parsed = await musicCall<PlaylistSearchResponse>('search_playlists', 'playlists/search', {
-        platform,
-        keyword,
-        page,
-        limit
-    })
+    const parsed = await musicCall<PlaylistSearchResponse>(
+        'search_playlists',
+        'playlists/search',
+        {
+            platform,
+            keyword,
+            page,
+            limit,
+        },
+    )
     // 为返回的歌单补充平台信息
-    parsed.playlists = parsed.playlists.map(p => ({
+    parsed.playlists = parsed.playlists.map((p) => ({
         ...p,
-        platform
+        platform,
     }))
     return parsed
 }
@@ -157,21 +175,26 @@ export async function checkForUpdate(): Promise<UpdateInfo> {
  * @param platform 平台标识
  * @param songId 歌曲数字 ID
  */
-export async function getLyricBySongId(platform: string, songId: number): Promise<LyricResponse> {
+export async function getLyricBySongId(
+    platform: string,
+    songId: number,
+): Promise<LyricResponse> {
     if (!native) {
         return musicCall('get_lyric_by_id', 'lyrics', { platform, songId })
     }
     return invoke<LyricResponse>('get_lyric_by_id', {
         platform,
-        songId
-    });
+        songId,
+    })
 }
 
 // 请求系统通知权限
 export async function requestNotificationPermission(): Promise<boolean> {
     if (!native) {
-        return typeof Notification !== 'undefined' &&
-            await Notification.requestPermission() === 'granted'
+        return (
+            typeof Notification !== 'undefined' &&
+            (await Notification.requestPermission()) === 'granted'
+        )
     }
     return invoke<boolean>('request_notification_permission')
 }
@@ -179,7 +202,10 @@ export async function requestNotificationPermission(): Promise<boolean> {
 // 检查系统通知权限是否已授予
 export async function checkNotificationPermission(): Promise<boolean> {
     if (!native) {
-        return typeof Notification !== 'undefined' && Notification.permission === 'granted'
+        return (
+            typeof Notification !== 'undefined' &&
+            Notification.permission === 'granted'
+        )
     }
     return invoke<boolean>('check_notification_permission')
 }
@@ -200,7 +226,7 @@ export function fetchCover(platform: string, songId: number): Promise<string> {
     }
     return cachedInvoke<string>('fetch_cover', {
         platform,
-        songId
+        songId,
     })
 }
 
@@ -214,7 +240,8 @@ export interface QrLoginResult {
 
 // 登录轮询结果
 export interface LoginCheckResult {
-    status: 'waiting' | 'scanned' | 'confirmed' | 'expired' | 'canceled' | 'error'
+    status:
+        'waiting' | 'scanned' | 'confirmed' | 'expired' | 'canceled' | 'error'
     credentials?: LoginCredentials
     message?: string
 }
@@ -239,13 +266,16 @@ export async function createQrLogin(platform: string): Promise<QrLoginResult> {
 }
 
 // 轮询二维码登录状态
-export async function checkQrLogin(platform: string, qrcodeId: string): Promise<LoginCheckResult> {
+export async function checkQrLogin(
+    platform: string,
+    qrcodeId: string,
+): Promise<LoginCheckResult> {
     if (!native) {
         return webRequest(`/api/login/qr/${encodeURIComponent(qrcodeId)}`)
     }
     const json = await invoke<string>('check_qr_login', {
         platform,
-        qrcodeId
+        qrcodeId,
     })
     return JSON.parse(json) as LoginCheckResult
 }
@@ -258,12 +288,19 @@ export async function loginWithUinAuthst(
     refreshToken: string = '',
     refreshKey: string = '',
     accessToken: string = '',
-    openid: string = ''
+    openid: string = '',
 ): Promise<LoginCredentials> {
     if (!native) {
         return webRequest('/api/login/manual', {
             method: 'POST',
-            body: JSON.stringify({ uin, authst, refreshToken, refreshKey, accessToken, openid }),
+            body: JSON.stringify({
+                uin,
+                authst,
+                refreshToken,
+                refreshKey,
+                accessToken,
+                openid,
+            }),
         })
     }
     const json = await invoke<string>('login_with_uin_authst', {
@@ -288,7 +325,9 @@ export async function logout(platform: string): Promise<void> {
 }
 
 // 查询登录状态
-export async function getLoginStatus(platform: string): Promise<{ logged_in: boolean; uin: string }> {
+export async function getLoginStatus(
+    platform: string,
+): Promise<{ logged_in: boolean; uin: string }> {
     if (!native) {
         return webRequest('/api/login/status')
     }
@@ -306,18 +345,25 @@ export async function searchAlbums(
         platform,
         keyword,
         page,
-        limit
+        limit,
     })
 }
 
-export async function fetchAlbumSongs(platform: string, id: string): Promise<AlbumSongsResponse> {
-    const result = await musicCall<AlbumSongsResponse>('fetch_album_songs', 'albums/fetch', {
-        platform,
-        id
-    })
-    result.songs = result.songs.map(song => ({
+export async function fetchAlbumSongs(
+    platform: string,
+    id: string,
+): Promise<AlbumSongsResponse> {
+    const result = await musicCall<AlbumSongsResponse>(
+        'fetch_album_songs',
+        'albums/fetch',
+        {
+            platform,
+            id,
+        },
+    )
+    result.songs = result.songs.map((song) => ({
         ...song,
-        platform
+        platform,
     }))
     return result
 }
@@ -332,7 +378,7 @@ export async function searchArtists(
         platform,
         keyword,
         page,
-        limit
+        limit,
     })
 }
 
@@ -342,15 +388,19 @@ export async function fetchArtistSongs(
     page = 1,
     limit = 20,
 ): Promise<ArtistSongsResponse> {
-    const result = await musicCall<ArtistSongsResponse>('fetch_artist_songs', 'artists/songs', {
-        platform,
-        id,
-        page,
-        limit
-    })
-    result.songs = result.songs.map(song => ({
+    const result = await musicCall<ArtistSongsResponse>(
+        'fetch_artist_songs',
+        'artists/songs',
+        {
+            platform,
+            id,
+            page,
+            limit,
+        },
+    )
+    result.songs = result.songs.map((song) => ({
         ...song,
-        platform
+        platform,
     }))
     return result
 }
@@ -365,6 +415,6 @@ export async function fetchArtistAlbums(
         platform,
         id,
         page,
-        limit
+        limit,
     })
 }

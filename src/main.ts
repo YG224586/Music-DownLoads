@@ -65,9 +65,12 @@ if (isNativeRuntime()) {
     // Web 先确认认证模式，认证后再加载设置和任务投影。
     app.mount('#app')
     // 认证失败时显示对应的输入页。
-    watch(() => webSession.authorized, authorized => {
-        if (authorized) void init()
-    })
+    watch(
+        () => webSession.authorized,
+        (authorized) => {
+            if (authorized) void init()
+        },
+    )
     void authorizeWeb()
 }
 

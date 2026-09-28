@@ -1,17 +1,32 @@
 <template>
     <div class="search-bar">
         <!-- 平台选择下拉 -->
-        <n-dropdown :options="platformDropdownOptions" trigger="click" @select="handlePlatformSelect">
+        <n-dropdown
+            :options="platformDropdownOptions"
+            trigger="click"
+            @select="handlePlatformSelect"
+        >
             <n-button quaternary size="small" class="platform-btn">
                 <span class="platform-label">{{ currentPlatformLabel }}</span>
                 <span class="platform-arrow">▾</span>
             </n-button>
         </n-dropdown>
 
-        <n-input v-model:value="keywordModel" :placeholder="placeholder" clearable @keyup.enter="handleSearch"
-            @clear="handleClear" class="search-input" />
-        <n-button type="primary" @click="handleSearch" :disabled="!keywordModel.trim() || loading" :loading="loading"
-            class="search-btn">
+        <n-input
+            v-model:value="keywordModel"
+            :placeholder="placeholder"
+            clearable
+            @keyup.enter="handleSearch"
+            @clear="handleClear"
+            class="search-input"
+        />
+        <n-button
+            type="primary"
+            @click="handleSearch"
+            :disabled="!keywordModel.trim() || loading"
+            :loading="loading"
+            class="search-btn"
+        >
             {{ buttonText }}
         </n-button>
     </div>
@@ -35,7 +50,7 @@ const props = withDefaults(
         placeholder: '搜索歌曲、歌手、专辑',
         buttonText: '搜索',
         loading: false,
-    }
+    },
 )
 
 const emit = defineEmits<{
@@ -49,13 +64,13 @@ const keywordModel = ref(props.keyword)
 
 // 当前平台对应的显示 label
 const currentPlatformLabel = computed(() => {
-    const found = props.platformOptions.find(p => p.key === props.platform)
+    const found = props.platformOptions.find((p) => p.key === props.platform)
     return found ? found.label : props.platform
 })
 
 // 下拉选项格式：Naive UI 需要 { label, key } 结构
 const platformDropdownOptions = computed(() => {
-    return props.platformOptions.map(p => ({
+    return props.platformOptions.map((p) => ({
         label: p.label,
         key: p.key,
     }))
@@ -78,7 +93,7 @@ watch(
         if (newVal !== keywordModel.value) {
             keywordModel.value = newVal
         }
-    }
+    },
 )
 
 function handleSearch() {

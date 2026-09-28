@@ -1,7 +1,13 @@
 <template>
     <div class="quality-selector">
-        <n-button v-for="q in sortedQualities" :key="q.quality" :type="selected === q.quality ? 'primary' : 'default'"
-            block class="quality-btn" @click="selected = q.quality">
+        <n-button
+            v-for="q in sortedQualities"
+            :key="q.quality"
+            :type="selected === q.quality ? 'primary' : 'default'"
+            block
+            class="quality-btn"
+            @click="selected = q.quality"
+        >
             <div class="quality-name">{{ q.quality }}</div>
             <div class="quality-size">{{ formatSize(q.size) }}</div>
         </n-button>
@@ -22,15 +28,17 @@ const props = defineProps<{
 const sortedQualities = computed(() =>
     [...props.qualities].sort(
         (a, b) =>
-            ALL_QUALITY_ORDER.indexOf(b.quality) - ALL_QUALITY_ORDER.indexOf(a.quality)
-    )
+            ALL_QUALITY_ORDER.indexOf(b.quality) -
+            ALL_QUALITY_ORDER.indexOf(a.quality),
+    ),
 )
 
 // 默认选中最高可用品质（排序后的第一个）
 const getDefaultQuality = (): string => {
     const sorted = [...props.qualities].sort(
         (a, b) =>
-            ALL_QUALITY_ORDER.indexOf(b.quality) - ALL_QUALITY_ORDER.indexOf(a.quality)
+            ALL_QUALITY_ORDER.indexOf(b.quality) -
+            ALL_QUALITY_ORDER.indexOf(a.quality),
     )
     return sorted[0]?.quality ?? ''
 }

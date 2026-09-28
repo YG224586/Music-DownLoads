@@ -10,7 +10,7 @@ export async function loadHistory(): Promise<string[]> {
         if (!raw) return []
         try {
             const parsed: unknown = JSON.parse(raw)
-            return Array.isArray(parsed) ? parsed as string[] : []
+            return Array.isArray(parsed) ? (parsed as string[]) : []
         } catch {
             return []
         }
@@ -21,7 +21,7 @@ export async function loadHistory(): Promise<string[]> {
     }
 
     const parsed: unknown = JSON.parse(json)
-    return Array.isArray(parsed) ? parsed as string[] : []
+    return Array.isArray(parsed) ? (parsed as string[]) : []
 }
 
 export function saveHistory(history: string[]): Promise<void> {

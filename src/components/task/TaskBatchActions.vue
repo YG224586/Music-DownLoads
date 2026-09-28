@@ -1,7 +1,10 @@
 <template>
     <div v-if="selectedCount > 0" class="batch-actions">
         <span>已选择 {{ selectedCount }} 个任务</span>
-        <n-popconfirm :style="{ maxWidth: 'calc(100vw - 32px)' }" @positive-click="handleConfirm">
+        <n-popconfirm
+            :style="{ maxWidth: 'calc(100vw - 32px)' }"
+            @positive-click="handleConfirm"
+        >
             <template #trigger>
                 <n-button type="error" size="small">清除所选</n-button>
             </template>

@@ -10,20 +10,42 @@
         </n-alert>
         <template v-else-if="album">
             <div class="album-header">
-                <img v-if="album.coverUrl" :src="album.coverUrl" alt="专辑封面" />
+                <img
+                    v-if="album.coverUrl"
+                    :src="album.coverUrl"
+                    alt="专辑封面"
+                />
                 <div class="album-info">
                     <h2>{{ album.name || '专辑' }}</h2>
                     <p>
-                        <ArtistNames :platform="platform" :artists="album.artists" :fallback="album.artist"
-                            @click-artist="openRelatedArtist" />
+                        <ArtistNames
+                            :platform="platform"
+                            :artists="album.artists"
+                            :fallback="album.artist"
+                            @click-artist="openRelatedArtist"
+                        />
                     </p>
-                    <p>{{ album.songCount }} 首<span v-if="album.publishDate"> · {{ album.publishDate }}</span></p>
+                    <p>
+                        {{ album.songCount }} 首<span v-if="album.publishDate">
+                            · {{ album.publishDate }}</span
+                        >
+                    </p>
                 </div>
             </div>
-            <SearchResultList v-if="songs.length" :songs="songs" v-model:selectedIds="selectedIds" @download="downloadSingle"
-                @click-artist="openRelatedArtist" @click-album="openSongAlbum" />
+            <SearchResultList
+                v-if="songs.length"
+                :songs="songs"
+                v-model:selectedIds="selectedIds"
+                @download="downloadSingle"
+                @click-artist="openRelatedArtist"
+                @click-album="openSongAlbum"
+            />
             <n-empty v-else description="该专辑暂无可用歌曲" />
-            <BatchDownloadBar v-if="selectedIds.length" :selected-count="selectedIds.length" @batch-download="downloadSelected" />
+            <BatchDownloadBar
+                v-if="selectedIds.length"
+                :selected-count="selectedIds.length"
+                @batch-download="downloadSelected"
+            />
         </template>
     </div>
 </template>
@@ -41,7 +63,8 @@ import ArtistNames from '../components/search/ArtistNames.vue'
 import { useMusicNavigation } from '../composables/useMusicNavigation'
 
 const route = useRoute()
-const { openRelatedArtist, openSongAlbum, goBack, backLabel } = useMusicNavigation()
+const { openRelatedArtist, openSongAlbum, goBack, backLabel } =
+    useMusicNavigation()
 const query = { ...route.query }
 const platform = typeof query.platform === 'string' ? query.platform : ''
 const album = ref<AlbumInfo | null>(null)
@@ -49,10 +72,7 @@ const songs = ref<SongInfo[]>([])
 const selectedIds = ref<string[]>([])
 const loading = ref(false)
 const error = ref('')
-const {
-    downloadSingle,
-    batchDownload
-} = useDownloadActions()
+const { downloadSingle, batchDownload } = useDownloadActions()
 async function loadAlbum() {
     if (loading.value) return
     album.value = null
@@ -61,13 +81,20 @@ async function loadAlbum() {
     error.value = ''
     loading.value = true
     try {
-        if (typeof query.platform !== 'string' || typeof query.id !== 'string') throw new Error('缺少专辑信息，请返回搜索重新选择')
+        if (typeof query.platform !== 'string' || typeof query.id !== 'string')
+            throw new Error('缺少专辑信息，请返回搜索重新选择')
         const result = await fetchAlbumSongs(query.platform, query.id)
         album.value = {
             ...result.album,
-            name: result.album.name || (typeof query.name === 'string' ? query.name : ''),
-            artist: result.album.artist || (typeof query.artist === 'string' ? query.artist : ''),
-            publishDate: result.album.publishDate || (typeof query.date === 'string' ? query.date : ''),
+            name:
+                result.album.name ||
+                (typeof query.name === 'string' ? query.name : ''),
+            artist:
+                result.album.artist ||
+                (typeof query.artist === 'string' ? query.artist : ''),
+            publishDate:
+                result.album.publishDate ||
+                (typeof query.date === 'string' ? query.date : ''),
         }
         songs.value = result.songs
     } catch (e) {
@@ -80,7 +107,9 @@ async function loadAlbum() {
 onMounted(loadAlbum)
 
 function downloadSelected() {
-    batchDownload(songs.value.filter(song => selectedIds.value.includes(song.mid)))
+    batchDownload(
+        songs.value.filter((song) => selectedIds.value.includes(song.mid)),
+    )
 }
 </script>
 

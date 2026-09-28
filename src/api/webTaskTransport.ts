@@ -4,15 +4,21 @@ import type { SettingsSnapshot } from './settingsApi'
 import { webHeaders, webRequest, webSession } from './webClient'
 
 /** 解析一条 SSE 消息。数据始终是服务端序列化的 JSON。 */
-function dispatchEvent(frame: string, handlers: Parameters<TaskTransport['subscribe']>[0]) {
+function dispatchEvent(
+    frame: string,
+    handlers: Parameters<TaskTransport['subscribe']>[0],
+) {
     // SSE 心跳是注释帧，没有业务事件，但同样证明服务连接仍在响应。
     if (frame.startsWith(':')) {
         handlers.activity(Date.now())
         return
     }
     const lines = frame.split('\n')
-    const event = lines.find(line => line.startsWith('event: '))?.slice(7)
-    const raw = lines.filter(line => line.startsWith('data: ')).map(line => line.slice(6)).join('\n')
+    const event = lines.find((line) => line.startsWith('event: '))?.slice(7)
+    const raw = lines
+        .filter((line) => line.startsWith('data: '))
+        .map((line) => line.slice(6))
+        .join('\n')
     if (!event || !raw) return
 
     const data: unknown = JSON.parse(raw)
@@ -43,7 +49,10 @@ function dispatchEvent(frame: string, handlers: Parameters<TaskTransport['subscr
 }
 
 /** fetch 支持 Authorization 请求头；EventSource 无法自定义认证头。 */
-async function followEvents(signal: AbortSignal, handlers: Parameters<TaskTransport['subscribe']>[0]) {
+async function followEvents(
+    signal: AbortSignal,
+    handlers: Parameters<TaskTransport['subscribe']>[0],
+) {
     let retryDelay = 1000
     handlers.connection('connecting')
     while (!signal.aborted) {
@@ -76,7 +85,9 @@ async function followEvents(signal: AbortSignal, handlers: Parameters<TaskTransp
                 const { done, value } = await reader.read()
                 if (done) break
                 lastBytesAt = Date.now()
-                buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n')
+                buffer += decoder
+                    .decode(value, { stream: true })
+                    .replace(/\r\n/g, '\n')
                 let boundary = buffer.indexOf('\n\n')
                 while (boundary >= 0) {
                     const frame = buffer.slice(0, boundary)
@@ -101,13 +112,17 @@ async function followEvents(signal: AbortSignal, handlers: Parameters<TaskTransp
         if (signal.aborted) break
         handlers.connection('reconnecting')
         // 重连后服务端首先发送完整快照，浏览器离线期间遗漏的事件不会造成状态陈旧。
-        await new Promise(resolve => setTimeout(resolve, retryDelay))
+        await new Promise((resolve) => setTimeout(resolve, retryDelay))
         retryDelay = Math.min(retryDelay * 2, 10000)
     }
     handlers.connection('disconnected')
 }
 
-function taskAction(taskId: string, action: string, body?: object): Promise<unknown> {
+function taskAction(
+    taskId: string,
+    action: string,
+    body?: object,
+): Promise<unknown> {
     return webRequest(`/api/tasks/${encodeURIComponent(taskId)}/${action}`, {
         method: 'POST',
         body: JSON.stringify(body ?? {}),
@@ -116,21 +131,29 @@ function taskAction(taskId: string, action: string, body?: object): Promise<unkn
 
 export const webTaskTransport: TaskTransport = {
     list: () => webRequest<TaskRecord[]>('/api/tasks'),
-    create: request => webRequest('/api/tasks', {
-        method: 'POST',
-        body: JSON.stringify(request),
-    }),
-    async pause(taskId) { await taskAction(taskId, 'pause') },
-    async resume(taskId) { await taskAction(taskId, 'resume') },
+    create: (request) =>
+        webRequest('/api/tasks', {
+            method: 'POST',
+            body: JSON.stringify(request),
+        }),
+    async pause(taskId) {
+        await taskAction(taskId, 'pause')
+    },
+    async resume(taskId) {
+        await taskAction(taskId, 'resume')
+    },
     async cancel(taskId, deleteFile) {
         await taskAction(taskId, 'cancel', { deleteFile })
     },
-    remove: (taskIds, deleteFile) => webRequest('/api/tasks/remove', {
-        method: 'POST',
-        body: JSON.stringify({ taskIds, deleteFile }),
-    }),
+    remove: (taskIds, deleteFile) =>
+        webRequest('/api/tasks/remove', {
+            method: 'POST',
+            body: JSON.stringify({ taskIds, deleteFile }),
+        }),
     async retry(taskId) {
-        const result = await taskAction(taskId, 'retry') as { retried: boolean }
+        const result = (await taskAction(taskId, 'retry')) as {
+            retried: boolean
+        }
         return result.retried
     },
     async subscribe(handlers) {

@@ -20,9 +20,12 @@
                     />
                     <div class="playlist-card-info">
                         <div class="playlist-card-name">{{ pl.name }}</div>
-                        <div v-if="pl.creator" class="playlist-card-creator">{{ pl.creator }}</div>
+                        <div v-if="pl.creator" class="playlist-card-creator">
+                            {{ pl.creator }}
+                        </div>
                         <div class="playlist-card-meta">
-                            {{ pl.songCount }} 首 · {{ formatPlayCount(pl.playCount) }}
+                            {{ pl.songCount }} 首 ·
+                            {{ formatPlayCount(pl.playCount) }}
                         </div>
                         <div v-if="pl.createdAt" class="playlist-card-date">
                             创建：{{ formatUnixTime(pl.createdAt) }}

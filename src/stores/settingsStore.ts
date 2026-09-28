@@ -76,8 +76,9 @@ export const useSettingsStore = defineStore('settings', () => {
     function scheduleFlush() {
         if (debounceTimer) clearTimeout(debounceTimer)
         debounceTimer = setTimeout(() => {
-            void flushSettings().catch(error => {
-                saveError.value = error instanceof Error ? error.message : String(error)
+            void flushSettings().catch((error) => {
+                saveError.value =
+                    error instanceof Error ? error.message : String(error)
             })
         }, 500)
     }
@@ -96,17 +97,22 @@ export const useSettingsStore = defineStore('settings', () => {
                 if (dirty.has(key)) {
                     // 其他窗口修改了本页待提交的字段时，不能静默覆盖任一方。
                     if (
-                        !sameValue(previous[key], remote[key])
-                        && !sameValue(current, next)
-                        && !sameValue(remote[key], pendingWrites.get(key))
+                        !sameValue(previous[key], remote[key]) &&
+                        !sameValue(current, next) &&
+                        !sameValue(remote[key], pendingWrites.get(key))
                     ) {
                         if (!conflictFields.value.includes(key)) {
-                            conflictFields.value = [...conflictFields.value, key]
+                            conflictFields.value = [
+                                ...conflictFields.value,
+                                key,
+                            ]
                         }
                     }
                     if (sameValue(current, next)) {
                         dirty.delete(key)
-                        conflictFields.value = conflictFields.value.filter(field => field !== key)
+                        conflictFields.value = conflictFields.value.filter(
+                            (field) => field !== key,
+                        )
                     }
                     continue
                 }
@@ -127,11 +133,15 @@ export const useSettingsStore = defineStore('settings', () => {
                 const raw = localStorage.getItem(WEB_LOCAL_PREFIX + key)
                 // 旧网页版把这两个页面偏好也写进服务端；首次升级时迁入本浏览器。
                 try {
-                    const value = raw === null ? legacySettings[key] : JSON.parse(raw)
+                    const value =
+                        raw === null ? legacySettings[key] : JSON.parse(raw)
                     if (value === undefined) continue
                     setLocalValue(key, value)
                     if (raw === null) {
-                        localStorage.setItem(WEB_LOCAL_PREFIX + key, JSON.stringify(value))
+                        localStorage.setItem(
+                            WEB_LOCAL_PREFIX + key,
+                            JSON.stringify(value),
+                        )
                     }
                 } catch {
                     localStorage.removeItem(WEB_LOCAL_PREFIX + key)
@@ -149,7 +159,8 @@ export const useSettingsStore = defineStore('settings', () => {
             applyServerSnapshot(snapshot)
             saveError.value = ''
         } catch (error) {
-            saveError.value = error instanceof Error ? error.message : String(error)
+            saveError.value =
+                error instanceof Error ? error.message : String(error)
             throw error
         }
     }
@@ -182,21 +193,25 @@ export const useSettingsStore = defineStore('settings', () => {
                 saveError.value = ''
                 applyServerSnapshot(snapshot)
                 // 用户在请求过程中可能又改了这个字段；此时继续保留待提交状态。
-                if (sameValue(localValue(key), value) && sameValue(effectiveRemote(key), value)) {
+                if (
+                    sameValue(localValue(key), value) &&
+                    sameValue(effectiveRemote(key), value)
+                ) {
                     dirty.delete(key)
                 }
             } catch (error) {
                 if (error instanceof settingsApi.SettingsConflictError) {
                     applyServerSnapshot(error.snapshot)
                     if (
-                        !sameValue(localValue(key), effectiveRemote(key))
-                        && !conflictFields.value.includes(key)
+                        !sameValue(localValue(key), effectiveRemote(key)) &&
+                        !conflictFields.value.includes(key)
                     ) {
                         conflictFields.value = [...conflictFields.value, key]
                     }
                     continue
                 }
-                saveError.value = error instanceof Error ? error.message : String(error)
+                saveError.value =
+                    error instanceof Error ? error.message : String(error)
                 throw error
             } finally {
                 pendingWrites.delete(key)
@@ -223,7 +238,9 @@ export const useSettingsStore = defineStore('settings', () => {
 
     function resolveConflict(key: SettingKey, keepMine: boolean) {
         if (!conflictFields.value.includes(key)) return
-        conflictFields.value = conflictFields.value.filter(field => field !== key)
+        conflictFields.value = conflictFields.value.filter(
+            (field) => field !== key,
+        )
         if (keepMine) {
             // 下一次提交以最新服务端值为原值，明确表达覆盖意图。
             dirty.add(key)
@@ -236,23 +253,32 @@ export const useSettingsStore = defineStore('settings', () => {
         }
     }
 
-    watch(settings, () => {
-        if (applyingSnapshot || !loaded) return
-        if (!native) {
-            for (const key of WEB_LOCAL_KEYS) {
-                localStorage.setItem(WEB_LOCAL_PREFIX + key, JSON.stringify(localValue(key)))
+    watch(
+        settings,
+        () => {
+            if (applyingSnapshot || !loaded) return
+            if (!native) {
+                for (const key of WEB_LOCAL_KEYS) {
+                    localStorage.setItem(
+                        WEB_LOCAL_PREFIX + key,
+                        JSON.stringify(localValue(key)),
+                    )
+                }
             }
-        }
-        for (const key of persistedKeys) {
-            if (sameValue(localValue(key), effectiveRemote(key))) {
-                dirty.delete(key)
-                conflictFields.value = conflictFields.value.filter(field => field !== key)
-            } else {
-                dirty.add(key)
+            for (const key of persistedKeys) {
+                if (sameValue(localValue(key), effectiveRemote(key))) {
+                    dirty.delete(key)
+                    conflictFields.value = conflictFields.value.filter(
+                        (field) => field !== key,
+                    )
+                } else {
+                    dirty.add(key)
+                }
             }
-        }
-        if (dirty.size > 0) scheduleFlush()
-    }, { deep: true, flush: 'sync' })
+            if (dirty.size > 0) scheduleFlush()
+        },
+        { deep: true, flush: 'sync' },
+    )
 
     return {
         settings,

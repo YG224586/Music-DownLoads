@@ -22,11 +22,15 @@ export function usePlaylistImport() {
 
     // 是否全部选中
     const isAllSelected = computed(
-        () => songs.value.length > 0 && selectedIds.value.length === songs.value.length,
+        () =>
+            songs.value.length > 0 &&
+            selectedIds.value.length === songs.value.length,
     )
     // 是否部分选中
     const isIndeterminate = computed(
-        () => selectedIds.value.length > 0 && selectedIds.value.length < songs.value.length,
+        () =>
+            selectedIds.value.length > 0 &&
+            selectedIds.value.length < songs.value.length,
     )
 
     /**

@@ -30,7 +30,10 @@ export class WebRequestError extends Error {
     }
 }
 
-export async function webRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function webRequest<T>(
+    path: string,
+    options: RequestInit = {},
+): Promise<T> {
     const headers = new Headers(options.headers)
     if (authorization) {
         headers.set('Authorization', authorization)
@@ -39,14 +42,24 @@ export async function webRequest<T>(path: string, options: RequestInit = {}): Pr
         headers.set('Content-Type', 'application/json')
     }
 
-    const response = await fetch(path, { ...options, headers, cache: 'no-store' })
+    const response = await fetch(path, {
+        ...options,
+        headers,
+        cache: 'no-store',
+    })
     if (response.status === 401) {
         webSession.authorized = false
         throw new WebRequestError('访问凭据无效或已失效', 401, null)
     }
     if (!response.ok) {
-        const body = await response.json().catch(() => null) as { error?: string } | null
-        throw new WebRequestError(body?.error ?? `请求失败：HTTP ${response.status}`, response.status, body)
+        const body = (await response.json().catch(() => null)) as {
+            error?: string
+        } | null
+        throw new WebRequestError(
+            body?.error ?? `请求失败：HTTP ${response.status}`,
+            response.status,
+            body,
+        )
     }
     return response.json() as Promise<T>
 }
@@ -72,7 +85,8 @@ async function checkAccess(candidate: string): Promise<boolean> {
     } catch (error) {
         authorization = ''
         webSession.authorized = false
-        webSession.error = error instanceof Error ? error.message : String(error)
+        webSession.error =
+            error instanceof Error ? error.message : String(error)
         sessionStorage.removeItem(CREDENTIAL_KEY)
         sessionStorage.removeItem(LEGACY_TOKEN_KEY)
         return false
@@ -85,13 +99,18 @@ export async function authorizeWeb(token?: string): Promise<boolean> {
     if (webSession.mode === null) {
         webSession.checking = true
         try {
-            const response = await fetch('/api/auth/mode', { cache: 'no-store' })
-            if (!response.ok) throw new Error(`读取认证配置失败：HTTP ${response.status}`)
-            const result = await response.json() as { mode: AuthMode }
-            if (!['none', 'token', 'password'].includes(result.mode)) throw new Error('未知认证模式')
+            const response = await fetch('/api/auth/mode', {
+                cache: 'no-store',
+            })
+            if (!response.ok)
+                throw new Error(`读取认证配置失败：HTTP ${response.status}`)
+            const result = (await response.json()) as { mode: AuthMode }
+            if (!['none', 'token', 'password'].includes(result.mode))
+                throw new Error('未知认证模式')
             webSession.mode = result.mode
         } catch (error) {
-            webSession.error = error instanceof Error ? error.message : String(error)
+            webSession.error =
+                error instanceof Error ? error.message : String(error)
             webSession.checking = false
             return false
         }
@@ -99,12 +118,20 @@ export async function authorizeWeb(token?: string): Promise<boolean> {
 
     const saved = sessionStorage.getItem(CREDENTIAL_KEY) ?? ''
     const legacyToken = sessionStorage.getItem(LEGACY_TOKEN_KEY) ?? ''
-    const candidate = webSession.mode === 'none' ? ''
-        : webSession.mode === 'token' ? `Bearer ${token?.trim() ?? (saved.startsWith('Bearer ') ? saved.slice(7) : legacyToken)}`
-            : saved.startsWith('Basic ') ? saved : ''
+    const candidate =
+        webSession.mode === 'none'
+            ? ''
+            : webSession.mode === 'token'
+              ? `Bearer ${token?.trim() ?? (saved.startsWith('Bearer ') ? saved.slice(7) : legacyToken)}`
+              : saved.startsWith('Basic ')
+                ? saved
+                : ''
     return checkAccess(candidate)
 }
 
-export async function authorizeWebWithPassword(username: string, password: string): Promise<boolean> {
+export async function authorizeWebWithPassword(
+    username: string,
+    password: string,
+): Promise<boolean> {
     return checkAccess(basicAuthorization(username, password))
 }

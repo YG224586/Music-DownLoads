@@ -2,14 +2,27 @@
     <n-form-item label="下载目录">
         <template v-if="isWeb">
             <div class="current-dir">
-                <n-text>服务器下载目录：{{ settingsStore.settings.downloadDir }}</n-text>
-                <n-text depth="3">通过 HOTDOWNLOADER_DOWNLOAD_DIR 设置容器内路径，并为该路径挂载下载卷。</n-text>
+                <n-text
+                    >服务器下载目录：{{
+                        settingsStore.settings.downloadDir
+                    }}</n-text
+                >
+                <n-text depth="3"
+                    >通过 HOTDOWNLOADER_DOWNLOAD_DIR
+                    设置容器内路径，并为该路径挂载下载卷。</n-text
+                >
             </div>
         </template>
         <template v-else-if="!isAndroid">
             <n-input-group>
-                <n-input :value="settingsStore.settings.downloadDir" readonly placeholder="请选择下载目录" />
-                <n-button type="primary" @click="selectDirectory">选择</n-button>
+                <n-input
+                    :value="settingsStore.settings.downloadDir"
+                    readonly
+                    placeholder="请选择下载目录"
+                />
+                <n-button type="primary" @click="selectDirectory"
+                    >选择</n-button
+                >
             </n-input-group>
         </template>
         <template v-else>
@@ -18,8 +31,13 @@
                     选择 SAF 文件夹
                 </n-button>
                 <div class="current-dir">
-                    <n-text v-if="settingsStore.settings.safFolderName" type="info">
-                        当前 SAF 文件夹：{{ settingsStore.settings.safFolderName }}
+                    <n-text
+                        v-if="settingsStore.settings.safFolderName"
+                        type="info"
+                    >
+                        当前 SAF 文件夹：{{
+                            settingsStore.settings.safFolderName
+                        }}
                     </n-text>
                     <n-text v-else depth="3">
                         默认下载目录：{{ settingsStore.settings.downloadDir }}
@@ -85,7 +103,8 @@ async function selectSafFolder() {
         // 解析 JSON 获取 URI 最后一段作为显示名称
         try {
             const parsed = JSON.parse(json)
-            settingsStore.settings.safFolderName = parsed.uri.split('/').pop() || parsed.uri
+            settingsStore.settings.safFolderName =
+                parsed.uri.split('/').pop() || parsed.uri
         } catch {
             settingsStore.settings.safFolderName = 'SAF 文件夹'
         }

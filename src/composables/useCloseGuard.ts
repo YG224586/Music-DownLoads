@@ -12,10 +12,11 @@ export function useCloseGuard() {
     onMounted(async () => {
         try {
             const cleanup = await subscribeCloseRequest(async () => {
-                const activeTasks = taskStore.tasks.filter(task =>
-                    task.status === 'waiting' ||
-                    task.status === 'downloading' ||
-                    task.status === 'paused'
+                const activeTasks = taskStore.tasks.filter(
+                    (task) =>
+                        task.status === 'waiting' ||
+                        task.status === 'downloading' ||
+                        task.status === 'paused',
                 )
 
                 if (activeTasks.length === 0) {
@@ -23,7 +24,7 @@ export function useCloseGuard() {
                 }
 
                 // 窗口确认仍由 UI 负责；是否拦截原生关闭事件由 API 层处理。
-                return new Promise<boolean>(resolve => {
+                return new Promise<boolean>((resolve) => {
                     dialog.warning({
                         title: '确认退出',
                         content: `有 ${activeTasks.length} 个下载任务尚未完成，退出后任务会中断。确认退出吗？`,

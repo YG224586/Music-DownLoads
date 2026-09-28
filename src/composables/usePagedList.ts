@@ -29,7 +29,8 @@ export function usePagedList<T>(key: (item: T) => string) {
     }
 
     async function loadMore() {
-        if (!fetcher || loading.value || (loaded.value && !hasMore.value)) return
+        if (!fetcher || loading.value || (loaded.value && !hasMore.value))
+            return
         const request = generation
         loading.value = true
         error.value = ''
@@ -37,12 +38,15 @@ export function usePagedList<T>(key: (item: T) => string) {
             const result = await fetcher(page + 1)
             if (request !== generation) return
             const ids = new Set(items.value.map(key))
-            items.value = [...items.value, ...result.items.filter(item => {
-                const id = key(item)
-                if (ids.has(id)) return false
-                ids.add(id)
-                return true
-            })]
+            items.value = [
+                ...items.value,
+                ...result.items.filter((item) => {
+                    const id = key(item)
+                    if (ids.has(id)) return false
+                    ids.add(id)
+                    return true
+                }),
+            ]
             total.value = result.total
             hasMore.value = result.hasMore
             loaded.value = true
@@ -69,6 +73,6 @@ export function usePagedList<T>(key: (item: T) => string) {
         error,
         reset,
         start,
-        loadMore
+        loadMore,
     }
 }

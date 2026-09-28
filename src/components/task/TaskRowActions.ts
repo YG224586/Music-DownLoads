@@ -2,7 +2,8 @@ import { h, ref, type VNode } from 'vue'
 import { NButton, NPopconfirm, NCheckbox, NSpace } from 'naive-ui'
 import type { TaskRecord } from '../../types'
 
-export type TaskAction = 'cancel' | 'pause' | 'resume' | 'retry' | 'remove' | 'open-location'
+export type TaskAction =
+    'cancel' | 'pause' | 'resume' | 'retry' | 'remove' | 'open-location'
 
 export interface TaskActionExtra {
     deleteFile?: boolean
@@ -11,7 +12,7 @@ export interface TaskActionExtra {
 export type TaskActionEmitter = (
     action: TaskAction,
     taskId: string,
-    extra?: TaskActionExtra
+    extra?: TaskActionExtra,
 ) => void
 
 export interface TaskActionContext {
@@ -21,7 +22,7 @@ export interface TaskActionContext {
 
 export function renderActions(
     task: TaskRecord,
-    context: TaskActionContext
+    context: TaskActionContext,
 ): VNode[] {
     const { emit, isAndroid = false } = context
     const taskId = task.id
@@ -34,9 +35,7 @@ export function renderActions(
 
     // 等待中：取消（可能文件尚未创建，但用户可选择同时删除潜在的空文件）
     if (task.status === 'waiting') {
-        nodes.push(
-            createCancelWithDeletePopconfirm(emit, taskId)
-        )
+        nodes.push(createCancelWithDeletePopconfirm(emit, taskId))
     }
 
     // 下载中：暂停（不弹窗询问删除）
@@ -49,8 +48,8 @@ export function renderActions(
                     type: 'warning',
                     onClick: () => emit('pause', taskId),
                 },
-                () => '暂停'
-            )
+                () => '暂停',
+            ),
         )
     }
 
@@ -64,12 +63,10 @@ export function renderActions(
                     type: 'primary',
                     onClick: () => emit('resume', taskId),
                 },
-                () => '恢复'
-            )
+                () => '恢复',
+            ),
         )
-        nodes.push(
-            createCancelWithDeletePopconfirm(emit, taskId)
-        )
+        nodes.push(createCancelWithDeletePopconfirm(emit, taskId))
     }
 
     // 错误任务提交 retry；中断任务提交 resume，由 Rust 分别执行重试或恢复。
@@ -81,10 +78,14 @@ export function renderActions(
                 {
                     size: 'small',
                     type: 'primary',
-                    onClick: () => emit(task.status === 'interrupted' ? 'resume' : 'retry', taskId),
+                    onClick: () =>
+                        emit(
+                            task.status === 'interrupted' ? 'resume' : 'retry',
+                            taskId,
+                        ),
                 },
-                () => task.status === 'interrupted' ? '恢复' : '重试'
-            )
+                () => (task.status === 'interrupted' ? '恢复' : '重试'),
+            ),
         )
         nodes.push(
             createRemoveWithDeletePopconfirm(
@@ -92,8 +93,8 @@ export function renderActions(
                 taskId,
                 '确定删除该任务记录吗？',
                 '同时删除未下载完成的文件',
-                task.status === 'error' // 中断任务的未完成文件通常用于续传
-            )
+                task.status === 'error', // 中断任务的未完成文件通常用于续传
+            ),
         )
     }
 
@@ -107,8 +108,8 @@ export function renderActions(
                         size: 'small',
                         onClick: () => emit('open-location', taskId),
                     },
-                    () => '打开文件位置'
-                )
+                    () => '打开文件位置',
+                ),
             )
         }
         nodes.push(
@@ -117,8 +118,8 @@ export function renderActions(
                 taskId,
                 '确定删除该任务记录吗？',
                 '同时删除已下载的文件',
-                false // 默认不勾选，保护已下载文件
-            )
+                false, // 默认不勾选，保护已下载文件
+            ),
         )
     }
 
@@ -130,7 +131,7 @@ export function renderActions(
  */
 function createCancelWithDeletePopconfirm(
     emit: TaskActionEmitter,
-    taskId: string
+    taskId: string,
 ) {
     const deleteFile = ref(false)
 
@@ -156,11 +157,11 @@ function createCancelWithDeletePopconfirm(
                                 deleteFile.value = val
                             },
                         },
-                        () => '同时删除未下载完成的文件'
+                        () => '同时删除未下载完成的文件',
                     ),
                 ])
             },
-        }
+        },
     )
 }
 
@@ -177,7 +178,7 @@ function createRemoveWithDeletePopconfirm(
     taskId: string,
     confirmText: string,
     checkboxLabel: string,
-    defaultChecked: boolean
+    defaultChecked: boolean,
 ) {
     const deleteFile = ref(defaultChecked)
 
@@ -203,10 +204,10 @@ function createRemoveWithDeletePopconfirm(
                                 deleteFile.value = val
                             },
                         },
-                        () => checkboxLabel
+                        () => checkboxLabel,
                     ),
                 ])
             },
-        }
+        },
     )
 }

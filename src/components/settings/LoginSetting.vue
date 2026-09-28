@@ -5,37 +5,81 @@
             <n-tabs v-model:value="activeTab" type="line" size="small">
                 <n-tab-pane name="qr" tab="扫码登录">
                     <div class="qr-container">
-                        <img v-if="qrBase64" :src="'data:image/png;base64,' + qrBase64" alt="二维码" class="qr-img" />
+                        <img
+                            v-if="qrBase64"
+                            :src="'data:image/png;base64,' + qrBase64"
+                            alt="二维码"
+                            class="qr-img"
+                        />
                         <div class="qr-tips">
-                            <span v-if="qrStatus === 'waiting'">请使用 QQ 音乐 App 扫码</span>
-                            <span v-else-if="qrStatus === 'scanned'">已扫码，请在手机上确认</span>
-                            <span v-else-if="qrStatus === 'expired'">二维码已过期，请刷新</span>
-                            <span v-else-if="qrStatus === 'error'">登录出错，请重试</span>
+                            <span v-if="qrStatus === 'waiting'"
+                                >请使用 QQ 音乐 App 扫码</span
+                            >
+                            <span v-else-if="qrStatus === 'scanned'"
+                                >已扫码，请在手机上确认</span
+                            >
+                            <span v-else-if="qrStatus === 'expired'"
+                                >二维码已过期，请刷新</span
+                            >
+                            <span v-else-if="qrStatus === 'error'"
+                                >登录出错，请重试</span
+                            >
                         </div>
-                        <n-button size="small" @click="refreshQr" :loading="qrLoading">刷新二维码</n-button>
+                        <n-button
+                            size="small"
+                            @click="refreshQr"
+                            :loading="qrLoading"
+                            >刷新二维码</n-button
+                        >
                     </div>
                 </n-tab-pane>
                 <n-tab-pane name="manual" tab="手动登录">
-                    <n-form :label-placement="isNarrow ? 'top' : 'left'" :label-width="isNarrow ? undefined : 110">
+                    <n-form
+                        :label-placement="isNarrow ? 'top' : 'left'"
+                        :label-width="isNarrow ? undefined : 110"
+                    >
                         <n-form-item label="UIN">
-                            <n-input v-model:value="manualUin" placeholder="QQ音乐 UIN（必填）" />
+                            <n-input
+                                v-model:value="manualUin"
+                                placeholder="QQ音乐 UIN（必填）"
+                            />
                         </n-form-item>
                         <n-form-item label="Authst">
-                            <n-input v-model:value="manualAuthst" placeholder="QQ音乐 Authst（必填）" />
+                            <n-input
+                                v-model:value="manualAuthst"
+                                placeholder="QQ音乐 Authst（必填）"
+                            />
                         </n-form-item>
                         <n-form-item label="RefreshToken">
-                            <n-input v-model:value="manualRefreshToken" placeholder="选填，用于刷新登录" />
+                            <n-input
+                                v-model:value="manualRefreshToken"
+                                placeholder="选填，用于刷新登录"
+                            />
                         </n-form-item>
                         <n-form-item label="RefreshKey">
-                            <n-input v-model:value="manualRefreshKey" placeholder="选填，用于刷新登录" />
+                            <n-input
+                                v-model:value="manualRefreshKey"
+                                placeholder="选填，用于刷新登录"
+                            />
                         </n-form-item>
                         <n-form-item label="AccessToken">
-                            <n-input v-model:value="manualAccessToken" placeholder="选填，用于刷新登录" />
+                            <n-input
+                                v-model:value="manualAccessToken"
+                                placeholder="选填，用于刷新登录"
+                            />
                         </n-form-item>
                         <n-form-item label="OpenID">
-                            <n-input v-model:value="manualOpenid" placeholder="选填，用于刷新登录" />
+                            <n-input
+                                v-model:value="manualOpenid"
+                                placeholder="选填，用于刷新登录"
+                            />
                         </n-form-item>
-                        <n-button type="primary" block @click="handleManualLogin" :loading="manualLoading">
+                        <n-button
+                            type="primary"
+                            block
+                            @click="handleManualLogin"
+                            :loading="manualLoading"
+                        >
                             登录
                         </n-button>
                     </n-form>
@@ -47,7 +91,9 @@
         <template v-else>
             <div class="logged-in">
                 <span>已登录：{{ loginUin }}</span>
-                <n-button size="small" type="error" @click="handleLogout">退出登录</n-button>
+                <n-button size="small" type="error" @click="handleLogout"
+                    >退出登录</n-button
+                >
             </div>
         </template>
     </div>
@@ -55,13 +101,21 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { NTabs, NTabPane, NForm, NFormItem, NInput, NButton, useNotification } from 'naive-ui'
+import {
+    NTabs,
+    NTabPane,
+    NForm,
+    NFormItem,
+    NInput,
+    NButton,
+    useNotification,
+} from 'naive-ui'
 import * as musicApi from '../../api/musicApi'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { useNarrowLayout } from '../../composables/useNarrowLayout'
 import { isNativeRuntime } from '../../api/runtimeApi'
 
-const PLATFORM = "qqmusic"
+const PLATFORM = 'qqmusic'
 
 const notification = useNotification()
 const settingsStore = useSettingsStore()
@@ -87,7 +141,9 @@ const manualOpenid = ref('')
 const manualLoading = ref(false)
 
 /** Tauri 仍使用原有设置字段；Web 凭据由独立 Rust 服务保存，不能混入普通设置。 */
-function updateNativeCredentials(credentials: musicApi.LoginCredentials | null) {
+function updateNativeCredentials(
+    credentials: musicApi.LoginCredentials | null,
+) {
     if (!isNativeRuntime()) return
 
     settingsStore.settings.loginUin = credentials?.uin ?? ''
@@ -168,7 +224,7 @@ async function handleManualLogin() {
             manualRefreshToken.value,
             manualRefreshKey.value,
             manualAccessToken.value,
-            manualOpenid.value
+            manualOpenid.value,
         )
         updateNativeCredentials(creds)
         isLoggedIn.value = true

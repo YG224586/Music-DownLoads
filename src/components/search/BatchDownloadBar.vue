@@ -1,7 +1,11 @@
 <template>
     <div v-if="selectedCount > 0" class="batch-bar">
         <span class="selected-text">已选择 {{ selectedCount }} 首</span>
-        <n-button type="primary" class="batch-download-btn" @click="$emit('batch-download')">
+        <n-button
+            type="primary"
+            class="batch-download-btn"
+            @click="$emit('batch-download')"
+        >
             批量下载
         </n-button>
     </div>

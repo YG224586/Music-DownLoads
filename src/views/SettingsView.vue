@@ -1,14 +1,35 @@
 <template>
     <div class="settings-view" :class="{ 'is-narrow': isNarrow }">
-        <n-alert v-if="settingsStore.saveError" type="error" class="settings-alert">
+        <n-alert
+            v-if="settingsStore.saveError"
+            type="error"
+            class="settings-alert"
+        >
             设置保存失败：{{ settingsStore.saveError }}
         </n-alert>
-        <n-alert v-if="settingsStore.conflictFields.length" type="warning" class="settings-alert">
+        <n-alert
+            v-if="settingsStore.conflictFields.length"
+            type="warning"
+            class="settings-alert"
+        >
             以下设置已在其他页面更新，请逐项选择要保留的值：
-            <div v-for="field in settingsStore.conflictFields" :key="field" class="conflict-row">
+            <div
+                v-for="field in settingsStore.conflictFields"
+                :key="field"
+                class="conflict-row"
+            >
                 <span>{{ settingLabel(field) }}</span>
-                <n-button size="small" @click="settingsStore.resolveConflict(field, false)">使用最新设置</n-button>
-                <n-button size="small" type="primary" @click="settingsStore.resolveConflict(field, true)">保留本页修改</n-button>
+                <n-button
+                    size="small"
+                    @click="settingsStore.resolveConflict(field, false)"
+                    >使用最新设置</n-button
+                >
+                <n-button
+                    size="small"
+                    type="primary"
+                    @click="settingsStore.resolveConflict(field, true)"
+                    >保留本页修改</n-button
+                >
             </div>
         </n-alert>
         <!-- 移动端：分组纵向布局；桌面端：原有左右分栏表单。
@@ -23,7 +44,10 @@
 
         <div class="settings-section">
             <h2 class="section-title">基本设置</h2>
-            <n-form :label-placement="isNarrow ? 'top' : 'left'" :label-width="isNarrow ? undefined : 180">
+            <n-form
+                :label-placement="isNarrow ? 'top' : 'left'"
+                :label-width="isNarrow ? undefined : 180"
+            >
                 <QualitySetting />
                 <DowngradeSetting />
                 <ClearHistoryButton />
@@ -32,7 +56,10 @@
 
         <div class="settings-section">
             <h2 class="section-title">下载设置</h2>
-            <n-form :label-placement="isNarrow ? 'top' : 'left'" :label-width="isNarrow ? undefined : 180">
+            <n-form
+                :label-placement="isNarrow ? 'top' : 'left'"
+                :label-width="isNarrow ? undefined : 180"
+            >
                 <DirectorySetting />
                 <NamingTemplate />
                 <ArtistSeparator />
@@ -153,7 +180,7 @@ function goAbout() {
     margin-bottom: 20px;
 }
 
-.settings-section+.settings-section {
+.settings-section + .settings-section {
     padding-top: 20px;
 }
 

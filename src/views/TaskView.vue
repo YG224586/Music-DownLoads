@@ -5,26 +5,56 @@
         <!-- 批量操作栏：按当前标签页显示可用的一键操作 -->
         <div v-if="showToolbar" class="task-toolbar">
             <!-- 中断恢复与错误重试按任务状态分别选择，实际规则交给 Rust。 -->
-            <n-button v-if="(activeTab === 'error' && tabCounts.error > 0) ||
-                (activeTab === 'interrupted' && tabCounts.interrupted > 0)" size="small" type="primary"
-                :loading="retryingAll" :disabled="retryingAll" @click="handleRetryAll">
-                {{ activeTab === 'interrupted' ? '恢复全部中断任务' : '全部重试' }}
-                （{{ activeTab === 'interrupted' ? tabCounts.interrupted : tabCounts.error }}）
+            <n-button
+                v-if="
+                    (activeTab === 'error' && tabCounts.error > 0) ||
+                    (activeTab === 'interrupted' && tabCounts.interrupted > 0)
+                "
+                size="small"
+                type="primary"
+                :loading="retryingAll"
+                :disabled="retryingAll"
+                @click="handleRetryAll"
+            >
+                {{
+                    activeTab === 'interrupted'
+                        ? '恢复全部中断任务'
+                        : '全部重试'
+                }}
+                （{{
+                    activeTab === 'interrupted'
+                        ? tabCounts.interrupted
+                        : tabCounts.error
+                }}）
             </n-button>
-            <span v-if="activeTab === 'error' || activeTab === 'interrupted'" class="task-toolbar-hint">
+            <span
+                v-if="activeTab === 'error' || activeTab === 'interrupted'"
+                class="task-toolbar-hint"
+            >
                 会依次重新入队，实际同时下载数量由“最大并发数”决定
             </span>
 
             <!-- 清除所有已下载（已完成）的任务记录 -->
-            <n-popconfirm v-if="canClearCompleted" :style="{ maxWidth: 'calc(100vw - 32px)' }"
-                @positive-click="handleClearCompleted">
+            <n-popconfirm
+                v-if="canClearCompleted"
+                :style="{ maxWidth: 'calc(100vw - 32px)' }"
+                @positive-click="handleClearCompleted"
+            >
                 <template #trigger>
-                    <n-button size="small" type="warning" :loading="clearing" :disabled="clearing">
+                    <n-button
+                        size="small"
+                        type="warning"
+                        :loading="clearing"
+                        :disabled="clearing"
+                    >
                         清除所有已下载的任务（{{ tabCounts.completed }}）
                     </n-button>
                 </template>
                 <n-space vertical :size="8" class="task-toolbar-confirm">
-                    <span>确定清除 {{ tabCounts.completed }} 个已下载的任务记录吗？</span>
+                    <span
+                        >确定清除
+                        {{ tabCounts.completed }} 个已下载的任务记录吗？</span
+                    >
                     <n-checkbox v-model:checked="deleteFileForCompleted">
                         同时删除磁盘上已下载的文件（不可恢复）
                     </n-checkbox>
@@ -32,17 +62,29 @@
             </n-popconfirm>
 
             <!-- 清除所有历史任务（含进行中的任务，会被取消） -->
-            <n-popconfirm v-if="canClearAll" :style="{ maxWidth: 'calc(100vw - 32px)' }"
-                @positive-click="handleClearAll">
+            <n-popconfirm
+                v-if="canClearAll"
+                :style="{ maxWidth: 'calc(100vw - 32px)' }"
+                @positive-click="handleClearAll"
+            >
                 <template #trigger>
-                    <n-button size="small" type="error" :loading="clearing" :disabled="clearing">
+                    <n-button
+                        size="small"
+                        type="error"
+                        :loading="clearing"
+                        :disabled="clearing"
+                    >
                         清除所有历史任务（{{ tabCounts.total }}）
                     </n-button>
                 </template>
                 <n-space vertical :size="8" class="task-toolbar-confirm">
-                    <span>确定清除全部 {{ tabCounts.total }} 个任务记录吗？</span>
+                    <span
+                        >确定清除全部 {{ tabCounts.total }} 个任务记录吗？</span
+                    >
                     <span v-if="activeTaskCount > 0" class="task-toolbar-warn">
-                        其中 {{ activeTaskCount }} 个任务正在进行（等待/下载/暂停/处理中），会被一并取消。
+                        其中
+                        {{ activeTaskCount }}
+                        个任务正在进行（等待/下载/暂停/处理中），会被一并取消。
                     </span>
                     <n-checkbox v-model:checked="deleteFileForAll">
                         同时删除磁盘上的文件（不可恢复）
@@ -51,30 +93,51 @@
             </n-popconfirm>
         </div>
 
-        <TaskTable :tasks="pagedTasks" :selectedRowKeys="selectedRowKeys"
-            @update:selectedRowKeys="selectedRowKeys = $event" @action="handleAction" />
+        <TaskTable
+            :tasks="pagedTasks"
+            :selectedRowKeys="selectedRowKeys"
+            @update:selectedRowKeys="selectedRowKeys = $event"
+            @action="handleAction"
+        />
 
         <!-- 任务数量可能很大，只渲染当前页，避免一次性创建成千上万个 DOM/组件导致卡死 -->
         <div v-if="filteredTasks.length > pageSize" class="task-pagination">
-            <n-pagination v-model:page="page" :page-size="pageSize" :item-count="filteredTasks.length"
-                :page-slot="5" />
+            <n-pagination
+                v-model:page="page"
+                :page-size="pageSize"
+                :item-count="filteredTasks.length"
+                :page-slot="5"
+            />
         </div>
 
-        <TaskBatchActions :selectedCount="selectedRowKeys.length" @clear="handleBatchClear" />
+        <TaskBatchActions
+            :selectedCount="selectedRowKeys.length"
+            @clear="handleBatchClear"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { openFileLocation } from '../api/fileApi'
-import { NPagination, NButton, NPopconfirm, NCheckbox, NSpace, useNotification } from 'naive-ui'
+import {
+    NPagination,
+    NButton,
+    NPopconfirm,
+    NCheckbox,
+    NSpace,
+    useNotification,
+} from 'naive-ui'
 import { useTaskStore } from '../stores/taskStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useDownloadActions } from '../composables/useDownloadActions'
 import TaskTabs from '../components/task/TaskTabs.vue'
 import TaskTable from '../components/task/TaskTable.vue'
 import TaskBatchActions from '../components/task/TaskBatchActions.vue'
-import type { TaskAction, TaskActionExtra } from '../components/task/TaskRowActions'
+import type {
+    TaskAction,
+    TaskActionExtra,
+} from '../components/task/TaskRowActions'
 
 const taskStore = useTaskStore()
 const settingsStore = useSettingsStore()
@@ -130,22 +193,36 @@ const pagedTasks = computed(() => {
 })
 
 /** 进行中的任务（清空全部历史时会被取消） */
-const ACTIVE_STATUSES: string[] = ['waiting', 'downloading', 'paused', 'processing']
+const ACTIVE_STATUSES: string[] = [
+    'waiting',
+    'downloading',
+    'paused',
+    'processing',
+]
 const activeTaskCount = computed(
-    () => taskStore.tasks.filter((t) => ACTIVE_STATUSES.includes(t.status)).length
+    () =>
+        taskStore.tasks.filter((t) => ACTIVE_STATUSES.includes(t.status))
+            .length,
 )
 
 /** “全部 / 已完成”标签页提供批量清除入口 */
-const inClearableTab = computed(() => activeTab.value === 'all' || activeTab.value === 'completed')
-const canClearCompleted = computed(() => inClearableTab.value && tabCounts.value.completed > 0)
-const canClearAll = computed(() => inClearableTab.value && tabCounts.value.total > 0)
+const inClearableTab = computed(
+    () => activeTab.value === 'all' || activeTab.value === 'completed',
+)
+const canClearCompleted = computed(
+    () => inClearableTab.value && tabCounts.value.completed > 0,
+)
+const canClearAll = computed(
+    () => inClearableTab.value && tabCounts.value.total > 0,
+)
 
 const showToolbar = computed(
     () =>
         (activeTab.value === 'error' && tabCounts.value.error > 0) ||
-        (activeTab.value === 'interrupted' && tabCounts.value.interrupted > 0) ||
+        (activeTab.value === 'interrupted' &&
+            tabCounts.value.interrupted > 0) ||
         canClearCompleted.value ||
-        canClearAll.value
+        canClearAll.value,
 )
 
 // 切换标签页时回到第一页
@@ -159,10 +236,14 @@ watch(
     (len) => {
         const maxPage = Math.max(1, Math.ceil(len / pageSize.value))
         if (page.value > maxPage) page.value = maxPage
-    }
+    },
 )
 
-async function handleAction(action: TaskAction, taskId: string, extra?: TaskActionExtra) {
+async function handleAction(
+    action: TaskAction,
+    taskId: string,
+    extra?: TaskActionExtra,
+) {
     try {
         // 操作统一交给 Rust 命令；列表变化由 task-updated/task-removed 事件回填。
         switch (action) {
@@ -174,7 +255,10 @@ async function handleAction(action: TaskAction, taskId: string, extra?: TaskActi
                 break
             case 'resume':
                 // 中断任务恢复会重新读取当前下载设置；先完成待写入的设置变更。
-                if (taskStore.tasks.find(task => task.id === taskId)?.status === 'interrupted') {
+                if (
+                    taskStore.tasks.find((task) => task.id === taskId)
+                        ?.status === 'interrupted'
+                ) {
                     await settingsStore.flushSettings()
                 }
                 await taskStore.resumeTask(taskId)
@@ -183,7 +267,10 @@ async function handleAction(action: TaskAction, taskId: string, extra?: TaskActi
                 await retryTask(taskId)
                 break
             case 'remove': {
-                const result = await taskStore.removeTask(taskId, extra?.deleteFile === true)
+                const result = await taskStore.removeTask(
+                    taskId,
+                    extra?.deleteFile === true,
+                )
                 if (result.failed) {
                     throw new Error(result.errors.join('；'))
                 }
@@ -202,7 +289,9 @@ async function handleAction(action: TaskAction, taskId: string, extra?: TaskActi
             }
         }
         // 命令成功后才清除选中状态；失败时保留以便用户重试。
-        selectedRowKeys.value = selectedRowKeys.value.filter((id) => id !== taskId)
+        selectedRowKeys.value = selectedRowKeys.value.filter(
+            (id) => id !== taskId,
+        )
     } catch (e: any) {
         notification.error({
             title: '操作失败',
@@ -241,7 +330,8 @@ async function handleBatchClear(deleteFile: boolean) {
 /** 仅处理当前标签的任务；中断任务由用户明确发起恢复。 */
 async function handleRetryAll() {
     if (retryingAll.value) return
-    const targetStatus = activeTab.value === 'interrupted' ? 'interrupted' : 'error'
+    const targetStatus =
+        activeTab.value === 'interrupted' ? 'interrupted' : 'error'
     const ids = taskStore.tasks
         .filter((task) => task.status === targetStatus)
         .map((t) => t.id)
@@ -251,9 +341,10 @@ async function handleRetryAll() {
     try {
         // 批量重试读取同一份当前设置，先完成防抖写盘。
         await settingsStore.flushSettings()
-        const { succeeded, failed } = targetStatus === 'interrupted'
-            ? await taskStore.resumeTasks(ids)
-            : await taskStore.retryTasks(ids)
+        const { succeeded, failed } =
+            targetStatus === 'interrupted'
+                ? await taskStore.resumeTasks(ids)
+                : await taskStore.retryTasks(ids)
         notification.success({
             title: targetStatus === 'interrupted' ? '批量恢复' : '批量重试',
             description: `已重新入队 ${succeeded} 个任务${failed > 0 ? `，${failed} 个未能入队，请查看任务状态` : ''}`,
@@ -261,7 +352,11 @@ async function handleRetryAll() {
         })
     } catch (e: any) {
         console.error('批量重试失败:', e)
-        notification.error({ title: '批量重试失败', description: e?.message || String(e), duration: 4000 })
+        notification.error({
+            title: '批量重试失败',
+            description: e?.message || String(e),
+            duration: 4000,
+        })
     } finally {
         retryingAll.value = false
     }
@@ -273,7 +368,9 @@ async function handleClearCompleted() {
     const deleteFile = deleteFileForCompleted.value
     deleteFileForCompleted.value = false
 
-    const ids = taskStore.tasks.filter((t) => t.status === 'completed').map((t) => t.id)
+    const ids = taskStore.tasks
+        .filter((t) => t.status === 'completed')
+        .map((t) => t.id)
     if (ids.length === 0) return
 
     selectedRowKeys.value = []
@@ -282,7 +379,8 @@ async function handleClearCompleted() {
         // 成功通知使用后端真实成功数
         const result = await taskStore.removeTasks(ids, deleteFile)
         const fileMessage = deleteFile ? '，并删除对应文件' : ''
-        const failedMessage = result.failed > 0 ? `，${result.failed} 个失败` : ''
+        const failedMessage =
+            result.failed > 0 ? `，${result.failed} 个失败` : ''
         notification.success({
             title: '已清除',
             description: `已清除 ${result.succeeded} 个已下载的任务记录${fileMessage}${failedMessage}`,
@@ -308,7 +406,8 @@ async function handleClearAll() {
         // 成功通知使用后端真实成功数
         const result = await taskStore.removeTasks(ids, deleteFile)
         const fileMessage = deleteFile ? '，并删除对应文件' : ''
-        const failedMessage = result.failed > 0 ? `，${result.failed} 个失败` : ''
+        const failedMessage =
+            result.failed > 0 ? `，${result.failed} 个失败` : ''
         notification.success({
             title: '已清除',
             description: `已清除全部 ${result.succeeded} 个任务记录${fileMessage}${failedMessage}`,

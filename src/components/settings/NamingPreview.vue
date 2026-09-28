@@ -41,7 +41,8 @@ const exampleArtists = computed(() => {
 // 根据当前模板与歌手拼接结果，生成示例文件名
 const exampleFilename = computed(() => {
     const artist = exampleArtists.value
-    const template = settingsStore.settings.namingTemplate || '{song} - {artist}'
+    const template =
+        settingsStore.settings.namingTemplate || '{song} - {artist}'
     let name = template
         .replaceAll('{song}', exampleSong.song)
         .replaceAll('{artist}', artist)
@@ -63,7 +64,6 @@ const exampleFilename = computed(() => {
 </script>
 
 <style scoped>
-
 .preview-container {
     min-width: 0;
     width: 100%;

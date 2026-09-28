@@ -1,7 +1,12 @@
 <template>
     <n-form-item label="默认音质">
-        <n-select :value="settingsStore.settings.defaultQuality"
-            @update:value="(val: string) => (settingsStore.settings.defaultQuality = val)" :options="qualityOptions" />
+        <n-select
+            :value="settingsStore.settings.defaultQuality"
+            @update:value="
+                (val: string) => (settingsStore.settings.defaultQuality = val)
+            "
+            :options="qualityOptions"
+        />
     </n-form-item>
 </template>
 

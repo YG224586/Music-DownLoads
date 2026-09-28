@@ -12,7 +12,9 @@ export function useAppTheme() {
     })
 
     const themeOverrides = computed(() => {
-        return osTheme.value === 'dark' ? darkThemeOverrides : lightThemeOverrides
+        return osTheme.value === 'dark'
+            ? darkThemeOverrides
+            : lightThemeOverrides
     })
 
     return {

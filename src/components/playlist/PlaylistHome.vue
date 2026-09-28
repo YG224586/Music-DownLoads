@@ -24,7 +24,9 @@
             <div v-else-if="!loggedIn" class="empty-wrapper">
                 <n-empty description="登录 QQ 音乐后即可查看自己创建的歌单">
                     <template #extra>
-                        <n-button @click="router.push('/settings')">前往登录</n-button>
+                        <n-button @click="router.push('/settings')"
+                            >前往登录</n-button
+                        >
                     </template>
                 </n-empty>
             </div>
@@ -34,7 +36,7 @@
                 :has-more="false"
                 :loading-more="false"
                 empty-description="暂无自己创建的歌单"
-                @click-playlist="item => emit('open-my', item)"
+                @click-playlist="(item) => emit('open-my', item)"
             />
         </section>
     </div>
@@ -92,7 +94,8 @@ async function refreshMyPlaylists() {
         }
     } catch (error) {
         if (currentRequest === requestId) {
-            myError.value = error instanceof Error ? error.message : String(error)
+            myError.value =
+                error instanceof Error ? error.message : String(error)
         }
     } finally {
         if (currentRequest === requestId) {
@@ -106,11 +109,14 @@ onMounted(() => {
 })
 
 // 页面被 keep-alive 缓存；从设置页返回时重新读取可能变化的 QQ 登录态。
-watch(() => route.path, (path, previousPath) => {
-    if (path === '/playlist' && previousPath !== '/playlist') {
-        void refreshMyPlaylists()
-    }
-})
+watch(
+    () => route.path,
+    (path, previousPath) => {
+        if (path === '/playlist' && previousPath !== '/playlist') {
+            void refreshMyPlaylists()
+        }
+    },
+)
 
 onUnmounted(() => {
     requestId++

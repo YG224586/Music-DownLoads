@@ -2,7 +2,8 @@ import type { GlobalThemeOverrides } from 'naive-ui'
 
 // 深浅主题共用组件的字号与圆角，避免主题切换时改变布局尺寸。
 const common: NonNullable<GlobalThemeOverrides['common']> = {
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif',
+    fontFamily:
+        '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif',
     fontSize: '14px',
     borderRadius: '8px',
     borderRadiusSmall: '6px',

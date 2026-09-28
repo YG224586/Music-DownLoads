@@ -25,7 +25,9 @@
                         创建者：{{ playlist.creator }}
                     </div>
                     <div class="playlist-meta">
-                        歌曲数：{{ playlist.songCount }} · 播放量：{{ formatPlayCount(playlist.playCount) }}
+                        歌曲数：{{ playlist.songCount }} · 播放量：{{
+                            formatPlayCount(playlist.playCount)
+                        }}
                     </div>
                 </div>
             </div>
@@ -35,7 +37,9 @@
                     <n-checkbox
                         :checked="isAllSelected"
                         :indeterminate="isIndeterminate"
-                        @update:checked="checked => emit('toggle-all', checked)"
+                        @update:checked="
+                            (checked) => emit('toggle-all', checked)
+                        "
                     >
                         全选
                     </n-checkbox>
@@ -49,10 +53,16 @@
                         :key="song.mid"
                         :song="song"
                         :selected="selectedIds.includes(song.mid)"
-                        @toggle-select="selected => emit('toggle-select', song.mid, selected)"
-                        @download="item => emit('download', item)"
-                        @click-artist="(platform, artist) => emit('click-artist', platform, artist)"
-                        @click-album="item => emit('click-album', item)"
+                        @toggle-select="
+                            (selected) =>
+                                emit('toggle-select', song.mid, selected)
+                        "
+                        @download="(item) => emit('download', item)"
+                        @click-artist="
+                            (platform, artist) =>
+                                emit('click-artist', platform, artist)
+                        "
+                        @click-album="(item) => emit('click-album', item)"
                     />
                 </div>
                 <BatchDownloadBar

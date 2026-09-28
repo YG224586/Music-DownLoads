@@ -24,7 +24,9 @@ export const ALL_QUALITY_ORDER: string[] = [
  * 该常量只描述应用内置默认值。运行时必须读取设置中的
  * `qualityDowngradeOrder`，否则用户在设置页调整顺序后不会真正生效。
  */
-export const QUALITY_DOWNGRADE_ORDER: string[] = [...ALL_QUALITY_ORDER].reverse()
+export const QUALITY_DOWNGRADE_ORDER: string[] = [
+    ...ALL_QUALITY_ORDER,
+].reverse()
 
 /**
  * 将持久化的降级顺序修复为完整、无重复且只包含已知音质的数组。
@@ -40,7 +42,11 @@ export function normalizeQualityDowngradeOrder(value: unknown): string[] {
 
     if (Array.isArray(value)) {
         for (const item of value) {
-            if (typeof item !== 'string' || !knownQualities.has(item) || seen.has(item)) {
+            if (
+                typeof item !== 'string' ||
+                !knownQualities.has(item) ||
+                seen.has(item)
+            ) {
                 continue
             }
             seen.add(item)
@@ -60,9 +66,16 @@ export function normalizeQualityDowngradeOrder(value: unknown): string[] {
     return normalized
 }
 
-export type Quality = string  // 不再限制字面量，兼容所有后端标签
+export type Quality = string // 不再限制字面量，兼容所有后端标签
 
-export type TaskStatus = 'waiting' | 'downloading' | 'paused' | 'completed' | 'error' | 'processing' | 'interrupted'
+export type TaskStatus =
+    | 'waiting'
+    | 'downloading'
+    | 'paused'
+    | 'completed'
+    | 'error'
+    | 'processing'
+    | 'interrupted'
 
 export interface Settings {
     defaultQuality: Quality
@@ -95,9 +108,9 @@ export interface Settings {
 
 /** 歌曲可用的单个品质项 */
 export interface QualityItem {
-    quality: string   // 品质标签，如 "128kmp3", "flac", "臻品母带" 等
-    filename: string  // 对应下载文件名
-    size: number      // 文件字节大小
+    quality: string // 品质标签，如 "128kmp3", "flac", "臻品母带" 等
+    filename: string // 对应下载文件名
+    size: number // 文件字节大小
 }
 
 /** 歌曲或专辑中的歌手关联信息。 */
@@ -113,7 +126,7 @@ export interface ArtistReference {
 
 // 歌曲基本信息
 export interface SongInfo {
-    platform: string    // 平台标识
+    platform: string // 平台标识
     id: number
     mid: string
     title: string
@@ -186,7 +199,7 @@ export interface SearchSuggestionItem {
     name?: string
     singer?: string
     cover?: string | null
-    vid?: string          // 仅 MV 类型存在
+    vid?: string // 仅 MV 类型存在
     [key: string]: unknown
 }
 
@@ -200,24 +213,24 @@ export interface SearchSuggestionData {
 
 // 歌词响应
 export interface LyricResponse {
-    lrc: string | null;
-    elrc: string | null;
-    raw: string | null;
-    instrumental: boolean;
+    lrc: string | null
+    elrc: string | null
+    raw: string | null
+    instrumental: boolean
 }
 
 export interface TaskRecord {
     id: string
-    platform: string    // 平台标识
+    platform: string // 平台标识
     songId: number
     songMid: string
     songTitle: string
     artist: string
     album: string
     coverUrl: string
-    mediaMid: string           // 用于后续可能的操作
-    filename: string           // 实际下载的品质文件名
-    quality: Quality           // 实际选择的品质标签
+    mediaMid: string // 用于后续可能的操作
+    filename: string // 实际下载的品质文件名
+    quality: Quality // 实际选择的品质标签
     status: TaskStatus
     errorMsg?: string
     filePath?: string
@@ -232,7 +245,7 @@ export interface TaskRecord {
      * 旧任务没有该字段，因此保留为可选以兼容历史数据。
      */
     availableQualities?: QualityItem[]
-    speed?: number  // 实时下载速度 (bytes/s)，仅 downloading/paused 状态有意义
+    speed?: number // 实时下载速度 (bytes/s)，仅 downloading/paused 状态有意义
     /**
      * Rust 创建任务时锁定的保存路径（普通文件系统为绝对路径，SAF 为文件名）。
      * 旧任务可能没有该字段；重试时由 Rust 解析路径。

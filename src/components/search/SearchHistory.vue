@@ -7,8 +7,14 @@
             </n-button>
         </div>
         <div class="history-tags">
-            <n-tag v-for="item in history" :key="item" closable @close="$emit('remove', item)"
-                @click="$emit('select', item)" class="history-tag">
+            <n-tag
+                v-for="item in history"
+                :key="item"
+                closable
+                @close="$emit('remove', item)"
+                @click="$emit('select', item)"
+                class="history-tag"
+            >
                 {{ item }}
             </n-tag>
         </div>

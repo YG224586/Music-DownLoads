@@ -27,7 +27,7 @@ export async function subscribeCloseRequest(
     const appWindow = getCurrentWindow()
     let unlisten: (() => void) | undefined
 
-    unlisten = await appWindow.onCloseRequested(async event => {
+    unlisten = await appWindow.onCloseRequested(async (event) => {
         event.preventDefault()
         if (await shouldClose()) {
             // destroy 会再次触发关闭事件，先取消监听以避免重复询问。

@@ -2,19 +2,33 @@
     <div class="nav-layout" :class="{ 'is-narrow': isNarrow }">
         <!-- 宽屏左侧垂直导航 -->
         <aside v-if="!isNarrow" class="sidebar">
-            <n-menu :value="currentRoute" :options="menuOptions" @update:value="handleMenuClick" />
+            <n-menu
+                :value="currentRoute"
+                :options="menuOptions"
+                @update:value="handleMenuClick"
+            />
         </aside>
 
         <div class="content-column">
             <!-- 网页任务进度依赖 SSE；连接中断时保留最后快照并明确标记其时间。 -->
-            <div v-if="!native" class="connection-strip" :class="taskStore.connectionStatus">
+            <div
+                v-if="!native"
+                class="connection-strip"
+                :class="taskStore.connectionStatus"
+            >
                 <span class="connection-dot" aria-hidden="true"></span>
                 <span>{{ connectionLabel }}</span>
-                <span class="last-response">最近响应：{{ lastResponseLabel }}</span>
+                <span class="last-response"
+                    >最近响应：{{ lastResponseLabel }}</span
+                >
             </div>
 
             <!-- 内容区域 -->
-            <main ref="mainContentRef" class="main-content" :class="{ 'has-bottom-nav': isNarrow }">
+            <main
+                ref="mainContentRef"
+                class="main-content"
+                :class="{ 'has-bottom-nav': isNarrow }"
+            >
                 <router-view v-slot="{ Component }">
                     <!-- 每个详情独立缓存，返回时恢复其分页、标签与勾选。 -->
                     <keep-alive>
@@ -27,8 +41,12 @@
         <!-- 窄屏底部水平导航：在正常文档流中固定占位，菜单始终居中 -->
         <footer v-if="isNarrow" class="bottom-nav">
             <div class="bottom-nav-inner">
-                <n-menu :value="currentRoute" :options="menuOptions" mode="horizontal"
-                    @update:value="handleMenuClick" />
+                <n-menu
+                    :value="currentRoute"
+                    :options="menuOptions"
+                    mode="horizontal"
+                    @update:value="handleMenuClick"
+                />
             </div>
         </footer>
     </div>
@@ -47,17 +65,24 @@ const router = useRouter()
 const route = useRoute()
 const native = isNativeRuntime()
 const taskStore = useTaskStore()
-const connectionLabel = computed(() => ({
-    connecting: '正在连接服务',
-    connected: '服务已连接',
-    reconnecting: '连接中断，正在重连',
-    disconnected: '服务连接已断开',
-})[taskStore.connectionStatus])
-const lastResponseLabel = computed(() => taskStore.lastServerActivityAt
-    ? new Date(taskStore.lastServerActivityAt).toLocaleTimeString()
-    : '尚未收到响应')
+const connectionLabel = computed(
+    () =>
+        ({
+            connecting: '正在连接服务',
+            connected: '服务已连接',
+            reconnecting: '连接中断，正在重连',
+            disconnected: '服务连接已断开',
+        })[taskStore.connectionStatus],
+)
+const lastResponseLabel = computed(() =>
+    taskStore.lastServerActivityAt
+        ? new Date(taskStore.lastServerActivityAt).toLocaleTimeString()
+        : '尚未收到响应',
+)
 const viewKey = computed(() => {
-    return ['/artist', '/album'].includes(route.path) ? route.fullPath : route.path
+    return ['/artist', '/album'].includes(route.path)
+        ? route.fullPath
+        : route.path
 })
 
 // 保存各路由页面的滚动位置，实现独立滚动记录
@@ -75,9 +100,12 @@ async function restoreScrollPosition(path: string) {
 }
 
 // 监听路由变化，恢复新路由的滚动位置
-watch(() => route.fullPath, (newPath) => {
-    restoreScrollPosition(newPath)
-})
+watch(
+    () => route.fullPath,
+    (newPath) => {
+        restoreScrollPosition(newPath)
+    },
+)
 
 // 在 n-dialog-provider 内部调用，确保 useDialog 正常工作
 useCloseGuard()
@@ -117,19 +145,19 @@ const currentRoute = computed(() => {
 const menuOptions: MenuOption[] = [
     {
         label: '搜索',
-        key: '/search'
+        key: '/search',
     },
     {
         label: '歌单',
-        key: '/playlist'
+        key: '/playlist',
     },
     {
         label: '任务',
-        key: '/task'
+        key: '/task',
     },
     {
         label: '设置',
-        key: '/settings'
+        key: '/settings',
     },
 ]
 

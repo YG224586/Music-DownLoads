@@ -7,8 +7,14 @@
     </div>
 
     <!-- 更新信息弹窗：桌面端最大宽度 600px，移动端左右留白 16px -->
-    <n-modal v-if="showModal" v-model:show="showUpdateModal" preset="card" class="update-modal" title="发现新版本"
-        style="max-width: 600px; width: calc(100% - 32px);">
+    <n-modal
+        v-if="showModal"
+        v-model:show="showUpdateModal"
+        preset="card"
+        class="update-modal"
+        title="发现新版本"
+        style="max-width: 600px; width: calc(100% - 32px)"
+    >
         <div v-if="updateInfo" class="update-content">
             <p class="version-line">
                 当前版本：{{ updateInfo.current_version }}
@@ -23,8 +29,13 @@
                 <n-text class="body-label">更新内容：</n-text>
                 <!-- 使用 v-html 渲染 Markdown 解析后的 HTML，提升可读性 -->
                 <!-- 调用 renderMarkdown 函数生成安全 HTML；若无内容则显示默认文本 -->
-                <div class="body-text markdown-body" v-html="renderMarkdown(updateInfo.body) || '<p>（无更新说明）</p>'">
-                </div>
+                <div
+                    class="body-text markdown-body"
+                    v-html="
+                        renderMarkdown(updateInfo.body) ||
+                        '<p>（无更新说明）</p>'
+                    "
+                ></div>
             </div>
             <!-- 下载安装包直链区域（当存在匹配当前平台的 assets 时显示） -->
             <!-- 检查更新功能优化，只显示当前平台可用的安装包，避免用户下载错误文件 -->
@@ -32,8 +43,14 @@
                 <n-text class="body-label">下载安装包：</n-text>
                 <div class="asset-list">
                     <!-- 使用 filteredAssets 计算属性，其根据 currentPlatform 过滤原始 assets -->
-                    <a v-for="asset in filteredAssets" :key="asset.name" class="asset-link"
-                        :href="asset.browser_download_url" target="_blank" rel="noopener noreferrer">
+                    <a
+                        v-for="asset in filteredAssets"
+                        :key="asset.name"
+                        class="asset-link"
+                        :href="asset.browser_download_url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
                         {{ asset.name }}（{{ formatFileSize(asset.size) }}）
                     </a>
                 </div>
@@ -41,8 +58,15 @@
         </div>
         <template #footer>
             <div v-if="updateInfo" class="modal-actions">
-                <n-button type="primary" @click="showUpdateModal = false">关闭</n-button>
-                <n-button v-if="updateInfo.html_url" tag="a" :href="updateInfo.html_url" target="_blank">
+                <n-button type="primary" @click="showUpdateModal = false"
+                    >关闭</n-button
+                >
+                <n-button
+                    v-if="updateInfo.html_url"
+                    tag="a"
+                    :href="updateInfo.html_url"
+                    target="_blank"
+                >
                     前往发布页
                 </n-button>
             </div>
@@ -54,13 +78,16 @@
 import { computed } from 'vue'
 import { useUpdateChecker } from '../../composables/useUpdateChecker'
 
-withDefaults(defineProps<{
-    showEntry?: boolean
-    showModal?: boolean
-}>(), {
-    showEntry: true,
-    showModal: false,
-})
+withDefaults(
+    defineProps<{
+        showEntry?: boolean
+        showModal?: boolean
+    }>(),
+    {
+        showEntry: true,
+        showModal: false,
+    },
+)
 
 const {
     checkingUpdate,
@@ -99,8 +126,12 @@ const updateButtonText = computed(() => {
 /* 更新信息弹窗内部样式 */
 /* Modal 渲染到 body，通过专属类名限制弹窗高度和内容滚动区域 */
 :global(.update-modal) {
-    max-height: calc(100vh - 32px - var(--safe-area-top) - var(--safe-area-bottom));
-    max-height: calc(100dvh - 32px - var(--safe-area-top) - var(--safe-area-bottom));
+    max-height: calc(
+        100vh - 32px - var(--safe-area-top) - var(--safe-area-bottom)
+    );
+    max-height: calc(
+        100dvh - 32px - var(--safe-area-top) - var(--safe-area-bottom)
+    );
 }
 
 :global(.update-modal > .n-card-content) {

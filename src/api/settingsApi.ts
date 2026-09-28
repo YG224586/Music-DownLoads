@@ -43,9 +43,10 @@ export async function patchSettings(
         return await invoke<SettingsSnapshot>('patch_settings', { patch })
     } catch (error) {
         // Tauri command 的错误是 JSON 字符串，HTTP 的 409 则保留了解析后的响应体。
-        const response = error instanceof WebRequestError
-            ? error.body
-            : parseTauriError(error)
+        const response =
+            error instanceof WebRequestError
+                ? error.body
+                : parseTauriError(error)
         if (isConflictResponse(response)) {
             throw new SettingsConflictError(response.fields, response.snapshot)
         }
@@ -67,7 +68,10 @@ function isConflictResponse(value: unknown): value is {
 } {
     if (typeof value !== 'object' || value === null) return false
     const candidate = value as { fields?: unknown; snapshot?: unknown }
-    return Array.isArray(candidate.fields) && typeof candidate.snapshot === 'object'
+    return (
+        Array.isArray(candidate.fields) &&
+        typeof candidate.snapshot === 'object'
+    )
 }
 
 export function getDefaultDownloadDir(): Promise<string> {

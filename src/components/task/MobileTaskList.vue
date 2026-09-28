@@ -49,15 +49,22 @@ export default defineComponent({
 
         // 进度百分比
         function progressPercent(task: TaskRecord): number {
-            if (task.status === 'completed' || task.status === 'processing') return 100
+            if (task.status === 'completed' || task.status === 'processing')
+                return 100
             if (task.fileSize > 0) {
-                return Math.min(100, Math.round((task.downloaded / task.fileSize) * 100))
+                return Math.min(
+                    100,
+                    Math.round((task.downloaded / task.fileSize) * 100),
+                )
             }
             return 0
         }
 
         // 状态映射
-        const statusMap: Record<string, { type: TagProps['type']; label: string }> = {
+        const statusMap: Record<
+            string,
+            { type: TagProps['type']; label: string }
+        > = {
             waiting: { type: 'info', label: '等待中' },
             downloading: { type: 'info', label: '下载中' },
             paused: { type: 'warning', label: '暂停' },
@@ -70,7 +77,11 @@ export default defineComponent({
         // 操作按钮 VNode 数组
         function actionNodes(task: TaskRecord) {
             return renderActions(task, {
-                emit: (action: TaskAction, taskId: string, extra?: TaskActionExtra) => {
+                emit: (
+                    action: TaskAction,
+                    taskId: string,
+                    extra?: TaskActionExtra,
+                ) => {
                     emit('action', action, taskId, extra)
                 },
                 isAndroid: props.isAndroid,
@@ -90,7 +101,10 @@ export default defineComponent({
 
         // 构建单个任务卡片
         function renderTaskCard(task: TaskRecord) {
-            const status = statusMap[task.status] || { type: 'default' as const, label: task.status }
+            const status = statusMap[task.status] || {
+                type: 'default' as const,
+                label: task.status,
+            }
             const checked = props.selectedRowKeys.includes(task.id)
             const disabled = task.status === 'downloading'
 
@@ -100,65 +114,95 @@ export default defineComponent({
                     h(NCheckbox, {
                         checked,
                         disabled,
-                        'onUpdate:checked': (val: boolean) => toggleSelection(task.id, val),
+                        'onUpdate:checked': (val: boolean) =>
+                            toggleSelection(task.id, val),
                     }),
                     h('div', { class: 'task-card-song' }, [
-                        h('div', { class: 'task-card-title' }, task.songTitle || '未知歌曲'),
-                        h('div', { class: 'task-card-artist' }, task.artist || '未知歌手'),
+                        h(
+                            'div',
+                            { class: 'task-card-title' },
+                            task.songTitle || '未知歌曲',
+                        ),
+                        h(
+                            'div',
+                            { class: 'task-card-artist' },
+                            task.artist || '未知歌手',
+                        ),
                     ]),
                 ]),
 
                 // 元信息：状态、音质、速度
                 h('div', { class: 'task-card-meta' }, [
-                    h(NTag, { type: status.type, size: 'small' }, () => status.label),
+                    h(
+                        NTag,
+                        { type: status.type, size: 'small' },
+                        () => status.label,
+                    ),
                     h('span', { class: 'task-card-quality' }, task.quality),
                     // 速度仅在 downloading 状态且 speed > 0 时显示，避免暂停或错误状态残留速度
-                    task.status === 'downloading' && task.speed && task.speed > 0
-                        ? h('span', { class: 'task-card-speed' }, formatSpeed(task.speed))
+                    task.status === 'downloading' &&
+                    task.speed &&
+                    task.speed > 0
+                        ? h(
+                              'span',
+                              { class: 'task-card-speed' },
+                              formatSpeed(task.speed),
+                          )
                         : null,
                 ]),
 
                 // 终止状态展示明确原因；中断任务等待用户恢复后再显示续传进度。
                 task.status === 'error' || task.status === 'interrupted'
-                    ? h('div', {
-                        class: [
-                            'task-card-status-message',
-                            task.status === 'error' ? 'is-error' : 'is-interrupted',
-                        ],
-                    },
-                        task.status === 'interrupted'
-                            ? '上次运行中断，等待恢复'
-                            : task.errorMsg || '下载失败')
+                    ? h(
+                          'div',
+                          {
+                              class: [
+                                  'task-card-status-message',
+                                  task.status === 'error'
+                                      ? 'is-error'
+                                      : 'is-interrupted',
+                              ],
+                          },
+                          task.status === 'interrupted'
+                              ? '上次运行中断，等待恢复'
+                              : task.errorMsg || '下载失败',
+                      )
                     : h('div', { class: 'task-card-progress' }, [
-                        h(NProgress, {
-                            percentage: progressPercent(task),
-                            height: 12,
-                        }),
-                    ]),
+                          h(NProgress, {
+                              percentage: progressPercent(task),
+                              height: 12,
+                          }),
+                      ]),
             ]
 
             // 仅安卓设备显示文件路径，位于进度条下方
             if (props.isAndroid) {
                 cardChildren.push(
                     h('div', { class: 'task-card-filepath' }, [
-                        h(NEllipsis, {
-                            style: {
-                                fontSize: '12px',
-                                maxWidth: '100%',
+                        h(
+                            NEllipsis,
+                            {
+                                style: {
+                                    fontSize: '12px',
+                                    maxWidth: '100%',
+                                },
+                                expandTrigger: 'click',
+                                lineClamp: 1,
+                                tooltip: false,
                             },
-                            expandTrigger: 'click',
-                            lineClamp: 1,
-                            tooltip: false,
-                        }, () => task.filePath || '-')
-                    ])
+                            () => task.filePath || '-',
+                        ),
+                    ]),
                 )
             }
 
             // 操作按钮
             cardChildren.push(
                 h('div', { class: 'task-card-actions' }, [
-                    h(NSpace, { justify: 'end', wrap: true }, () => actionNodes(task)),
-                ])
+                    h(NSpace, { justify: 'end', wrap: true }, () =>
+                        actionNodes(task),
+                    ),
+                ]),
             )
 
             return h(
@@ -167,7 +211,7 @@ export default defineComponent({
                     class: ['task-card', { 'is-selected': checked }],
                     key: task.id,
                 },
-                cardChildren
+                cardChildren,
             )
         }
 
@@ -179,7 +223,7 @@ export default defineComponent({
             return h(
                 'div',
                 { class: 'task-card-list' },
-                props.tasks.map((task) => renderTaskCard(task))
+                props.tasks.map((task) => renderTaskCard(task)),
             )
         }
     },

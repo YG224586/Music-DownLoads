@@ -1,10 +1,17 @@
 <template>
     <n-form-item label="歌手分隔符">
-        <n-input :value="settingsStore.settings.artistSeparator"
-            @update:value="(val) => (settingsStore.settings.artistSeparator = val)" placeholder="、" />
+        <n-input
+            :value="settingsStore.settings.artistSeparator"
+            @update:value="
+                (val) => (settingsStore.settings.artistSeparator = val)
+            "
+            placeholder="、"
+        />
         <template #feedback>
             <div class="separator-help">
-                用于拼接多歌手场景下的分隔字符串，可填入 <code>&amp;</code>、<code>/</code>、<code>，</code>等任意文本。<br />
+                用于拼接多歌手场景下的分隔字符串，可填入
+                <code>&amp;</code
+                >、<code>/</code>、<code>，</code>等任意文本。<br />
                 留空时将回退为默认的中文顿号：<code>、</code>。
             </div>
         </template>

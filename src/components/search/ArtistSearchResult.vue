@@ -2,16 +2,41 @@
     <div class="artist-search-result">
         <template v-if="artists.length > 0">
             <div class="artist-card-list">
-                <button type="button" v-for="pl in artists" :key="pl.id" class="artist-card" @click="$emit('click-artist', pl)">
-                    <img v-if="pl.coverUrl" :src="pl.coverUrl" class="artist-card-cover" alt="歌手封面" />
+                <button
+                    type="button"
+                    v-for="pl in artists"
+                    :key="pl.id"
+                    class="artist-card"
+                    @click="$emit('click-artist', pl)"
+                >
+                    <img
+                        v-if="pl.coverUrl"
+                        :src="pl.coverUrl"
+                        class="artist-card-cover"
+                        alt="歌手封面"
+                    />
                     <div class="artist-card-info">
                         <div class="artist-card-name">{{ pl.name }}</div>
-                        <div class="artist-card-creator">{{ [pl.alias, pl.region].filter(Boolean).join(' · ') }}</div>
-                        <div class="artist-card-meta">{{ pl.songCount }} 首歌曲 · {{ pl.albumCount }} 张专辑</div>
+                        <div class="artist-card-creator">
+                            {{
+                                [pl.alias, pl.region]
+                                    .filter(Boolean)
+                                    .join(' · ')
+                            }}
+                        </div>
+                        <div class="artist-card-meta">
+                            {{ pl.songCount }} 首歌曲 ·
+                            {{ pl.albumCount }} 张专辑
+                        </div>
                     </div>
                 </button>
             </div>
-            <LoadMoreButton v-if="hasMore" :loading="loadingMore" :disabled="loadingMore" @click="$emit('load-more')" />
+            <LoadMoreButton
+                v-if="hasMore"
+                :loading="loadingMore"
+                :disabled="loadingMore"
+                @click="$emit('load-more')"
+            />
         </template>
         <div v-else class="empty-result">
             <n-empty description="未找到相关歌手" />
@@ -23,7 +48,6 @@
 import { NEmpty } from 'naive-ui'
 import type { ArtistInfo } from '../../types'
 import LoadMoreButton from './LoadMoreButton.vue'
-
 
 defineProps<{
     artists: ArtistInfo[]

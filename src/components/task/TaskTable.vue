@@ -1,10 +1,27 @@
 <template>
-    <MobileTaskList v-if="isMobile" :tasks="tasks" :selected-row-keys="selectedRowKeys" :is-android="isAndroid"
-        @update:selected-row-keys="(keys) => emit('update:selectedRowKeys', keys)"
-        @action="(action, taskId, extra) => emit('action', action, taskId, extra)" />
-    <n-data-table v-else class="task-table" :columns="columns" :data="tasks" :row-key="(row: TaskRecord) => row.id"
-        :scroll-x="1080" table-layout="fixed"
-        :checked-row-keys="selectedRowKeys" @update:checked-row-keys="handleCheckedRowKeys" />
+    <MobileTaskList
+        v-if="isMobile"
+        :tasks="tasks"
+        :selected-row-keys="selectedRowKeys"
+        :is-android="isAndroid"
+        @update:selected-row-keys="
+            (keys) => emit('update:selectedRowKeys', keys)
+        "
+        @action="
+            (action, taskId, extra) => emit('action', action, taskId, extra)
+        "
+    />
+    <n-data-table
+        v-else
+        class="task-table"
+        :columns="columns"
+        :data="tasks"
+        :row-key="(row: TaskRecord) => row.id"
+        :scroll-x="1080"
+        table-layout="fixed"
+        :checked-row-keys="selectedRowKeys"
+        @update:checked-row-keys="handleCheckedRowKeys"
+    />
 </template>
 
 <script setup lang="ts">
@@ -31,7 +48,8 @@ onMounted(async () => {
     try {
         const currentPlatform = await getRuntimePlatform()
         // Web 文件位于服务器，和 Android SAF 一样展示路径但不显示本机“打开位置”。
-        isAndroid.value = currentPlatform === 'android' || currentPlatform === 'web'
+        isAndroid.value =
+            currentPlatform === 'android' || currentPlatform === 'web'
     } catch (error) {
         console.warn('获取平台信息失败，默认按非 Android 处理', error)
         isAndroid.value = false
@@ -46,7 +64,12 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'update:selectedRowKeys', keys: string[]): void
     // 增加第三个参数 extra，用于传递删除文件标志等
-    (e: 'action', action: TaskAction, taskId: string, extra?: TaskActionExtra): void
+    (
+        e: 'action',
+        action: TaskAction,
+        taskId: string,
+        extra?: TaskActionExtra,
+    ): void
 }>()
 
 function handleCheckedRowKeys(keys: DataTableRowKey[]) {
@@ -57,7 +80,8 @@ function handleCheckedRowKeys(keys: DataTableRowKey[]) {
  * 渲染进度列
  */
 function renderProgress(row: TaskRecord) {
-    const percent = row.fileSize > 0 ? Math.round((row.downloaded / row.fileSize) * 100) : 0
+    const percent =
+        row.fileSize > 0 ? Math.round((row.downloaded / row.fileSize) * 100) : 0
 
     // 已完成或处理中状态：显示100%
     if (row.status === 'completed' || row.status === 'processing') {
@@ -85,15 +109,11 @@ function renderProgress(row: TaskRecord) {
             percentage: percent,
             indicatorTextPlacement: 'inside',
             height: 20,
-        })
+        }),
     ]
 
     if (row.speed && row.speed > 0) {
-        children.push(
-            h('div', { class: 'task-speed' },
-                formatSpeed(row.speed)
-            )
-        )
+        children.push(h('div', { class: 'task-speed' }, formatSpeed(row.speed)))
     }
 
     return h('div', null, children)
@@ -108,7 +128,7 @@ const columns = computed<DataTableColumn<TaskRecord>[]>(() => [
     {
         title: '歌曲信息',
         key: 'song',
-        minWidth: 200,  // 确保最小列宽，防止被压缩
+        minWidth: 200, // 确保最小列宽，防止被压缩
         render(row: TaskRecord) {
             return h('div', { class: 'song-info' }, [
                 h('span', { class: 'song-title' }, row.songTitle || '未知歌曲'),
@@ -130,7 +150,10 @@ const columns = computed<DataTableColumn<TaskRecord>[]>(() => [
         key: 'status',
         width: 100,
         render(row: TaskRecord) {
-            const statusMap: Record<string, { type: TagProps['type']; label: string }> = {
+            const statusMap: Record<
+                string,
+                { type: TagProps['type']; label: string }
+            > = {
                 waiting: { type: 'info', label: '等待中' },
                 downloading: { type: 'info', label: '下载中' },
                 paused: { type: 'warning', label: '暂停' },
@@ -139,7 +162,10 @@ const columns = computed<DataTableColumn<TaskRecord>[]>(() => [
                 processing: { type: 'info', label: '处理中' },
                 interrupted: { type: 'warning', label: '已中断' },
             }
-            const s = statusMap[row.status] || { type: 'default' as const, label: row.status }
+            const s = statusMap[row.status] || {
+                type: 'default' as const,
+                label: row.status,
+            }
             return h(NTag, { type: s.type, size: 'small' }, () => s.label)
         },
     },
@@ -152,23 +178,31 @@ const columns = computed<DataTableColumn<TaskRecord>[]>(() => [
         },
     },
     // Android 和 Web 无法使用桌面文件管理器，因此直接展示文件路径。
-    ...(isAndroid.value ? [{
-        title: '文件路径',
-        key: 'filePath',
-        minWidth: 200,
-        render(row: TaskRecord) {
-            const fullPath = row.filePath || '-'
-            return h(NEllipsis, {
-                style: {
-                    fontSize: '12px',
-                    maxWidth: '300px',
-                },
-                expandTrigger: 'click',
-                lineClamp: 1,
-                tooltip: false, // 禁用 tooltip，改用点击展开
-            }, () => fullPath)
-        },
-    }] : []),
+    ...(isAndroid.value
+        ? [
+              {
+                  title: '文件路径',
+                  key: 'filePath',
+                  minWidth: 200,
+                  render(row: TaskRecord) {
+                      const fullPath = row.filePath || '-'
+                      return h(
+                          NEllipsis,
+                          {
+                              style: {
+                                  fontSize: '12px',
+                                  maxWidth: '300px',
+                              },
+                              expandTrigger: 'click',
+                              lineClamp: 1,
+                              tooltip: false, // 禁用 tooltip，改用点击展开
+                          },
+                          () => fullPath,
+                      )
+                  },
+              },
+          ]
+        : []),
     {
         title: '操作',
         key: 'actions',
@@ -177,11 +211,15 @@ const columns = computed<DataTableColumn<TaskRecord>[]>(() => [
             return h(NSpace, { justify: 'center' }, () =>
                 renderActions(row, {
                     // 显式传递第三个参数，确保 extra 不被丢弃
-                    emit: (action: TaskAction, taskId: string, extra?: TaskActionExtra) => {
+                    emit: (
+                        action: TaskAction,
+                        taskId: string,
+                        extra?: TaskActionExtra,
+                    ) => {
                         emit('action', action, taskId, extra)
                     },
                     isAndroid: isAndroid.value,
-                })
+                }),
             )
         },
     },

@@ -32,7 +32,11 @@ export function useSongSearch() {
      * @param keyword 搜索关键词
      * @param addHistory 是否添加到历史记录（由调用方决定，这里不直接操作 history store）
      */
-    async function searchSongs(platform: string, keyword: string, addHistory?: (term: string) => void) {
+    async function searchSongs(
+        platform: string,
+        keyword: string,
+        addHistory?: (term: string) => void,
+    ) {
         const term = keyword.trim()
         if (!term) return
 
@@ -44,7 +48,12 @@ export function useSongSearch() {
         loadingMore.value = false
 
         try {
-            const response = await musicApi.searchSongs(platform, term, currentPage.value, PAGE_SIZE)
+            const response = await musicApi.searchSongs(
+                platform,
+                term,
+                currentPage.value,
+                PAGE_SIZE,
+            )
             searchResults.value = response.songs
             hasMore.value = response.has_more
             addHistory?.(term)
@@ -69,7 +78,12 @@ export function useSongSearch() {
         loadingMore.value = true
 
         try {
-            const response = await musicApi.searchSongs(platform, keyword.trim(), nextPage, PAGE_SIZE)
+            const response = await musicApi.searchSongs(
+                platform,
+                keyword.trim(),
+                nextPage,
+                PAGE_SIZE,
+            )
             const more = response.songs
 
             // 去重，避免接口重复数据

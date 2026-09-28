@@ -3,13 +3,19 @@
         <!-- 移动端：开关行内布局，与其他开关组件保持一致 -->
         <div class="setting-row">
             <span class="setting-label">下载完成后发送系统通知</span>
-            <n-switch :value="settingsStore.settings.notifyOnComplete" @update:value="handleNotifyToggle" />
+            <n-switch
+                :value="settingsStore.settings.notifyOnComplete"
+                @update:value="handleNotifyToggle"
+            />
         </div>
     </template>
     <template v-else>
         <!-- 桌面端：原有表单布局 -->
         <n-form-item label="下载完成后发送系统通知">
-            <n-switch :value="settingsStore.settings.notifyOnComplete" @update:value="handleNotifyToggle" />
+            <n-switch
+                :value="settingsStore.settings.notifyOnComplete"
+                @update:value="handleNotifyToggle"
+            />
         </n-form-item>
     </template>
 </template>
@@ -18,7 +24,10 @@
 import { useNarrowLayout } from '../../composables/useNarrowLayout'
 import { NFormItem, NSwitch } from 'naive-ui'
 import { useSettingsStore } from '../../stores/settingsStore'
-import { requestNotificationPermission, checkNotificationPermission } from '../../api/musicApi'
+import {
+    requestNotificationPermission,
+    checkNotificationPermission,
+} from '../../api/musicApi'
 
 const settingsStore = useSettingsStore()
 
@@ -56,7 +65,7 @@ async function handleNotifyToggle(val: boolean) {
             notify()?.warning({
                 title: '通知权限',
                 description: '通知权限被拒绝，请在系统设置中允许',
-                duration: 3000
+                duration: 3000,
             })
         }
     } catch (error) {
@@ -66,7 +75,7 @@ async function handleNotifyToggle(val: boolean) {
         notify()?.error({
             title: '请求失败',
             description: '请求通知权限失败，请稍后重试',
-            duration: 3000
+            duration: 3000,
         })
     }
 }

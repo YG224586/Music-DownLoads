@@ -1,103 +1,110 @@
 *,
 *::before,
 *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 html,
 body {
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    height: 100%;
+    font-family:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+        Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
-  height: 100%;
+    height: 100%;
 
-  /* 随可用视口高度调整；旧版 WebView 继续使用上面的百分比高度。 */
-  height: 100dvh;
+    /* 随可用视口高度调整；旧版 WebView 继续使用上面的百分比高度。 */
+    height: 100dvh;
 }
 
 /* 浅色模式（默认） */
 :root {
-  --bg-body: #f4f7f6;
-  --bg-sidebar: #ffffff;
-  --bg-bottom: #ffffff;
-  --bg-content: #f4f7f6;
-  --border-color: #dfe7e3;
-  --color-text: #202d28;            /* 主文字颜色 */
-  --color-text-secondary: #6b7b73;  /* 次要文字颜色 */
-  --color-primary: #178366;
-  /* 优先使用插件注入的变量；如果插件未生效，回退到 env()；再回退到 0px 保证兼容。 */
-  --safe-area-top:    var(--edge-top,    env(safe-area-inset-top,    0px));
-  --safe-area-bottom: var(--edge-bottom, env(safe-area-inset-bottom, 0px));
-  --safe-area-left:   var(--edge-left,   env(safe-area-inset-left,   0px));
-  --safe-area-right:  var(--edge-right,  env(safe-area-inset-right,  0px));
+    --bg-body: #f4f7f6;
+    --bg-sidebar: #ffffff;
+    --bg-bottom: #ffffff;
+    --bg-content: #f4f7f6;
+    --border-color: #dfe7e3;
+    --color-text: #202d28; /* 主文字颜色 */
+    --color-text-secondary: #6b7b73; /* 次要文字颜色 */
+    --color-primary: #178366;
+    /* 优先使用插件注入的变量；如果插件未生效，回退到 env()；再回退到 0px 保证兼容。 */
+    --safe-area-top: var(--edge-top, env(safe-area-inset-top, 0px));
+    --safe-area-bottom: var(--edge-bottom, env(safe-area-inset-bottom, 0px));
+    --safe-area-left: var(--edge-left, env(safe-area-inset-left, 0px));
+    --safe-area-right: var(--edge-right, env(safe-area-inset-right, 0px));
 
-  /* 让浏览器根据系统主题自动切换滚动条配色 */
-  color-scheme: light dark;
+    /* 让浏览器根据系统主题自动切换滚动条配色 */
+    color-scheme: light dark;
 }
 
 /* 深色模式 */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg-body: #111815;
-    --bg-sidebar: #18211d;
-    --bg-bottom: #18211d;
-    --bg-content: #111815;
-    --border-color: #314139;
-    --color-text: #e5eee9;            /* 浅色文字 */
-    --color-text-secondary: #96aaa0;  /* 次要文字 */
-    --color-primary: #6ee7bc;
-  }
+    :root {
+        --bg-body: #111815;
+        --bg-sidebar: #18211d;
+        --bg-bottom: #18211d;
+        --bg-content: #111815;
+        --border-color: #314139;
+        --color-text: #e5eee9; /* 浅色文字 */
+        --color-text-secondary: #96aaa0; /* 次要文字 */
+        --color-primary: #6ee7bc;
+    }
 }
 
 /* 应用背景到 body，确保滚动背景不露白 */
 body {
-  background-color: var(--bg-body);
-  color: var(--color-text);
+    background-color: var(--bg-body);
+    color: var(--color-text);
 
-  /* 页面在主内容区滚动，底部导航保持正常流占位。 */
-  overflow: hidden;
+    /* 页面在主内容区滚动，底部导航保持正常流占位。 */
+    overflow: hidden;
 }
 
 /* 通用确认弹窗适应窄屏和较小视口，长内容滚动后仍可操作底部按钮。 */
 body .n-dialog {
-  max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 32px - var(--safe-area-top) - var(--safe-area-bottom));
-  max-height: calc(100dvh - 32px - var(--safe-area-top) - var(--safe-area-bottom));
-  overflow-y: auto;
-  overflow-wrap: anywhere;
+    max-width: calc(100vw - 32px);
+    max-height: calc(
+        100vh - 32px - var(--safe-area-top) - var(--safe-area-bottom)
+    );
+    max-height: calc(
+        100dvh - 32px - var(--safe-area-top) - var(--safe-area-bottom)
+    );
+    overflow-y: auto;
+    overflow-wrap: anywhere;
 }
 
 body .n-dialog__action {
-  flex-wrap: wrap;
+    flex-wrap: wrap;
 }
 
 /* ---------- Android 安全区适配 ---------- */
 
 /* 主内容区顶部预留状态栏高度 */
 html.android .main-content {
-  padding-top: calc(var(--page-padding, 16px) + var(--safe-area-top)) !important;
+    padding-top: calc(
+        var(--page-padding, 16px) + var(--safe-area-top)
+    ) !important;
 }
 
 /* 移动端底部导航区域避开 Android 手势条/底部安全区 */
 html.android .bottom-nav {
-  height: calc(56px + var(--safe-area-bottom)) !important;
-  padding-bottom: var(--safe-area-bottom) !important;
+    height: calc(56px + var(--safe-area-bottom)) !important;
+    padding-bottom: var(--safe-area-bottom) !important;
 }
 
 /* 弹窗容器顶部避开状态栏 */
 html.android .n-dialog-container,
 html.android .n-modal-container {
-  top: var(--safe-area-top) !important;
+    top: var(--safe-area-top) !important;
 }
 
 /* 通知提示避开状态栏 */
 html.android .n-notification-container {
-  top: calc(12px + var(--safe-area-top)) !important;
+    top: calc(12px + var(--safe-area-top)) !important;
 }

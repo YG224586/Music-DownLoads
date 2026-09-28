@@ -17,8 +17,10 @@ const backLabels: Record<string, string> = {
  * @returns 搜索、歌手、专辑或歌单页面的地址；无效值返回 fallback。
  */
 function musicBackTarget(target: unknown, fallback = '/search'): string {
-    return typeof target === 'string' && /^\/(search|artist|album|playlist)(\?|$)/.test(target)
-        ? target : fallback
+    return typeof target === 'string' &&
+        /^\/(search|artist|album|playlist)(\?|$)/.test(target)
+        ? target
+        : fallback
 }
 
 /**
@@ -34,7 +36,9 @@ export function useMusicNavigation(defaultBackTarget = '/search') {
     watch(
         () => route.fullPath,
         () => {
-            const source = router.options.history.state.musicReturnTo ?? route.query.returnTo
+            const source =
+                router.options.history.state.musicReturnTo ??
+                route.query.returnTo
             backTarget.value = musicBackTarget(source, defaultBackTarget)
         },
         { immediate: true },
@@ -45,9 +49,19 @@ export function useMusicNavigation(defaultBackTarget = '/search') {
         return backLabels[path] || '返回'
     })
 
-    function open(path: '/artist' | '/album', platform: string, id: string, query: LocationQueryRaw) {
+    function open(
+        path: '/artist' | '/album',
+        platform: string,
+        id: string,
+        query: LocationQueryRaw,
+    ) {
         if (!getMusicEntityId(platform, id, id)) return
-        if (route.path === path && route.query.platform === platform && route.query.id === id) return
+        if (
+            route.path === path &&
+            route.query.platform === platform &&
+            route.query.id === id
+        )
+            return
         return router.push({
             path,
             query: { ...query, platform, id },
@@ -56,12 +70,17 @@ export function useMusicNavigation(defaultBackTarget = '/search') {
     }
 
     /** 打开歌手详情；artist.id 为 QQ 音乐 MID 或酷我数字 ID 字符串。 */
-    function openArtist(platform: string, artist: Pick<ArtistInfo, 'id' | 'name'> & Partial<ArtistInfo>) {
+    function openArtist(
+        platform: string,
+        artist: Pick<ArtistInfo, 'id' | 'name'> & Partial<ArtistInfo>,
+    ) {
         return open('/artist', platform, artist.id, {
             name: artist.name,
-            cover: artist.coverUrl || (platform === 'qqmusic'
-                ? `https://y.gtimg.cn/music/photo_new/T001R300x300M000${artist.id}.jpg`
-                : undefined),
+            cover:
+                artist.coverUrl ||
+                (platform === 'qqmusic'
+                    ? `https://y.gtimg.cn/music/photo_new/T001R300x300M000${artist.id}.jpg`
+                    : undefined),
             alias: artist.alias,
             region: artist.region,
             songs: artist.songCount,
@@ -79,7 +98,10 @@ export function useMusicNavigation(defaultBackTarget = '/search') {
     }
 
     /** 打开专辑详情；album.id 为 QQ 音乐 MID 或酷我数字 ID 字符串。 */
-    function openAlbum(platform: string, album: Pick<AlbumInfo, 'id' | 'name'> & Partial<AlbumInfo>) {
+    function openAlbum(
+        platform: string,
+        album: Pick<AlbumInfo, 'id' | 'name'> & Partial<AlbumInfo>,
+    ) {
         return open('/album', platform, album.id, {
             name: album.name,
             artist: album.artist,
@@ -102,5 +124,12 @@ export function useMusicNavigation(defaultBackTarget = '/search') {
         }
     }
 
-    return { openArtist, openRelatedArtist, openAlbum, openSongAlbum, goBack, backLabel }
+    return {
+        openArtist,
+        openRelatedArtist,
+        openAlbum,
+        openSongAlbum,
+        goBack,
+        backLabel,
+    }
 }

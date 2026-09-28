@@ -2,16 +2,32 @@
     <template v-if="isNarrow">
         <div class="setting-row">
             <span class="setting-label">同时下载数</span>
-            <n-input-number :value="settingsStore.settings.maxConcurrent"
-                @update:value="(val) => (settingsStore.settings.maxConcurrent = val ?? 1)" :min="1" :max="10" step="1"
-                button-placement="both" class="concurrency-input" />
+            <n-input-number
+                :value="settingsStore.settings.maxConcurrent"
+                @update:value="
+                    (val) => (settingsStore.settings.maxConcurrent = val ?? 1)
+                "
+                :min="1"
+                :max="10"
+                step="1"
+                button-placement="both"
+                class="concurrency-input"
+            />
         </div>
     </template>
     <template v-else>
         <n-form-item label="同时下载数">
-            <n-input-number :value="settingsStore.settings.maxConcurrent"
-                @update:value="(val) => (settingsStore.settings.maxConcurrent = val ?? 1)" :min="1" :max="10" step="1"
-                button-placement="both" class="concurrency-input" />
+            <n-input-number
+                :value="settingsStore.settings.maxConcurrent"
+                @update:value="
+                    (val) => (settingsStore.settings.maxConcurrent = val ?? 1)
+                "
+                :min="1"
+                :max="10"
+                step="1"
+                button-placement="both"
+                class="concurrency-input"
+            />
         </n-form-item>
     </template>
 </template>

@@ -13,13 +13,17 @@ export function useArtistSearch() {
     let page = 1
     let context = {
         platform: '',
-        keyword: ''
+        keyword: '',
     }
 
     function reset() {
         generation++
         artists.value = []
-        loading.value = loadingMore.value = hasSearched.value = hasMore.value = false
+        loading.value =
+            loadingMore.value =
+            hasSearched.value =
+            hasMore.value =
+                false
         error.value = ''
         page = 1
     }
@@ -29,7 +33,7 @@ export function useArtistSearch() {
         if (!keyword.trim()) return
         context = {
             platform,
-            keyword: keyword.trim()
+            keyword: keyword.trim(),
         }
         hasSearched.value = loading.value = true
         await fetchPage(false)
@@ -40,16 +44,26 @@ export function useArtistSearch() {
         const nextPage = more ? page + 1 : 1
         error.value = ''
         try {
-            const result = await searchArtists(context.platform, context.keyword, nextPage)
+            const result = await searchArtists(
+                context.platform,
+                context.keyword,
+                nextPage,
+            )
             if (request !== generation) return
-            const ids = new Set(artists.value.map(artist => artist.id))
-            artists.value = more ? [...artists.value, ...result.artists.filter(artist => !ids.has(artist.id))] : result.artists
+            const ids = new Set(artists.value.map((artist) => artist.id))
+            artists.value = more
+                ? [
+                      ...artists.value,
+                      ...result.artists.filter((artist) => !ids.has(artist.id)),
+                  ]
+                : result.artists
             hasMore.value = result.has_more
             page = nextPage
         } catch (e) {
             if (request === generation) error.value = String(e)
         } finally {
-            if (request === generation) loading.value = loadingMore.value = false
+            if (request === generation)
+                loading.value = loadingMore.value = false
         }
     }
 
@@ -68,6 +82,6 @@ export function useArtistSearch() {
         error,
         reset,
         search,
-        loadMore
+        loadMore,
     }
 }

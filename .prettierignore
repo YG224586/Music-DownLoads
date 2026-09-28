@@ -1,0 +1,10 @@
+# Lockfiles and generated license data
+package-lock.json
+**/pnpm-lock.yaml
+src/data/licenses.ts
+NOTICE
+THIRD_PARTY_LICENSES.txt
+licenses/
+
+# Vendored code
+libs/

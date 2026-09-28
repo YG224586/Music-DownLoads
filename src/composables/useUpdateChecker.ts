@@ -21,7 +21,6 @@ const currentPlatform = ref<string>('')
 const hasInitialized = ref(false)
 
 export function useUpdateChecker() {
-
     // 根据当前平台过滤下载资产列表，实现平台相关的安装包显示，提升用户体验
     const filteredAssets = computed(() => {
         if (!updateInfo.value || !updateInfo.value.assets) return []
@@ -30,13 +29,24 @@ export function useUpdateChecker() {
         const assets = updateInfo.value.assets
         if (platformStr === 'android') {
             // Android 平台仅展示 release 版本的 APK
-            return assets.filter(a => a.name.endsWith('.apk') && a.name.toLowerCase().includes('release'))
+            return assets.filter(
+                (a) =>
+                    a.name.endsWith('.apk') &&
+                    a.name.toLowerCase().includes('release'),
+            )
         } else if (platformStr === 'windows') {
-            return assets.filter(a => a.name.endsWith('.exe') || a.name.endsWith('.msi'))
+            return assets.filter(
+                (a) => a.name.endsWith('.exe') || a.name.endsWith('.msi'),
+            )
         } else if (platformStr === 'macos' || platformStr === 'darwin') {
-            return assets.filter(a => a.name.endsWith('.dmg'))
+            return assets.filter((a) => a.name.endsWith('.dmg'))
         } else if (platformStr === 'linux') {
-            return assets.filter(a => a.name.endsWith('.deb') || a.name.endsWith('.rpm') || a.name.endsWith('.AppImage'))
+            return assets.filter(
+                (a) =>
+                    a.name.endsWith('.deb') ||
+                    a.name.endsWith('.rpm') ||
+                    a.name.endsWith('.AppImage'),
+            )
         }
         // 其他平台显示全部
         return assets
@@ -60,14 +70,22 @@ export function useUpdateChecker() {
         const latest = updateInfo.value.tag_name.replace(/^v/, '')
         // 使用 semver.gt 比较两个版本号，返回是否 latest > current
         // 注意：semver 库会处理预发布版本的优先级规则
-        return semver.valid(current) !== null && semver.valid(latest) !== null && semver.gt(latest, current)
+        return (
+            semver.valid(current) !== null &&
+            semver.valid(latest) !== null &&
+            semver.gt(latest, current)
+        )
     })
 
     // 显示错误通知：使用全局 $notify（NavLayout 已挂载），避免依赖未提供的 message provider
     function showErrorNotification(message: string) {
         const notify = () => window.$notify
         if (typeof window !== 'undefined' && notify()) {
-            notify()?.error({ title: '错误', description: message, duration: 3000 })
+            notify()?.error({
+                title: '错误',
+                description: message,
+                duration: 3000,
+            })
         } else {
             console.error(message)
         }

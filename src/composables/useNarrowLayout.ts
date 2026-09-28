@@ -5,9 +5,10 @@ export const NARROW_LAYOUT_QUERY = '(max-width: 767px)'
 /** 布局只由可用宽度决定；Android 等原生能力仍由平台检测决定。 */
 export function useNarrowLayout() {
     // 初始化时读取当前宽度，避免窄屏先显示一次桌面布局。
-    const mediaQuery = typeof window === 'undefined'
-        ? null
-        : window.matchMedia(NARROW_LAYOUT_QUERY)
+    const mediaQuery =
+        typeof window === 'undefined'
+            ? null
+            : window.matchMedia(NARROW_LAYOUT_QUERY)
     const isNarrow = ref(mediaQuery?.matches ?? false)
 
     function update(event: MediaQueryListEvent) {

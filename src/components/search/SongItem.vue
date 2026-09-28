@@ -1,34 +1,70 @@
 <template>
     <div class="song-item" :class="{ 'is-selected': selected }">
-        <n-checkbox :checked="selected" @update:checked="$emit('toggleSelect', $event)" />
+        <n-checkbox
+            :checked="selected"
+            @update:checked="$emit('toggleSelect', $event)"
+        />
         <div class="cover-wrapper">
-            <img v-if="coverUrl" :src="coverUrl" class="cover" alt="封面" loading="lazy" />
+            <img
+                v-if="coverUrl"
+                :src="coverUrl"
+                class="cover"
+                alt="封面"
+                loading="lazy"
+            />
             <div v-else-if="coverLoading" class="cover placeholder" />
             <div v-else class="cover placeholder default" />
         </div>
         <div class="info">
             <div class="title">{{ song.title }}</div>
             <div class="subtitle">
-                <ArtistNames :platform="song.platform" :artists="song.artists" :fallback="song.artist"
-                    @click-artist="(platform, artist) => $emit('click-artist', platform, artist)" />
+                <ArtistNames
+                    :platform="song.platform"
+                    :artists="song.artists"
+                    :fallback="song.artist"
+                    @click-artist="
+                        (platform, artist) =>
+                            $emit('click-artist', platform, artist)
+                    "
+                />
             </div>
             <div v-if="song.album" class="subtitle">
-                <n-button v-if="albumId" text size="small" class="album-link" @click.stop="$emit('click-album', song)">
+                <n-button
+                    v-if="albumId"
+                    text
+                    size="small"
+                    class="album-link"
+                    @click.stop="$emit('click-album', song)"
+                >
                     {{ song.album }}
                 </n-button>
                 <span v-else>{{ song.album }}</span>
             </div>
             <div class="quality-tags">
-                <n-tag v-for="q in sortedQualities.slice(0, 4)" :key="q.quality" size="tiny" :bordered="false"
-                    type="info">
+                <n-tag
+                    v-for="q in sortedQualities.slice(0, 4)"
+                    :key="q.quality"
+                    size="tiny"
+                    :bordered="false"
+                    type="info"
+                >
                     {{ q.quality }}
                 </n-tag>
-                <n-tag v-if="sortedQualities.length > 4" size="tiny" :bordered="false" type="info">
+                <n-tag
+                    v-if="sortedQualities.length > 4"
+                    size="tiny"
+                    :bordered="false"
+                    type="info"
+                >
                     +{{ sortedQualities.length - 4 }}
                 </n-tag>
             </div>
         </div>
-        <n-button size="small" class="download-btn" @click="$emit('download', song)">
+        <n-button
+            size="small"
+            class="download-btn"
+            @click="$emit('download', song)"
+        >
             下载
         </n-button>
     </div>
@@ -55,7 +91,13 @@ defineEmits<{
     (e: 'click-album', song: SongInfo): void
 }>()
 
-const albumId = computed(() => getMusicEntityId(props.song.platform, props.song.albumId, props.song.albumMid))
+const albumId = computed(() =>
+    getMusicEntityId(
+        props.song.platform,
+        props.song.albumId,
+        props.song.albumMid,
+    ),
+)
 
 // 按品质从高到低排序
 const sortedQualities = computed(() => {
@@ -65,7 +107,7 @@ const sortedQualities = computed(() => {
         // 未知品质放在末尾
         const idxA = ia === -1 ? -1 : ia
         const idxB = ib === -1 ? -1 : ib
-        return idxB - idxA  // 降序
+        return idxB - idxA // 降序
     })
 })
 
@@ -100,10 +142,13 @@ onMounted(() => {
 })
 
 // 切换 song prop 时（如列表项重用）重新加载
-watch(() => props.song.id, () => {
-    coverUrl.value = props.song.coverUrl
-    loadCoverIfNeeded()
-})
+watch(
+    () => props.song.id,
+    () => {
+        coverUrl.value = props.song.coverUrl
+        loadCoverIfNeeded()
+    },
+)
 </script>
 
 <style scoped>

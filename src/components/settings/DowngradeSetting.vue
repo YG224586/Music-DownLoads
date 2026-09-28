@@ -3,20 +3,32 @@
         <!-- 移动端：开关保持行内布局，排序入口单独占一行，避免窄屏拥挤。 -->
         <div class="setting-row">
             <span class="setting-label">自动降级</span>
-            <n-switch :value="settingsStore.settings.autoDowngrade"
-                @update:value="(val) => (settingsStore.settings.autoDowngrade = val)" />
+            <n-switch
+                :value="settingsStore.settings.autoDowngrade"
+                @update:value="
+                    (val) => (settingsStore.settings.autoDowngrade = val)
+                "
+            />
         </div>
     </template>
     <template v-else>
         <n-form-item label="自动降级">
-            <n-switch :value="settingsStore.settings.autoDowngrade"
-                @update:value="(val) => (settingsStore.settings.autoDowngrade = val)" />
+            <n-switch
+                :value="settingsStore.settings.autoDowngrade"
+                @update:value="
+                    (val) => (settingsStore.settings.autoDowngrade = val)
+                "
+            />
         </n-form-item>
     </template>
 
     <n-form-item label="降级顺序">
         <div class="downgrade-setting">
-            <div class="downgrade-summary" :title="downgradeOrderText" :aria-label="`当前降级顺序：${downgradeOrderText}`">
+            <div
+                class="downgrade-summary"
+                :title="downgradeOrderText"
+                :aria-label="`当前降级顺序：${downgradeOrderText}`"
+            >
                 {{ downgradeOrderText }}
             </div>
             <p class="downgrade-help">
@@ -27,7 +39,11 @@
                     当前顺序已保留，开启自动降级后可编辑并生效。
                 </template>
             </p>
-            <n-button size="small" :disabled="!settingsStore.settings.autoDowngrade" @click="openEditor">
+            <n-button
+                size="small"
+                :disabled="!settingsStore.settings.autoDowngrade"
+                @click="openEditor"
+            >
                 自定义顺序
             </n-button>
         </div>
@@ -37,26 +53,52 @@
         排序过程只修改 draftOrder，点击“保存”后才一次性写回 Pinia。
         这样“取消”能完整撤销本次编辑，也不会让每次上移/下移都触发设置持久化。
     -->
-    <n-modal v-model:show="showEditor" preset="card" title="自定义降级顺序" class="downgrade-modal"
-        style="width: min(480px, calc(100vw - 32px));" :mask-closable="false">
+    <n-modal
+        v-model:show="showEditor"
+        preset="card"
+        title="自定义降级顺序"
+        class="downgrade-modal"
+        style="width: min(480px, calc(100vw - 32px))"
+        :mask-closable="false"
+    >
         <p id="downgrade-order-help" class="editor-help">
             排在目标音质之后的项目才会作为降级候选。目标音质本身可用时仍会直接下载。
         </p>
 
         <ol class="quality-order-list" aria-describedby="downgrade-order-help">
-            <li v-for="(quality, index) in draftOrder" :key="quality" class="quality-order-item">
-                <span class="quality-index" aria-hidden="true">{{ index + 1 }}</span>
+            <li
+                v-for="(quality, index) in draftOrder"
+                :key="quality"
+                class="quality-order-item"
+            >
+                <span class="quality-index" aria-hidden="true">{{
+                    index + 1
+                }}</span>
                 <span class="quality-name">{{ quality }}</span>
-                <n-tag v-if="quality === settingsStore.settings.defaultQuality" size="small" :bordered="false">
+                <n-tag
+                    v-if="quality === settingsStore.settings.defaultQuality"
+                    size="small"
+                    :bordered="false"
+                >
                     默认
                 </n-tag>
                 <div class="move-actions">
-                    <n-button size="small" quaternary :disabled="index === 0"
-                        :aria-label="`上移 ${quality}`" @click="moveQuality(index, -1)">
+                    <n-button
+                        size="small"
+                        quaternary
+                        :disabled="index === 0"
+                        :aria-label="`上移 ${quality}`"
+                        @click="moveQuality(index, -1)"
+                    >
                         ↑
                     </n-button>
-                    <n-button size="small" quaternary :disabled="index === draftOrder.length - 1"
-                        :aria-label="`下移 ${quality}`" @click="moveQuality(index, 1)">
+                    <n-button
+                        size="small"
+                        quaternary
+                        :disabled="index === draftOrder.length - 1"
+                        :aria-label="`下移 ${quality}`"
+                        @click="moveQuality(index, 1)"
+                    >
                         ↓
                     </n-button>
                 </div>
@@ -68,12 +110,22 @@
 
         <template #footer>
             <div class="modal-actions">
-                <n-button size="small" text :disabled="isDefaultOrder" @click="resetDraftOrder">
+                <n-button
+                    size="small"
+                    text
+                    :disabled="isDefaultOrder"
+                    @click="resetDraftOrder"
+                >
                     恢复默认顺序
                 </n-button>
                 <div class="modal-primary-actions">
                     <n-button @click="cancelEditor">取消</n-button>
-                    <n-button type="primary" :disabled="!hasChanges" @click="saveOrder">保存</n-button>
+                    <n-button
+                        type="primary"
+                        :disabled="!hasChanges"
+                        @click="saveOrder"
+                        >保存</n-button
+                    >
                 </div>
             </div>
         </template>
@@ -94,15 +146,19 @@ const draftOrder = ref<string[]>([])
 const liveMessage = ref('')
 
 const downgradeOrderText = computed(() =>
-    settingsStore.settings.qualityDowngradeOrder.join(' → ')
+    settingsStore.settings.qualityDowngradeOrder.join(' → '),
 )
 
-const hasChanges = computed(() =>
-    draftOrder.value.join('\u0000') !== settingsStore.settings.qualityDowngradeOrder.join('\u0000')
+const hasChanges = computed(
+    () =>
+        draftOrder.value.join('\u0000') !==
+        settingsStore.settings.qualityDowngradeOrder.join('\u0000'),
 )
 
-const isDefaultOrder = computed(() =>
-    draftOrder.value.join('\u0000') === QUALITY_DOWNGRADE_ORDER.join('\u0000')
+const isDefaultOrder = computed(
+    () =>
+        draftOrder.value.join('\u0000') ===
+        QUALITY_DOWNGRADE_ORDER.join('\u0000'),
 )
 
 /** 打开编辑器时克隆已保存顺序，保证关闭或取消不会污染持久设置。 */
@@ -150,8 +206,12 @@ const isNarrow = useNarrowLayout()
 <style scoped>
 /* 弹窗由 Modal 渲染到 body，使用专属类名定位；内容滚动，页脚保持可见 */
 :global(.downgrade-modal) {
-    max-height: calc(100vh - 32px - var(--safe-area-top) - var(--safe-area-bottom));
-    max-height: calc(100dvh - 32px - var(--safe-area-top) - var(--safe-area-bottom));
+    max-height: calc(
+        100vh - 32px - var(--safe-area-top) - var(--safe-area-bottom)
+    );
+    max-height: calc(
+        100dvh - 32px - var(--safe-area-top) - var(--safe-area-bottom)
+    );
 }
 
 :global(.downgrade-modal > .n-card-content) {

@@ -13,13 +13,17 @@ export function useAlbumSearch() {
     let page = 1
     let context = {
         platform: '',
-        keyword: ''
+        keyword: '',
     }
 
     function reset() {
         generation++
         albums.value = []
-        loading.value = loadingMore.value = hasSearched.value = hasMore.value = false
+        loading.value =
+            loadingMore.value =
+            hasSearched.value =
+            hasMore.value =
+                false
         error.value = ''
         page = 1
     }
@@ -29,7 +33,7 @@ export function useAlbumSearch() {
         if (!keyword.trim()) return
         context = {
             platform,
-            keyword: keyword.trim()
+            keyword: keyword.trim(),
         }
         hasSearched.value = loading.value = true
         await fetchPage(false)
@@ -40,16 +44,26 @@ export function useAlbumSearch() {
         const nextPage = more ? page + 1 : 1
         error.value = ''
         try {
-            const result = await searchAlbums(context.platform, context.keyword, nextPage)
+            const result = await searchAlbums(
+                context.platform,
+                context.keyword,
+                nextPage,
+            )
             if (request !== generation) return
-            const ids = new Set(albums.value.map(album => album.id))
-            albums.value = more ? [...albums.value, ...result.albums.filter(album => !ids.has(album.id))] : result.albums
+            const ids = new Set(albums.value.map((album) => album.id))
+            albums.value = more
+                ? [
+                      ...albums.value,
+                      ...result.albums.filter((album) => !ids.has(album.id)),
+                  ]
+                : result.albums
             hasMore.value = result.has_more
             page = nextPage
         } catch (e) {
             if (request === generation) error.value = String(e)
         } finally {
-            if (request === generation) loading.value = loadingMore.value = false
+            if (request === generation)
+                loading.value = loadingMore.value = false
         }
     }
 
@@ -68,6 +82,6 @@ export function useAlbumSearch() {
         error,
         reset,
         search,
-        loadMore
+        loadMore,
     }
 }
