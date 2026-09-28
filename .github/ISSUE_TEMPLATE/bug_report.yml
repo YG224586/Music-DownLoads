@@ -24,15 +24,36 @@ body:
     attributes:
       label: "预期行为"
       description: "你期望发生什么"
+    validations:
+      required: true
 
   - type: textarea
     id: actual
     attributes:
       label: "实际行为"
       description: "实际发生了什么"
+    validations:
+      required: true
 
   - type: textarea
     id: environment
     attributes:
       label: "环境信息"
       description: "操作系统、软件版本等"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "日志 / 报错信息"
+      description: "直接粘贴纯文本日志，不要只贴截图"
+      render: shell
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已经搜索过现有和已关闭的 issue，确认没有相同问题
+          required: true
