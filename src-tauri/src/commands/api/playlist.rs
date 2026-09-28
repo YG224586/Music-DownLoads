@@ -1,7 +1,7 @@
 //! 歌单导入命令路由层
 
-use crate::platforms::Platform;
-use crate::utils::filename::get_artist_separator;
+use crate::utils::settings::get_artist_separator;
+use hotdownloader_core::platforms::{self, Platform};
 use tauri::{command, AppHandle};
 
 #[command]
@@ -15,11 +15,9 @@ pub async fn fetch_playlist_songs(
     let separator = get_artist_separator(&app);
     match p {
         Platform::QqMusic => {
-            crate::platforms::qqmusic::playlist::fetch_playlist_songs(&separator, input).await
+            platforms::qqmusic::playlist::fetch_playlist_songs(&separator, input).await
         }
-        Platform::Kuwo => {
-            crate::platforms::kuwo::playlist::fetch_playlist_songs(&separator, input).await
-        }
+        Platform::Kuwo => platforms::kuwo::playlist::fetch_playlist_songs(&separator, input).await,
     }
 }
 
@@ -37,11 +35,9 @@ pub async fn search_playlists(
     let p = Platform::from_str(&platform)?;
     match p {
         Platform::QqMusic => {
-            crate::platforms::qqmusic::playlist::search_playlists(keyword, page, limit).await
+            platforms::qqmusic::playlist::search_playlists(keyword, page, limit).await
         }
-        Platform::Kuwo => {
-            crate::platforms::kuwo::playlist::search_playlists(keyword, page, limit).await
-        }
+        Platform::Kuwo => platforms::kuwo::playlist::search_playlists(keyword, page, limit).await,
     }
 }
 

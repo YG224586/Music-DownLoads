@@ -1,5 +1,7 @@
 //! 下载后的歌词与封面获取，供普通文件和 SAF 收尾流程共用。
 
+use std::path::Path;
+
 use crate::download::context::TaskContext;
 use crate::platforms::lyric::LyricData;
 use crate::platforms::Platform;
@@ -8,6 +10,15 @@ use crate::platforms::Platform;
 pub struct PostprocessAssets {
     pub lyric: Option<LyricData>,
     pub cover_bytes: Option<Vec<u8>>,
+}
+
+/// 独立歌词沿用音频文件名的 stem；普通路径与 Android SAF 使用同一命名规则。
+pub fn lrc_file_name(audio_path: &str) -> String {
+    let stem = Path::new(audio_path)
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("unknown");
+    format!("{stem}.lrc")
 }
 
 /// 根据任务配置准备收尾数据。平台接口失败只影响对应的可选内容。

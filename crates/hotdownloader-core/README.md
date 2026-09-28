@@ -11,7 +11,7 @@
 | `download::{engine, worker, context, config, link, ports, postprocess}` | 调度、下载执行、运行时端口与通用收尾素材。路径、传输和解密细节位于同一目录。 |
 | `platforms::{qqmusic, kuwo}`、`platforms::Platform` | 平台查询、链接、登录凭据与歌词处理。 |
 | `adapters::local` | JSON 任务仓库、普通文件打开与删除、LRC 和音频标签写入。 |
-| `settings::patch` | 设置快照的字段级合并与冲突判定。 |
+| `settings` | 设置快照的字段级合并、冲突判定与歌手分隔符解析。 |
 
 `lib.rs` 只声明这些领域入口。Tauri 与独立服务通过上述公开路径接入核心；
 Android SAF、系统通知和窗口功能由 Tauri 运行时适配器实现。
@@ -43,7 +43,7 @@ Android SAF、系统通知和窗口功能由 Tauri 运行时适配器实现。
 - QQ 下载凭据由 `QqCredentialSource` 提供。
   - 桌面端使用登录模块。
   - 独立服务可调用 `PlatformDownloadLinkProvider::from_credentials_file(path)`。
-- `platforms::qqmusic::login` 实现 QQ 扫码、MQTT 会话、手动登录和凭据刷新，通过 `LoginCredentialStore` 接入 Tauri Store 或普通 JSON 文件。
+- `platforms::qqmusic::login` 实现 QQ 扫码、MQTT 会话、手动登录和凭据刷新，通过 `LoginCredentialStore` 接入 Tauri Store 或普通 JSON 文件。下载链接获取前的凭据校验与刷新回退由 `download_auth` 处理，运行时负责向用户提示刷新失败。
 
 ## 运行时接入
 

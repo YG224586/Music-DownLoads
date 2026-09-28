@@ -1705,8 +1705,6 @@ dependencies = [
  "tauri-plugin-os",
  "tauri-plugin-safe-area-insets-css-edge",
  "tauri-plugin-store",
- "tokio",
- "tokio-util",
 ]
 
 [[package]]

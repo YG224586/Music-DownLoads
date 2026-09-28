@@ -186,34 +186,16 @@ impl TauriDownloadLinkProvider {
 impl QqCredentialSource for TauriQqCredentialSource {
     fn current(&self) -> BoxFuture<'_, Result<Option<QqAuth>, String>> {
         Box::pin(async move {
-            let (mut uin, mut authst) =
-                crate::platforms::qqmusic::login::get_login_credentials(&self.app).await;
-            if let (Some(user), Some(token)) = (&uin, &authst) {
-                if !user.is_empty() && !token.is_empty() {
-                    let expired =
-                        crate::platforms::qqmusic::login::check_credential_expired(&self.app)
-                            .await
-                            .unwrap_or(false);
-                    if expired {
-                        // 刷新失败时仍尝试旧凭据，并保留旧客户端的窗口提示事件。
-                        match crate::platforms::qqmusic::login::refresh_credential(&self.app).await
-                        {
-                            Ok(credentials) => {
-                                uin = Some(credentials.uin);
-                                authst = Some(credentials.authst);
-                            }
-                            Err(error) => {
-                                log::warn!("QQ音乐凭证刷新失败，继续使用旧凭证: {error}");
-                                let _ = self.app.emit(
-                                    crate::events::LOGIN_REFRESH_FAILED,
-                                    format!("QQ音乐登录已过期，自动刷新失败：{error}"),
-                                );
-                            }
-                        }
-                    }
-                }
+            let (auth, refresh_error) =
+                crate::platforms::qqmusic::login::download_auth(&self.app).await;
+            if let Some(error) = refresh_error {
+                log::warn!("QQ音乐凭证刷新失败，继续使用旧凭证: {error}");
+                let _ = self.app.emit(
+                    crate::events::LOGIN_REFRESH_FAILED,
+                    format!("QQ音乐登录已过期，自动刷新失败：{error}"),
+                );
             }
-            Ok(uin.zip(authst).map(|(uin, authst)| QqAuth { uin, authst }))
+            Ok(auth)
         })
     }
 }

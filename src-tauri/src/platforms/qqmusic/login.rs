@@ -8,8 +8,6 @@ use tauri::AppHandle;
 
 use crate::storage::store_wrapper;
 
-pub use hotdownloader_core::platforms::qqmusic::login::LoginCredentials;
-
 struct TauriLoginStore {
     app: AppHandle,
 }
@@ -67,16 +65,13 @@ impl LoginCredentialStore for TauriLoginStore {
     }
 }
 
-pub(crate) async fn get_login_credentials(app: &AppHandle) -> (Option<String>, Option<String>) {
-    qq_login::get_login_credentials(&TauriLoginStore::new(app)).await
-}
-
-pub(crate) async fn check_credential_expired(app: &AppHandle) -> Result<bool, String> {
-    qq_login::check_credential_expired(&TauriLoginStore::new(app)).await
-}
-
-pub(crate) async fn refresh_credential(app: &AppHandle) -> Result<LoginCredentials, String> {
-    qq_login::refresh_credential(&TauriLoginStore::new(app)).await
+pub(crate) async fn download_auth(
+    app: &AppHandle,
+) -> (
+    Option<hotdownloader_core::platforms::qqmusic::credentials::QqAuth>,
+    Option<String>,
+) {
+    qq_login::download_auth(&TauriLoginStore::new(app)).await
 }
 
 pub(crate) async fn create_qr_login(app: AppHandle) -> Result<String, String> {

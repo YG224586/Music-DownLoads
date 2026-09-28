@@ -803,6 +803,28 @@ pub async fn get_login_credentials(
     (uin, authst)
 }
 
+/// 下载链接使用当前凭据。只有已登录时才校验过期状态；刷新失败时保留旧凭据
+/// 继续尝试链接请求，同时把错误交给运行时提示用户。
+pub async fn download_auth(
+    store: &dyn LoginCredentialStore,
+) -> (Option<super::credentials::QqAuth>, Option<String>) {
+    let (mut uin, mut authst) = get_login_credentials(store).await;
+    let mut refresh_error = None;
+    if uin.is_some() && authst.is_some() && check_credential_expired(store).await.unwrap_or(false) {
+        match refresh_credential(store).await {
+            Ok(credentials) => {
+                uin = Some(credentials.uin);
+                authst = Some(credentials.authst);
+            }
+            Err(error) => refresh_error = Some(error),
+        }
+    }
+    let auth = uin
+        .zip(authst)
+        .map(|(uin, authst)| super::credentials::QqAuth { uin, authst });
+    (auth, refresh_error)
+}
+
 /// 检查当前登录凭证是否已过期。
 ///
 /// 通过调用 `music.UserInfo.userInfoServer.GetLoginUserInfo` 接口验证凭证有效性。

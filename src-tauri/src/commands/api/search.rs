@@ -1,7 +1,7 @@
 //! 搜索命令路由层
 
-use crate::platforms::Platform;
-use crate::utils::filename::get_artist_separator;
+use crate::utils::settings::get_artist_separator;
+use hotdownloader_core::platforms::{self, Platform};
 use tauri::{command, AppHandle};
 
 #[command]
@@ -17,10 +17,10 @@ pub async fn search_songs(
     let separator = get_artist_separator(&app);
     match p {
         Platform::QqMusic => {
-            crate::platforms::qqmusic::search::search_songs(&separator, keyword, page, limit).await
+            platforms::qqmusic::search::search_songs(&separator, keyword, page, limit).await
         }
         Platform::Kuwo => {
-            crate::platforms::kuwo::search::search_songs(&separator, keyword, page, limit).await
+            platforms::kuwo::search::search_songs(&separator, keyword, page, limit).await
         }
     }
 }
@@ -34,7 +34,7 @@ pub async fn fetch_cover(platform: String, song_id: u64) -> Result<String, Strin
     let p = Platform::from_str(&platform)?;
     match p {
         Platform::QqMusic => Err("QQ 音乐封面已包含在搜索结果中，无需单独获取".into()),
-        Platform::Kuwo => crate::platforms::kuwo::cover::fetch_cover(song_id).await,
+        Platform::Kuwo => platforms::kuwo::cover::fetch_cover(song_id).await,
     }
 }
 
@@ -52,10 +52,10 @@ pub async fn search_albums(
     let separator = get_artist_separator(&app);
     match Platform::from_str(&platform)? {
         Platform::QqMusic => {
-            crate::platforms::qqmusic::search::search_albums(&separator, keyword, page, limit).await
+            platforms::qqmusic::search::search_albums(&separator, keyword, page, limit).await
         }
         Platform::Kuwo => {
-            crate::platforms::kuwo::search::search_albums(&separator, keyword, page, limit).await
+            platforms::kuwo::search::search_albums(&separator, keyword, page, limit).await
         }
     }
 }
@@ -68,10 +68,8 @@ pub async fn fetch_album_songs(
 ) -> Result<String, String> {
     let separator = get_artist_separator(&app);
     match Platform::from_str(&platform)? {
-        Platform::QqMusic => {
-            crate::platforms::qqmusic::album::fetch_album_songs(&separator, id).await
-        }
-        Platform::Kuwo => crate::platforms::kuwo::album::fetch_album_songs(&separator, id).await,
+        Platform::QqMusic => platforms::qqmusic::album::fetch_album_songs(&separator, id).await,
+        Platform::Kuwo => platforms::kuwo::album::fetch_album_songs(&separator, id).await,
     }
 }
 
@@ -84,12 +82,8 @@ pub async fn search_artists(
 ) -> Result<String, String> {
     validate_artist_page(page, limit)?;
     match Platform::from_str(&platform)? {
-        Platform::QqMusic => {
-            crate::platforms::qqmusic::search::search_artists(keyword, page, limit).await
-        }
-        Platform::Kuwo => {
-            crate::platforms::kuwo::search::search_artists(keyword, page, limit).await
-        }
+        Platform::QqMusic => platforms::qqmusic::search::search_artists(keyword, page, limit).await,
+        Platform::Kuwo => platforms::kuwo::search::search_artists(keyword, page, limit).await,
     }
 }
 
@@ -105,10 +99,10 @@ pub async fn fetch_artist_songs(
     let separator = get_artist_separator(&app);
     match Platform::from_str(&platform)? {
         Platform::QqMusic => {
-            crate::platforms::qqmusic::artist::fetch_artist_songs(&separator, id, page, limit).await
+            platforms::qqmusic::artist::fetch_artist_songs(&separator, id, page, limit).await
         }
         Platform::Kuwo => {
-            crate::platforms::kuwo::artist::fetch_artist_songs(&separator, id, page, limit).await
+            platforms::kuwo::artist::fetch_artist_songs(&separator, id, page, limit).await
         }
     }
 }
@@ -125,11 +119,10 @@ pub async fn fetch_artist_albums(
     let separator = get_artist_separator(&app);
     match Platform::from_str(&platform)? {
         Platform::QqMusic => {
-            crate::platforms::qqmusic::artist::fetch_artist_albums(&separator, id, page, limit)
-                .await
+            platforms::qqmusic::artist::fetch_artist_albums(&separator, id, page, limit).await
         }
         Platform::Kuwo => {
-            crate::platforms::kuwo::artist::fetch_artist_albums(&separator, id, page, limit).await
+            platforms::kuwo::artist::fetch_artist_albums(&separator, id, page, limit).await
         }
     }
 }

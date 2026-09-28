@@ -1,6 +1,6 @@
 //! 登录相关命令路由层
 
-use crate::platforms::Platform;
+use hotdownloader_core::platforms::Platform;
 use tauri::{command, AppHandle};
 
 /// 平台暂未实现登录功能时返回的统一错误消息
