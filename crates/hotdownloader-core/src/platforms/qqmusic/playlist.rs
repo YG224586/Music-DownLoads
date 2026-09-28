@@ -6,8 +6,235 @@
 use reqwest::Url;
 use serde_json::{json, Value};
 
+use super::login::LoginCredentialStore;
 use super::parser::parse_song;
 use crate::platforms::CLIENT;
+
+/// 个人歌单只使用后端保存的登录态，客户端不能指定其他用户的 UIN。
+fn login_auth(store: &dyn LoginCredentialStore) -> Result<(String, String), String> {
+    let settings = store.load()?;
+    let uin = settings["loginUin"].as_str().unwrap_or("");
+    let authst = settings["authst"].as_str().unwrap_or("");
+    if uin.is_empty() || authst.is_empty() {
+        return Err("请先登录 QQ 音乐".into());
+    }
+    if !uin.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err("当前 QQ 音乐 UIN 无效".into());
+    }
+    Ok((uin.to_string(), authst.to_string()))
+}
+
+/// 调用 QQ 音乐统一接口，提取对应模块的数据并检查接口返回码。
+async fn music_api_call(
+    module: &str,
+    method: &str,
+    param: Value,
+    uin: &str,
+    authst: &str,
+) -> Result<Value, String> {
+    let key = format!("{module}.{method}");
+    let body = json!({
+        "comm": {
+            "ct": "11",
+            "cv": "13020508",
+            "v": "13020508",
+            "tmeAppID": "qqmusic",
+            "format": "json",
+            "inCharset": "utf-8",
+            "outCharset": "utf-8",
+            "uin": uin,
+            "authst": authst,
+            "tmeLoginType": "6"
+        },
+        key.clone(): {
+            "module": module,
+            "method": method,
+            "param": param
+        },
+    });
+    let response = CLIENT
+        .post("https://u.y.qq.com/cgi-bin/musicu.fcg")
+        .header("Referer", "https://y.qq.com/")
+        .header("Origin", "https://y.qq.com")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|error| format!("网络错误: {error}"))?
+        .error_for_status()
+        .map_err(|error| format!("QQ 音乐请求失败: {error}"))?;
+    let body: Value = response
+        .json()
+        .await
+        .map_err(|error| format!("解析响应失败: {error}"))?;
+    let result = body.get(&key).ok_or("QQ 音乐响应缺少对应模块")?;
+    if result["code"].as_i64().unwrap_or(-1) != 0 {
+        return Err(format!("QQ 音乐接口错误: code={}", result["code"]));
+    }
+    let data = result.get("data").ok_or("QQ 音乐响应缺少数据")?;
+    if data["code"].as_i64().unwrap_or(0) != 0 || data["subcode"].as_i64().unwrap_or(0) != 0 {
+        return Err(format!(
+            "QQ 音乐歌单错误: {}",
+            data["msg"].as_str().unwrap_or("未知错误")
+        ));
+    }
+    Ok(data.clone())
+}
+
+fn numeric_string(value: &Value) -> Option<String> {
+    value.as_u64().map(|number| number.to_string()).or_else(|| {
+        value
+            .as_str()
+            .filter(|text| !text.is_empty() && text.bytes().all(|byte| byte.is_ascii_digit()))
+            .map(str::to_string)
+    })
+}
+
+fn qq_cover_url(url: &str) -> String {
+    // QQ 返回的封面常以 HTTP 开头；Web 部署在 HTTPS 下需要 HTTPS 地址。
+    if let Some(path) = url.strip_prefix("http://y.gtimg.cn/") {
+        format!("https://y.gtimg.cn/{path}")
+    } else {
+        url.to_string()
+    }
+}
+
+/// 读取当前登录账号创建的歌单；UIN 始终来自后端凭据存储。
+pub async fn fetch_created_playlists(store: &dyn LoginCredentialStore) -> Result<String, String> {
+    let (uin, authst) = login_auth(store)?;
+    let data = music_api_call(
+        "music.musicasset.PlaylistBaseRead",
+        "GetPlaylistByUin",
+        json!({ "uin": uin }),
+        &uin,
+        &authst,
+    )
+    .await?;
+    Ok(json!({ "playlists": parse_created_playlists(&data)? }).to_string())
+}
+
+fn parse_created_playlists(data: &Value) -> Result<Vec<Value>, String> {
+    let items = data["v_playlist"]
+        .as_array()
+        .ok_or("QQ 音乐响应缺少歌单列表")?;
+
+    let playlists = items
+        .iter()
+        .filter_map(|item| {
+            if item["invalid"].as_bool() == Some(true) || item["invalid"].as_u64() == Some(1) {
+                return None;
+            }
+
+            // 个人目录可能共享歌单 ID；打开详情时必须同时保留 dirid。
+            let id = numeric_string(&item["tid"]).or_else(|| numeric_string(&item["id"]))?;
+            let dirid = numeric_string(&item["dirid"])
+                .or_else(|| numeric_string(&item["dirId"]))
+                .unwrap_or_else(|| "0".into());
+            // GetPlaylistByUin 使用 dirName/songNum；兼容其他接口常见的字段名。
+            let name = item["dirName"]
+                .as_str()
+                .or_else(|| item["title"].as_str())
+                .or_else(|| item["dissname"].as_str())
+                .unwrap_or("");
+            let song_count = item["songNum"]
+                .as_u64()
+                .or_else(|| item["songnum"].as_u64())
+                .unwrap_or(0);
+            let cover_url = item["picUrl"]
+                .as_str()
+                .or_else(|| item["picurl"].as_str())
+                .unwrap_or("");
+
+            Some(json!({
+                "id": id,
+                "dirid": dirid,
+                "name": name,
+                "creator": item["nick"].as_str().unwrap_or(""),
+                "coverUrl": qq_cover_url(cover_url),
+                "songCount": song_count,
+                "playCount": item["play_cnt"].as_u64().unwrap_or(0),
+                "createdAt": item["createTime"].as_u64().unwrap_or(0),
+                "updatedAt": item["updateTime"].as_u64().unwrap_or(0),
+            }))
+        })
+        .collect();
+    Ok(playlists)
+}
+
+/// 按个人歌单的 ID 和目录 ID 获取完整歌曲列表。
+pub async fn fetch_created_playlist_songs(
+    store: &dyn LoginCredentialStore,
+    separator: &str,
+    id: String,
+    dirid: String,
+) -> Result<String, String> {
+    let (uin, authst) = login_auth(store)?;
+    let id = id.parse::<u64>().map_err(|_| "歌单 ID 无效")?;
+    let dirid = dirid.parse::<u64>().map_err(|_| "歌单目录 ID 无效")?;
+    if id == 0 && dirid == 0 {
+        return Err("歌单 ID 和目录 ID 不能同时为空".into());
+    }
+    let mut offset = 0_u64;
+    let mut songs = Vec::new();
+    let mut playlist = None;
+
+    // 详情接口按偏移量分页；一次读取完整歌单供现有批量下载逻辑使用。
+    loop {
+        let data = music_api_call(
+            "music.srfDissInfo.DissInfo",
+            "CgiGetDiss",
+            json!({
+                "disstid": id,
+                "dirid": dirid,
+                "tag": true,
+                "song_begin": offset,
+                "song_num": 100,
+                "userinfo": true,
+                "orderlist": true,
+                "onlysonglist": false,
+            }),
+            &uin,
+            &authst,
+        )
+        .await?;
+        if playlist.is_none() {
+            let info = data.get("dirinfo").ok_or("QQ 音乐响应缺少歌单信息")?;
+            let name = info["dirName"]
+                .as_str()
+                .or_else(|| info["title"].as_str())
+                .or_else(|| info["dissname"].as_str())
+                .unwrap_or("");
+            let cover_url = info["picurl"]
+                .as_str()
+                .or_else(|| info["logo"].as_str())
+                .unwrap_or("");
+            playlist = Some(json!({
+                "id": id.to_string(),
+                "name": name,
+                "creator": info["creator"]["nick"].as_str().unwrap_or(""),
+                "coverUrl": qq_cover_url(cover_url),
+                "songCount": data["total_song_num"]
+                    .as_u64()
+                    .or_else(|| info["songNum"].as_u64())
+                    .unwrap_or(0),
+                "playCount": info["listennum"].as_u64().unwrap_or(0),
+            }));
+        }
+        let page = data["songlist"]
+            .as_array()
+            .ok_or("QQ 音乐响应缺少歌曲列表")?;
+        for song in page {
+            if let Some(parsed) = parse_song(song, separator) {
+                songs.push(parsed);
+            }
+        }
+        offset += page.len() as u64;
+        let total = data["total_song_num"].as_u64().unwrap_or(offset);
+        if page.is_empty() || offset >= total || data["hasmore"].as_u64() == Some(0) {
+            break;
+        }
+    }
+    Ok(json!({ "playlist": playlist, "songs": songs }).to_string())
+}
 
 /// 从用户输入中提取歌单 ID。
 ///
@@ -286,4 +513,61 @@ pub async fn search_playlists(keyword: String, page: u32, limit: u32) -> Result<
         "has_more": has_more
     })
     .to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_created_playlists;
+    use serde_json::json;
+
+    #[test]
+    fn created_playlists_parse_get_playlist_by_uin_fields() {
+        let response = json!({
+            "total": 2,
+            "v_playlist": [
+                {
+                    "tid": 7000000001_u64,
+                    "dirId": 11,
+                    "dirName": "示例歌单甲",
+                    "songNum": 3,
+                    "picUrl": "http://y.gtimg.cn/example/cover.jpg",
+                    "createTime": 1700000000,
+                    "updateTime": 1700003600,
+                    "invalid": false,
+                    "play_cnt": 0
+                },
+                {
+                    "tid": 7000000002_u64,
+                    "dirId": 12,
+                    "dirName": "示例歌单乙",
+                    "songNum": 250,
+                    "picUrl": "http://example.com/playlist.jpg",
+                    "createTime": 1700100000,
+                    "updateTime": 1700200000,
+                    "invalid": false
+                },
+                {
+                    "tid": 77,
+                    "dirid": 203,
+                    "invalid": 1
+                }
+            ]
+        });
+        let playlists = parse_created_playlists(&response).unwrap();
+        assert_eq!(playlists.len(), 2);
+        assert_eq!(playlists[0]["id"], "7000000001");
+        assert_eq!(playlists[0]["dirid"], "11");
+        assert_eq!(playlists[0]["name"], "示例歌单甲");
+        assert_eq!(playlists[0]["songCount"], 3);
+        assert_eq!(
+            playlists[0]["coverUrl"],
+            "https://y.gtimg.cn/example/cover.jpg"
+        );
+        assert_eq!(playlists[0]["createdAt"], 1700000000);
+        assert_eq!(playlists[0]["updatedAt"], 1700003600);
+        assert_eq!(playlists[1]["id"], "7000000002");
+        assert_eq!(playlists[1]["dirid"], "12");
+        assert_eq!(playlists[1]["name"], "示例歌单乙");
+        assert_eq!(playlists[1]["songCount"], 250);
+    }
 }

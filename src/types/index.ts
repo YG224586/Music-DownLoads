@@ -155,11 +155,16 @@ export interface PlaylistSongsResponse {
 // 歌单搜索结果项
 export interface PlaylistSearchItem {
     id: string
+    /** QQ 音乐个人歌单的目录 ID，搜索结果没有此字段。 */
+    dirid?: string
     name: string
     creator: string
     coverUrl: string
     songCount: number
     playCount: number
+    /** QQ 音乐个人歌单返回的 Unix 秒级时间戳。 */
+    createdAt?: number
+    updatedAt?: number
     introduction?: string
     platform?: string
 }
@@ -168,6 +173,10 @@ export interface PlaylistSearchItem {
 export interface PlaylistSearchResponse {
     playlists: PlaylistSearchItem[]
     has_more: boolean
+}
+
+export interface CreatedPlaylistsResponse {
+    playlists: PlaylistSearchItem[]
 }
 
 // 搜索建议条目（对应后端 fetch_suggestions 返回的每个 item）

@@ -44,3 +44,21 @@ pub async fn search_playlists(
         }
     }
 }
+
+/// 读取当前 QQ 登录用户创建的歌单；UIN 从 Tauri 登录存储取得。
+#[command]
+pub async fn fetch_created_playlists(app: AppHandle) -> Result<String, String> {
+    crate::platforms::qqmusic::login::fetch_created_playlists(&app).await
+}
+
+/// 读取个人歌单详情，使用 ID 与目录 ID 定位歌单。
+#[command]
+pub async fn fetch_created_playlist_songs(
+    app: AppHandle,
+    id: String,
+    dirid: String,
+) -> Result<String, String> {
+    let separator = get_artist_separator(&app);
+    crate::platforms::qqmusic::login::fetch_created_playlist_songs(&app, &separator, id, dirid)
+        .await
+}

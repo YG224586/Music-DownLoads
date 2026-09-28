@@ -6,6 +6,7 @@ import type {
     SearchSuggestionData,
     PlaylistSongsResponse,
     PlaylistSearchResponse,
+    CreatedPlaylistsResponse,
     AlbumSearchResponse,
     AlbumSongsResponse,
     ArtistSearchResponse,
@@ -86,6 +87,37 @@ export async function fetchPlaylistSongs(platform: string, input: string): Promi
     parsed.songs = parsed.songs.map(s => ({
         ...s,
         platform
+    }))
+    return parsed
+}
+
+// UIN 与登录凭据由后端读取，前端只请求当前账号的歌单。
+export async function fetchCreatedPlaylists(): Promise<CreatedPlaylistsResponse> {
+    const parsed = await musicCall<CreatedPlaylistsResponse>(
+        'fetch_created_playlists',
+        'playlists/created',
+        { platform: 'qqmusic' },
+    )
+    parsed.playlists = parsed.playlists.map(playlist => ({
+        ...playlist,
+        platform: 'qqmusic',
+    }))
+    return parsed
+}
+
+// 个人歌单可能有相同的 ID，详情查询需要同时传入目录 ID。
+export async function fetchCreatedPlaylistSongs(
+    id: string,
+    dirid: string,
+): Promise<PlaylistSongsResponse> {
+    const parsed = await musicCall<PlaylistSongsResponse>(
+        'fetch_created_playlist_songs',
+        'playlists/created/fetch',
+        { platform: 'qqmusic', id, dirid },
+    )
+    parsed.songs = parsed.songs.map(song => ({
+        ...song,
+        platform: 'qqmusic',
     }))
     return parsed
 }
@@ -264,7 +296,12 @@ export async function getLoginStatus(platform: string): Promise<{ logged_in: boo
     return JSON.parse(json) as { logged_in: boolean; uin: string }
 }
 
-export async function searchAlbums(platform: string, keyword: string, page = 1, limit = 20): Promise<AlbumSearchResponse> {
+export async function searchAlbums(
+    platform: string,
+    keyword: string,
+    page = 1,
+    limit = 20,
+): Promise<AlbumSearchResponse> {
     return musicCall('search_albums', 'albums/search', {
         platform,
         keyword,
@@ -285,7 +322,12 @@ export async function fetchAlbumSongs(platform: string, id: string): Promise<Alb
     return result
 }
 
-export async function searchArtists(platform: string, keyword: string, page = 1, limit = 20): Promise<ArtistSearchResponse> {
+export async function searchArtists(
+    platform: string,
+    keyword: string,
+    page = 1,
+    limit = 20,
+): Promise<ArtistSearchResponse> {
     return musicCall('search_artists', 'artists/search', {
         platform,
         keyword,
@@ -294,7 +336,12 @@ export async function searchArtists(platform: string, keyword: string, page = 1,
     })
 }
 
-export async function fetchArtistSongs(platform: string, id: string, page = 1, limit = 20): Promise<ArtistSongsResponse> {
+export async function fetchArtistSongs(
+    platform: string,
+    id: string,
+    page = 1,
+    limit = 20,
+): Promise<ArtistSongsResponse> {
     const result = await musicCall<ArtistSongsResponse>('fetch_artist_songs', 'artists/songs', {
         platform,
         id,
@@ -308,7 +355,12 @@ export async function fetchArtistSongs(platform: string, id: string, page = 1, l
     return result
 }
 
-export async function fetchArtistAlbums(platform: string, id: string, page = 1, limit = 20): Promise<ArtistAlbumsResponse> {
+export async function fetchArtistAlbums(
+    platform: string,
+    id: string,
+    page = 1,
+    limit = 20,
+): Promise<ArtistAlbumsResponse> {
     return musicCall('fetch_artist_albums', 'artists/albums', {
         platform,
         id,

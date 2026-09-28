@@ -13,26 +13,32 @@ const backLabels: Record<string, string> = {
 /**
  * 校验音乐页面的返回地址。
  * @param target 待校验的路由地址。
- * @returns 搜索、歌手、专辑或歌单页面的地址；无效值返回 `/search`。
+ * @param fallback 来源无效时使用的页面地址。
+ * @returns 搜索、歌手、专辑或歌单页面的地址；无效值返回 fallback。
  */
-function musicBackTarget(target: unknown): string {
+function musicBackTarget(target: unknown, fallback = '/search'): string {
     return typeof target === 'string' && /^\/(search|artist|album|playlist)(\?|$)/.test(target)
-        ? target : '/search'
+        ? target : fallback
 }
 
 /**
- * 提供歌手、专辑详情的跳转方法及返回按钮状态。
+ * 提供音乐详情页的跳转方法及返回按钮状态。
  * 跳转时记录来源页；返回时优先使用匹配的历史记录，否则替换为来源路由。
  */
-export function useMusicNavigation() {
+export function useMusicNavigation(defaultBackTarget = '/search') {
     const router = useRouter()
     const route = useRoute()
-    const backTarget = ref('/search')
+    const backTarget = ref(defaultBackTarget)
 
     // history.state 不具备响应性，需要在路由切换后重新读取来源地址。
-    watch(() => route.fullPath, () => {
-        backTarget.value = musicBackTarget(router.options.history.state.musicReturnTo ?? route.query.returnTo)
-    }, { immediate: true })
+    watch(
+        () => route.fullPath,
+        () => {
+            const source = router.options.history.state.musicReturnTo ?? route.query.returnTo
+            backTarget.value = musicBackTarget(source, defaultBackTarget)
+        },
+        { immediate: true },
+    )
 
     const backLabel = computed(() => {
         const path = router.resolve(backTarget.value).path

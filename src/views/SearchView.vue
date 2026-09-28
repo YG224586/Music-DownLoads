@@ -84,7 +84,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import { NSpin, NButton, NAlert } from 'naive-ui'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import SearchBar from '../components/search/SearchBar.vue'
 import SearchHistory from '../components/search/SearchHistory.vue'
 import HotKeywords from '../components/search/HotKeywords.vue'
@@ -106,6 +106,7 @@ import { PLATFORMS, DEFAULT_PLATFORM } from '../config/platforms'
 import { useMusicNavigation } from '../composables/useMusicNavigation'
 
 const router = useRouter()
+const route = useRoute()
 const { openArtist, openAlbum, openRelatedArtist, openSongAlbum } = useMusicNavigation()
 const keyword = ref('')
 const currentPlatform = ref(DEFAULT_PLATFORM)
@@ -350,14 +351,15 @@ function loadMorePlaylists() {
     loadMorePlaylistFunc(currentPlatform.value, keyword.value)
 }
 
-// 跳转歌单详情
+// 记录搜索页的完整地址，歌单详情返回时才能恢复当前搜索结果。
 function goToPlaylist(pl: PlaylistSearchItem) {
     router.push({
         path: '/playlist',
         query: {
             platform: currentPlatform.value,
-            id: pl.id
-        }
+            id: pl.id,
+        },
+        state: { musicReturnTo: route.fullPath },
     })
 }
 

@@ -1,6 +1,7 @@
 //! Web 音乐查询入口。只做请求参数校验和平台分派，解析与网络请求复用共享核心。
 
 use hotdownloader_core::platforms;
+use hotdownloader_core::platforms::qqmusic::login::LoginCredentialStore;
 use hotdownloader_core::platforms::Platform;
 use serde::Deserialize;
 use serde_json::Value;
@@ -15,6 +16,8 @@ pub struct MusicRequest {
     input: String,
     #[serde(default)]
     id: String,
+    #[serde(default)]
+    dirid: String,
     #[serde(default)]
     song_id: u64,
     #[serde(default = "first_page")]
@@ -35,6 +38,7 @@ pub async fn execute(
     action: &str,
     request: MusicRequest,
     artist_separator: &str,
+    login_store: &dyn LoginCredentialStore,
 ) -> Result<Value, String> {
     let platform = Platform::from_str(&request.platform)?;
     if request.page == 0 || request.limit == 0 || request.limit > 100 {
@@ -72,6 +76,19 @@ pub async fn execute(
         (Platform::QqMusic, "playlists/fetch") => {
             platforms::qqmusic::playlist::fetch_playlist_songs(artist_separator, request.input)
                 .await?
+        }
+        // 个人歌单只使用服务端持有的登录存储，不接受客户端传入 UIN。
+        (Platform::QqMusic, "playlists/created") => {
+            platforms::qqmusic::playlist::fetch_created_playlists(login_store).await?
+        }
+        (Platform::QqMusic, "playlists/created/fetch") => {
+            platforms::qqmusic::playlist::fetch_created_playlist_songs(
+                login_store,
+                artist_separator,
+                request.id,
+                request.dirid,
+            )
+            .await?
         }
         (Platform::Kuwo, "playlists/fetch") => {
             platforms::kuwo::playlist::fetch_playlist_songs(artist_separator, request.input).await?

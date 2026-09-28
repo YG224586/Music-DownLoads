@@ -283,8 +283,13 @@ pub async fn handle(
             match read_json(request).await {
                 Ok(value) => match serde_json::from_value::<MusicRequest>(value) {
                     Ok(input) => {
-                        match music::execute(action, input, &runtime.environment.artist_separator())
-                            .await
+                        match music::execute(
+                            action,
+                            input,
+                            &runtime.environment.artist_separator(),
+                            runtime.login_store.as_ref(),
+                        )
+                        .await
                         {
                             Ok(result) => json_response(StatusCode::OK, result),
                             Err(error) => error_response(StatusCode::BAD_REQUEST, error),

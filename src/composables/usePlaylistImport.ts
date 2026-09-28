@@ -4,11 +4,9 @@ import * as musicApi from '../api/musicApi'
 
 /**
  * 歌单导入逻辑封装。
- * 管理输入、歌单信息、歌曲列表、选择状态等，并提供导入和重置方法。
+ * 管理歌单信息、歌曲列表和选择状态，并提供加载和重置方法。
  */
 export function usePlaylistImport() {
-    // 用户输入的歌单链接或 ID
-    const input = ref('')
     // 是否正在导入
     const loading = ref(false)
     // 错误信息
@@ -19,11 +17,17 @@ export function usePlaylistImport() {
     const songs = ref<SongInfo[]>([])
     // 选中歌曲的 mid 集合
     const selectedIds = ref<string[]>([])
+    // 路由切换时，旧请求仍可能返回；序号保证只有最新请求能写入页面。
+    let requestId = 0
 
     // 是否全部选中
-    const isAllSelected = computed(() => songs.value.length > 0 && selectedIds.value.length === songs.value.length)
+    const isAllSelected = computed(
+        () => songs.value.length > 0 && selectedIds.value.length === songs.value.length,
+    )
     // 是否部分选中
-    const isIndeterminate = computed(() => selectedIds.value.length > 0 && selectedIds.value.length < songs.value.length)
+    const isIndeterminate = computed(
+        () => selectedIds.value.length > 0 && selectedIds.value.length < songs.value.length,
+    )
 
     /**
      * 切换全选状态。
@@ -48,15 +52,10 @@ export function usePlaylistImport() {
         }
     }
 
-    /**
-     * 导入歌单。
-     * @param platform 平台标识
-     * @param term 用户输入的歌单链接或 ID
-     */
-    async function importPlaylist(platform: string, term: string) {
-        const value = term.trim()
-        if (!value || loading.value) return
-
+    async function loadPlaylist(
+        request: () => Promise<{ playlist: PlaylistInfo; songs: SongInfo[] }>,
+    ) {
+        const currentRequest = ++requestId
         loading.value = true
         errorMsg.value = ''
         playlist.value = null
@@ -64,30 +63,46 @@ export function usePlaylistImport() {
         selectedIds.value = []
 
         try {
-            const res = await musicApi.fetchPlaylistSongs(platform, value)
+            const res = await request()
+            if (currentRequest !== requestId) return
+
             playlist.value = res.playlist
             songs.value = res.songs
-        } catch (e: any) {
-            errorMsg.value = e?.message || String(e) || '导入歌单失败'
+        } catch (e: unknown) {
+            if (currentRequest !== requestId) return
+
+            errorMsg.value = e instanceof Error ? e.message : String(e)
         } finally {
-            loading.value = false
+            if (currentRequest === requestId) {
+                loading.value = false
+            }
         }
+    }
+
+    /** 按链接或 ID 导入歌单。 */
+    async function importPlaylist(platform: string, term: string) {
+        const value = term.trim()
+        if (!value) return
+        await loadPlaylist(() => musicApi.fetchPlaylistSongs(platform, value))
+    }
+
+    async function loadCreatedPlaylist(id: string, dirid: string) {
+        await loadPlaylist(() => musicApi.fetchCreatedPlaylistSongs(id, dirid))
     }
 
     /**
      * 重置所有状态（清空页面）。
      */
     function reset() {
+        requestId++
         loading.value = false
         errorMsg.value = ''
         playlist.value = null
         songs.value = []
         selectedIds.value = []
-        input.value = ''
     }
 
     return {
-        input,
         loading,
         errorMsg,
         playlist,
@@ -98,6 +113,7 @@ export function usePlaylistImport() {
         toggleAll,
         toggleSelect,
         importPlaylist,
+        loadCreatedPlaylist,
         reset,
     }
 }

@@ -17,6 +17,12 @@ export function formatPlayCount(count: number): string {
     return count.toString()
 }
 
+/** 将 QQ 音乐接口的 Unix 秒级时间戳转换为本地日期时间。 */
+export function formatUnixTime(seconds: number): string {
+    if (!Number.isFinite(seconds) || seconds <= 0) return ''
+    return new Date(seconds * 1000).toLocaleString('zh-CN', { hour12: false })
+}
+
 /**
  * 格式化速度 (bytes/s) 为人类可读字符串。
  * 规则：

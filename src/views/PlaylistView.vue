@@ -1,69 +1,53 @@
 <template>
-    <div class="playlist-view">
-        <SearchBar v-model:keyword="input" v-model:platform="currentPlatform" :platform-options="PLATFORMS"
-            placeholder="请输入歌单链接或 ID" button-text="导入歌单" :loading="loading" @search="handleImport" @clear="reset" />
-
-        <div v-if="loading" class="loading-wrapper">
-            <n-spin size="medium" />
-        </div>
-
-        <div v-else-if="errorMsg" class="error-wrapper">
-            <n-alert type="error" :title="errorMsg" />
-        </div>
-
-        <template v-else-if="playlist">
-            <div class="playlist-info">
-                <img v-if="playlist.coverUrl" :src="playlist.coverUrl" class="playlist-cover" alt="歌单封面" />
-                <div class="playlist-details">
-                    <div class="playlist-name">{{ playlist.name }}</div>
-                    <div class="playlist-creator">创建者：{{ playlist.creator }}</div>
-                    <div class="playlist-meta">歌曲数：{{ playlist.songCount }} · 播放量：{{ formatPlayCount(playlist.playCount)
-                        }}</div>
-                </div>
-            </div>
-
-            <div class="list-header">
-                <n-checkbox :checked="isAllSelected" :indeterminate="isIndeterminate" @update:checked="toggleAll">
-                    全选
-                </n-checkbox>
-                <span class="count-text">已选 {{ selectedIds.length }} / {{ songs.length }} 首</span>
-            </div>
-
-            <div class="song-items">
-                <SongItem v-for="song in songs" :key="song.mid" :song="song" :selected="selectedIds.includes(song.mid)"
-                    @toggle-select="(val) => toggleSelect(song.mid, val)" @download="(song) => downloadSingle(song)"
-                    @click-artist="openRelatedArtist" @click-album="openSongAlbum" />
-            </div>
-
-            <BatchDownloadBar v-if="selectedIds.length > 0" :selectedCount="selectedIds.length"
-                @batch-download="onBatchDownload" />
-        </template>
-
-        <div v-else class="empty-wrapper">
-            <n-empty description="请输入歌单链接或 ID 进行导入" />
-        </div>
-    </div>
+    <PlaylistHome
+        v-if="!isDetail"
+        @import="handleImport"
+        @open-my="openMyPlaylist"
+    />
+    <PlaylistDetail
+        v-else
+        :back-label="backLabel"
+        :loading="loading"
+        :error="routeError || errorMsg"
+        :retryable="!routeError"
+        :playlist="playlist"
+        :songs="songs"
+        :selected-ids="selectedIds"
+        :is-all-selected="isAllSelected"
+        :is-indeterminate="isIndeterminate"
+        @back="goBack"
+        @retry="loadDetail(true)"
+        @toggle-all="toggleAll"
+        @toggle-select="toggleSelect"
+        @download="downloadSingle"
+        @click-artist="openRelatedArtist"
+        @click-album="openSongAlbum"
+        @batch-download="onBatchDownload"
+    />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onActivated, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { NSpin, NAlert, NEmpty, NCheckbox } from 'naive-ui'
-import SearchBar from '../components/search/SearchBar.vue'
-import SongItem from '../components/search/SongItem.vue'
-import BatchDownloadBar from '../components/search/BatchDownloadBar.vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import PlaylistHome from '../components/playlist/PlaylistHome.vue'
+import PlaylistDetail from '../components/playlist/PlaylistDetail.vue'
 import { usePlaylistImport } from '../composables/usePlaylistImport'
 import { useDownloadActions } from '../composables/useDownloadActions'
 import { useMusicNavigation } from '../composables/useMusicNavigation'
-import { PLATFORMS, DEFAULT_PLATFORM } from '../config/platforms'
-import { formatPlayCount } from '../utils/format'
+import type { PlaylistSearchItem } from '../types'
+import { PLATFORMS } from '../config/platforms'
 
 const route = useRoute()
-const currentPlatform = ref(DEFAULT_PLATFORM)
+const router = useRouter()
+// 缓存页面停用后全局 route 仍会变化；只保存歌单路由自己的查询参数。
+const playlistQuery = ref({ ...route.query })
+const isDetail = computed(() => playlistQuery.value.id != null)
+const routeError = ref('')
 
-// 使用歌单导入 composable，并解构出响应式状态和方法
+// 歌单页被 keep-alive 缓存。从歌手/专辑返回时复用当前详情与歌曲勾选。
+let loadedKey = ''
+
 const {
-    input,
     loading,
     errorMsg,
     playlist,
@@ -74,141 +58,101 @@ const {
     toggleAll,
     toggleSelect,
     importPlaylist,
+    loadCreatedPlaylist,
     reset,
 } = usePlaylistImport()
-
 const { downloadSingle, batchDownload } = useDownloadActions()
-const { openRelatedArtist, openSongAlbum } = useMusicNavigation()
+const {
+    openRelatedArtist,
+    openSongAlbum,
+    goBack,
+    backLabel,
+} = useMusicNavigation('/playlist')
 
-async function handleImport() {
-    const term = input.value.trim()
-    if (!term) return
-    await importPlaylist(currentPlatform.value, term)
+function handleImport(platform: string, input: string) {
+    void router.push({
+        path: '/playlist',
+        query: { platform, id: input },
+        state: { musicReturnTo: '/playlist' },
+    })
+}
+
+function openMyPlaylist(item: PlaylistSearchItem) {
+    void router.push({
+        path: '/playlist',
+        query: {
+            platform: 'qqmusic',
+            id: item.id,
+            dirid: item.dirid ?? '0',
+            source: 'mine',
+        },
+        state: { musicReturnTo: '/playlist' },
+    })
+}
+
+async function loadDetail(force = false) {
+    if (route.path !== '/playlist' || !isDetail.value) return
+
+    const id = route.query.id
+    const platform = route.query.platform
+    const mine = route.query.source === 'mine'
+    const dirid = route.query.dirid
+    const key = route.fullPath
+    if (!force && loadedKey === key && (loading.value || playlist.value)) {
+        return
+    }
+
+    // 新详情开始时使旧请求失效，避免快速切换歌单后出现过期内容。
+    reset()
+    routeError.value = ''
+    loadedKey = key
+    if (
+        typeof id !== 'string' ||
+        !id ||
+        typeof platform !== 'string' ||
+        !PLATFORMS.some(option => option.key === platform)
+    ) {
+        routeError.value = '歌单地址无效，请返回上一页重新选择'
+        return
+    }
+    if (
+        mine &&
+        (platform !== 'qqmusic' ||
+            !/^\d+$/.test(id) ||
+            typeof dirid !== 'string' ||
+            !/^\d+$/.test(dirid))
+    ) {
+        routeError.value = '个人歌单地址无效，请返回上一页重新选择'
+        return
+    }
+
+    if (mine) {
+        await loadCreatedPlaylist(id, dirid as string)
+    } else {
+        await importPlaylist(platform, id)
+    }
 }
 
 function onBatchDownload() {
-    const selectedSongs = songs.value.filter(s => selectedIds.value.includes(s.mid))
-    if (selectedSongs.length > 0) {
+    const selectedSongs = songs.value.filter(song => selectedIds.value.includes(song.mid))
+    if (selectedSongs.length) {
         batchDownload(selectedSongs)
     }
 }
 
-// 从路由参数加载歌单
-async function loadPlaylistFromQuery() {
-    if (route.path !== '/playlist') return
-    const qPlatform = route.query.platform as string | undefined
-    const qId = route.query.id as string | undefined
-    if (qPlatform && qId) {
-        // 从歌曲详情返回时复用已加载的歌单，保留勾选并避免重复请求。
-        if (currentPlatform.value === qPlatform && input.value === qId && (loading.value || playlist.value)) return
-        currentPlatform.value = qPlatform
-        input.value = qId
-        await handleImport()
-    }
-}
-
-onMounted(loadPlaylistFromQuery)
-onActivated(loadPlaylistFromQuery)
-
 watch(
-    () => route.query.platform + '|' + route.query.id,
-    (newVal, oldVal) => {
-        if (newVal && newVal !== oldVal) loadPlaylistFromQuery()
-    }
+    () => route.fullPath,
+    () => {
+        if (route.path !== '/playlist') return
+
+        playlistQuery.value = { ...route.query }
+        if (isDetail.value) {
+            void loadDetail()
+        } else {
+            loadedKey = ''
+            reset()
+        }
+    },
+    { immediate: true },
 )
 </script>
-
-<style scoped>
-.playlist-view {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-width: 0;
-}
-
-/* 覆盖 SearchBar 自带的 margin-bottom，避免与父容器 gap 叠加 */
-.playlist-view :deep(.search-bar) {
-    margin-bottom: 0;
-}
-
-.loading-wrapper,
-.error-wrapper,
-.empty-wrapper {
-    display: flex;
-    justify-content: center;
-    padding: 40px 0;
-}
-
-.playlist-info {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-    padding: 16px;
-    background-color: var(--bg-sidebar);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-}
-
-.playlist-cover {
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
-    object-fit: cover;
-    flex-shrink: 0;
-}
-
-.playlist-details {
-    flex: 1;
-    min-width: 0;
-    overflow-wrap: anywhere;
-}
-
-.playlist-name {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-.playlist-creator {
-    color: var(--color-text-secondary);
-    font-size: 14px;
-}
-
-.playlist-meta {
-    color: var(--color-text-secondary);
-    font-size: 13px;
-    margin-top: 4px;
-}
-
-.list-header {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-.count-text {
-    font-size: 13px;
-    color: var(--color-text-secondary);
-}
-
-.song-items {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-/* 窄屏缩小信息区留白，封面保持比例，长文本自动换行 */
-@media (max-width: 767px) {
-    .playlist-info {
-        align-items: flex-start;
-        gap: 12px;
-        padding: 12px;
-    }
-
-    .playlist-cover {
-        width: 64px;
-        height: 64px;
-    }
-}
-</style>

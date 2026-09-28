@@ -116,3 +116,25 @@ pub(crate) async fn logout(app: AppHandle) -> Result<(), String> {
 pub(crate) async fn get_login_status(app: AppHandle) -> Result<String, String> {
     qq_login::get_login_status(&TauriLoginStore { app }).await
 }
+
+pub(crate) async fn fetch_created_playlists(app: &AppHandle) -> Result<String, String> {
+    hotdownloader_core::platforms::qqmusic::playlist::fetch_created_playlists(
+        &TauriLoginStore::new(app),
+    )
+    .await
+}
+
+pub(crate) async fn fetch_created_playlist_songs(
+    app: &AppHandle,
+    separator: &str,
+    id: String,
+    dirid: String,
+) -> Result<String, String> {
+    hotdownloader_core::platforms::qqmusic::playlist::fetch_created_playlist_songs(
+        &TauriLoginStore::new(app),
+        separator,
+        id,
+        dirid,
+    )
+    .await
+}
