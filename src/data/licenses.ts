@@ -261,7 +261,7 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "cc",
-    "version": "1.4.7",
+    "version": "1.5.1",
     "license": "MIT OR Apache-2.0"
   },
   {
@@ -551,7 +551,7 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "encoding_rs",
-    "version": "0.8.41",
+    "version": "0.8.42",
     "license": "(Apache-2.0 OR MIT) AND BSD-3-Clause"
   },
   {
@@ -621,7 +621,7 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "find-msvc-tools",
-    "version": "0.1.13",
+    "version": "0.1.14",
     "license": "MIT OR Apache-2.0"
   },
   {
@@ -891,12 +891,12 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "hyper-rustls",
-    "version": "0.27.9",
+    "version": "0.27.10",
     "license": "Apache-2.0 OR ISC OR MIT"
   },
   {
     "name": "hyper-util",
-    "version": "0.1.20",
+    "version": "0.1.21",
     "license": "MIT"
   },
   {
@@ -1066,7 +1066,7 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "js-sys",
-    "version": "0.3.105",
+    "version": "0.3.106",
     "license": "MIT OR Apache-2.0"
   },
   {
@@ -1116,7 +1116,7 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "libredox",
-    "version": "0.1.24",
+    "version": "0.1.25",
     "license": "MIT"
   },
   {
@@ -1205,19 +1205,9 @@ export const rustComponents: ComponentInfo[] = [
     "license": "Apache-2.0 OR MIT"
   },
   {
-    "name": "multiversion",
-    "version": "0.9.0",
-    "license": "MIT OR Apache-2.0"
-  },
-  {
     "name": "multiversion_no_op",
     "version": "1.0.0",
     "license": "Apache-2.0 OR MIT"
-  },
-  {
-    "name": "multiversion-macros",
-    "version": "0.9.0",
-    "license": "MIT OR Apache-2.0"
   },
   {
     "name": "ndk",
@@ -1891,7 +1881,7 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "siphasher",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "license": "MIT OR Apache-2.0"
   },
   {
@@ -1901,7 +1891,7 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "smallvec",
-    "version": "1.16.1",
+    "version": "1.16.2",
     "license": "MIT OR Apache-2.0"
   },
   {
@@ -2131,7 +2121,7 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "thiserror",
-    "version": "2.0.20",
+    "version": "2.0.21",
     "license": "MIT OR Apache-2.0"
   },
   {
@@ -2141,7 +2131,7 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "thiserror-impl",
-    "version": "2.0.20",
+    "version": "2.0.21",
     "license": "MIT OR Apache-2.0"
   },
   {
@@ -2431,27 +2421,27 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "wasm-bindgen",
-    "version": "0.2.128",
+    "version": "0.2.129",
     "license": "MIT OR Apache-2.0"
   },
   {
     "name": "wasm-bindgen-futures",
-    "version": "0.4.78",
+    "version": "0.4.79",
     "license": "MIT OR Apache-2.0"
   },
   {
     "name": "wasm-bindgen-macro",
-    "version": "0.2.128",
+    "version": "0.2.129",
     "license": "MIT OR Apache-2.0"
   },
   {
     "name": "wasm-bindgen-macro-support",
-    "version": "0.2.128",
+    "version": "0.2.129",
     "license": "MIT OR Apache-2.0"
   },
   {
     "name": "wasm-bindgen-shared",
-    "version": "0.2.128",
+    "version": "0.2.129",
     "license": "MIT OR Apache-2.0"
   },
   {
@@ -2471,7 +2461,7 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "web-sys",
-    "version": "0.3.105",
+    "version": "0.3.106",
     "license": "MIT OR Apache-2.0"
   },
   {
@@ -2846,12 +2836,12 @@ export const rustComponents: ComponentInfo[] = [
   },
   {
     "name": "zerocopy",
-    "version": "0.8.57",
+    "version": "0.8.59",
     "license": "BSD-2-Clause OR Apache-2.0 OR MIT"
   },
   {
     "name": "zerocopy-derive",
-    "version": "0.8.57",
+    "version": "0.8.59",
     "license": "BSD-2-Clause OR Apache-2.0 OR MIT"
   },
   {
@@ -2984,12 +2974,12 @@ export const frontendComponents: ComponentInfo[] = [
   },
   {
     "name": "@oxc-project/types",
-    "version": "0.150.0",
+    "version": "0.151.0",
     "license": "MIT"
   },
   {
     "name": "@rolldown/binding-win32-x64-msvc",
-    "version": "1.2.9",
+    "version": "1.2.11",
     "license": "MIT"
   },
   {
@@ -3034,7 +3024,7 @@ export const frontendComponents: ComponentInfo[] = [
   },
   {
     "name": "@types/node",
-    "version": "24.13.6",
+    "version": "24.19.0",
     "license": "MIT"
   },
   {
@@ -3199,7 +3189,7 @@ export const frontendComponents: ComponentInfo[] = [
   },
   {
     "name": "dompurify",
-    "version": "3.4.15",
+    "version": "3.4.16",
     "license": "(MPL-2.0 OR Apache-2.0)"
   },
   {
@@ -3274,7 +3264,7 @@ export const frontendComponents: ComponentInfo[] = [
   },
   {
     "name": "marked",
-    "version": "18.0.13",
+    "version": "18.0.14",
     "license": "MIT"
   },
   {
@@ -3299,7 +3289,7 @@ export const frontendComponents: ComponentInfo[] = [
   },
   {
     "name": "nostics",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "license": "MIT"
   },
   {
@@ -3359,7 +3349,7 @@ export const frontendComponents: ComponentInfo[] = [
   },
   {
     "name": "rolldown",
-    "version": "1.2.9",
+    "version": "1.2.11",
     "license": "MIT"
   },
   {
@@ -3419,7 +3409,7 @@ export const frontendComponents: ComponentInfo[] = [
   },
   {
     "name": "undici-types",
-    "version": "7.18.2",
+    "version": "7.24.6",
     "license": "MIT"
   },
   {
@@ -3439,7 +3429,7 @@ export const frontendComponents: ComponentInfo[] = [
   },
   {
     "name": "vite",
-    "version": "8.3.0",
+    "version": "8.3.1",
     "license": "MIT"
   },
   {
