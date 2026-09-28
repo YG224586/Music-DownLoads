@@ -42,7 +42,7 @@ function dispatchEvent(frame: string, handlers: Parameters<TaskTransport['subscr
     }
 }
 
-/** fetch 支持 Authorization 请求头；EventSource 无法带 Bearer 令牌。 */
+/** fetch 支持 Authorization 请求头；EventSource 无法自定义认证头。 */
 async function followEvents(signal: AbortSignal, handlers: Parameters<TaskTransport['subscribe']>[0]) {
     let retryDelay = 1000
     handlers.connection('connecting')

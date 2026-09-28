@@ -288,13 +288,13 @@ pub struct ServerRuntime {
     pub environment: Arc<ServerEnvironment>,
     pub events: Arc<ServerEvents>,
     pub login_store: Arc<FileLoginStore>,
-    api_token: Option<String>,
+    pub auth: crate::auth::AccessAuth,
     pub web_dir: PathBuf,
     settings_patch_lock: Mutex<()>,
 }
 
 impl ServerRuntime {
-    pub fn start(data_dir: PathBuf) -> Result<Arc<Self>, String> {
+    pub fn start(data_dir: PathBuf, auth: crate::auth::AccessAuth) -> Result<Arc<Self>, String> {
         std::fs::create_dir_all(&data_dir).map_err(|error| format!("创建数据目录失败: {error}"))?;
         let data_dir = data_dir
             .canonicalize()
@@ -329,9 +329,7 @@ impl ServerRuntime {
             events,
             login_store,
             settings_patch_lock: Mutex::new(()),
-            api_token: std::env::var("HOTDOWNLOADER_TOKEN")
-                .ok()
-                .filter(|value| !value.is_empty()),
+            auth,
             web_dir: std::env::var_os("HOTDOWNLOADER_WEB_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| PathBuf::from("./dist")),
@@ -360,24 +358,6 @@ impl ServerRuntime {
                 .send("settings-updated", serde_json::to_string(&saved).unwrap());
         }
         Ok(saved)
-    }
-
-    pub fn accepts_token(&self, supplied: Option<&str>) -> bool {
-        let Some(expected) = self.api_token.as_deref() else {
-            return true;
-        };
-        let Some(supplied) = supplied else {
-            return false;
-        };
-        // 令牌比较不因首个不匹配字节提前返回，避免暴露前缀匹配长度。
-        if expected.len() != supplied.len() {
-            return false;
-        }
-        expected
-            .bytes()
-            .zip(supplied.bytes())
-            .fold(0_u8, |difference, (a, b)| difference | (a ^ b))
-            == 0
     }
 }
 

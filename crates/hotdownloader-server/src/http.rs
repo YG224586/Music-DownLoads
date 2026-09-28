@@ -226,13 +226,19 @@ pub async fn handle(
             error_response(StatusCode::METHOD_NOT_ALLOWED, "静态资源只支持 GET")
         });
     }
-    let supplied_token = request
+    if path == "/api/auth/mode" {
+        return Ok(if request.method() == Method::GET {
+            json_response(StatusCode::OK, json!({ "mode": runtime.auth.mode() }))
+        } else {
+            error_response(StatusCode::METHOD_NOT_ALLOWED, "认证模式只支持 GET")
+        });
+    }
+    let authorization = request
         .headers()
         .get("authorization")
-        .and_then(|header| header.to_str().ok())
-        .and_then(|header| header.strip_prefix("Bearer "));
-    if !runtime.accepts_token(supplied_token) {
-        return Ok(error_response(StatusCode::UNAUTHORIZED, "需要访问令牌"));
+        .and_then(|header| header.to_str().ok());
+    if !runtime.auth.accepts(authorization) {
+        return Ok(error_response(StatusCode::UNAUTHORIZED, "访问凭据无效"));
     }
     let method = request.method().clone();
     let service = TaskService::new(

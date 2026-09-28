@@ -9,6 +9,7 @@ use hyper::service::service_fn;
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
 
+use hotdownloader_server::auth::AccessAuth;
 use hotdownloader_server::http;
 use hotdownloader_server::logging;
 use hotdownloader_server::runtime::ServerRuntime;
@@ -16,18 +17,17 @@ use hotdownloader_server::runtime::ServerRuntime;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging::initialize();
-    // 数据目录和绑定地址由部署环境指定。对外监听时必须设置访问令牌，
-    // HTTP 层对所有 /api 请求（包括 SSE 连接）统一校验 Bearer 令牌。
+    // 数据目录和绑定地址由部署环境指定。对外监听时必须配置一种访问认证。
     let data_dir = std::env::var_os("HOTDOWNLOADER_DATA_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("./data"));
     let bind = std::env::var("HOTDOWNLOADER_BIND").unwrap_or_else(|_| "127.0.0.1:8787".to_string());
     let address: SocketAddr = bind.parse()?;
-    let token = std::env::var("HOTDOWNLOADER_TOKEN").unwrap_or_default();
-    if !address.ip().is_loopback() && token.len() < 16 {
-        return Err("对外监听时 HOTDOWNLOADER_TOKEN 至少需要 16 个字符".into());
+    let auth = AccessAuth::from_env()?;
+    if !address.ip().is_loopback() && !auth.valid_for_external_access() {
+        return Err("对外监听时须同时设置 AUTH_USERNAME 和 AUTH_PASSWORD，或设置至少 16 个字符的 HOTDOWNLOADER_TOKEN".into());
     }
-    let runtime = ServerRuntime::start(data_dir).map_err(std::io::Error::other)?;
+    let runtime = ServerRuntime::start(data_dir, auth).map_err(std::io::Error::other)?;
     let listener = TcpListener::bind(address).await?;
     log::info!("任务服务已监听 http://{bind}");
 

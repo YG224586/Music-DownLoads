@@ -62,9 +62,9 @@ if (isNativeRuntime()) {
     // 保持原生端原有的初始化顺序，避免窗口内容先于安全区域插件挂载。
     void init().finally(() => app.mount('#app'))
 } else {
-    // Web 必须先显示令牌输入页，认证后再加载设置和任务投影。
+    // Web 先确认认证模式，认证后再加载设置和任务投影。
     app.mount('#app')
-    // Web 首先验证 API 令牌，再加载设置和任务；认证失败时显示输入页。
+    // 认证失败时显示对应的输入页。
     watch(() => webSession.authorized, authorized => {
         if (authorized) void init()
     })

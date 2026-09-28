@@ -14,10 +14,11 @@
 
 ### 启动容器
 
-创建 `.env`，填入至少 16 个字符的随机访问令牌和容器内下载目录：
+创建 `.env`，配置用户名和密码，以及容器内下载目录：
 
 ```dotenv
-HOTDOWNLOADER_TOKEN=请替换为随机生成的长令牌
+AUTH_USERNAME=admin
+AUTH_PASSWORD=请替换为密码
 HOTDOWNLOADER_DOWNLOAD_DIR=/downloads
 ```
 
@@ -32,11 +33,13 @@ docker run -d --name hotdownloader --restart unless-stopped \
   ghcr.io/lerdb/hotdownloader:latest
 ```
 
-在服务器本机访问 `http://127.0.0.1:8787`，输入 `.env` 中的访问令牌。
+在服务器本机访问 `http://127.0.0.1:8787`，输入 `.env` 中的用户名和密码。
+也可只设置 `HOTDOWNLOADER_TOKEN`（至少 16 个字符），继续使用令牌登录。
+若同时设置账号密码和令牌，服务只接受账号密码。
 Docker 仅将端口绑定到宿主机回环地址，容器内服务仍监听 `0.0.0.0:8787`，以便端口映射正常工作。
 
 从其他设备访问时，请在宿主机配置 HTTPS 反向代理，将请求转发到 `127.0.0.1:8787`，并通过 HTTPS 域名打开网页。
-不要将令牌通过公网明文 HTTP 传输。
+不要将访问凭据通过公网明文 HTTP 传输。
 
 下载任务由服务进程持续执行。重新打开网页即可查看进度。
 页面顶部显示服务连接状态和最近响应时间。
@@ -102,8 +105,8 @@ docker rm -f hotdownloader
 服务进程重启后，先前未完成的任务显示在“已中断”标签中。
 点击恢复后，任务重新入队。
 
-远程访问请使用上述 HTTPS 反向代理，保护浏览器与服务之间的访问令牌。
-当前部署使用单个访问令牌，适合单管理员使用。
+远程访问请使用上述 HTTPS 反向代理，保护浏览器与服务之间的访问凭据。
+当前部署使用一组账号密码或单个访问令牌，适合单管理员使用。
 
 ## 本机运行与配置
 
@@ -117,7 +120,8 @@ cargo run --manifest-path crates/hotdownloader-server/Cargo.toml
 | --- | --- |
 | `HOTDOWNLOADER_DATA_DIR` | 数据目录，默认 `./data`。 |
 | `HOTDOWNLOADER_BIND` | 监听地址，默认 `127.0.0.1:8787`。 |
-| `HOTDOWNLOADER_TOKEN` | 对外监听时设置至少 16 个字符的访问令牌。`/api` 请求使用 `Authorization: Bearer <token>`。 |
+| `AUTH_USERNAME`、`AUTH_PASSWORD` | 对外监听时可同时设置，启用账号密码认证。`/api` 请求使用 HTTP Basic 认证；两者优先于令牌。不允许只设置其中一个，用户名不能包含冒号。 |
+| `HOTDOWNLOADER_TOKEN` | 未设置账号密码时，对外监听需设置至少 16 个字符的访问令牌。`/api` 请求使用 `Authorization: Bearer <token>`。 |
 | `HOTDOWNLOADER_WEB_DIR` | 前端构建产物目录，默认 `./dist`。 |
 | `HOTDOWNLOADER_DOWNLOAD_DIR` | 下载文件的绝对目录。本机或直接使用镜像时默认是数据目录下的 `downloads`；仓库的 Compose 配置默认是 `/downloads`。 |
 | `HOTDOWNLOADER_LOG_LEVEL` | 日志级别，可设为 `off`、`error`、`warn`、`info`、`debug` 或 `trace`，默认 `info`。 |
