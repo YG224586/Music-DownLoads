@@ -1,4 +1,4 @@
-//! 下载后的歌词与封面获取，供普通文件和 SAF 收尾流程共用。
+//! 下载后的歌词、封面获取与独立歌词命名，供普通文件和 SAF 收尾流程共用。
 
 use std::path::Path;
 
@@ -13,6 +13,7 @@ pub struct PostprocessAssets {
 }
 
 /// 独立歌词沿用音频文件名的 stem；普通路径与 Android SAF 使用同一命名规则。
+/// 文件名无法转换为 UTF-8 时沿用 `unknown.lrc`，保持已有下载结果格式。
 pub fn lrc_file_name(audio_path: &str) -> String {
     let stem = Path::new(audio_path)
         .file_stem()

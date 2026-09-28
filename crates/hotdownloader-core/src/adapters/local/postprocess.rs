@@ -12,6 +12,7 @@ use crate::download::context::TaskContext;
 use crate::download::ports::{DownloadPostprocessor, DownloadProgressSink, PostprocessRequest};
 use crate::download::postprocess::{lrc_file_name, prepare_assets, PostprocessAssets};
 use crate::platforms::lyric::LyricData;
+
 /// 将普通 LRC 写在音频旁边；无歌词或写入失败都不改变音频下载结果。
 pub fn write_local_lrc(audio_path: &str, lyric: &LyricData) -> Option<String> {
     let content = lyric

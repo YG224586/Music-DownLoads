@@ -1,4 +1,5 @@
 use std::io::{Seek, Write};
+use std::path::Path;
 
 use hotdownloader_core::download::postprocess::lrc_file_name;
 use tauri::AppHandle;
@@ -27,11 +28,11 @@ pub(crate) async fn write_saf_lrc_file(
         }
     };
 
-    let lrc_file_name = lrc_file_name(song_file_path);
+    let lrc_name = lrc_file_name(song_file_path);
     let api = app_handle.android_fs();
 
     // 尝试解析已存在的 LRC 文件，若存在则打开可写并清空；否则创建新文件
-    let file_path = std::path::Path::new(&lrc_file_name);
+    let file_path = Path::new(&lrc_name);
     let file_uri_opt = api.resolve_file_uri(&parent_uri, file_path).ok();
 
     match file_uri_opt {

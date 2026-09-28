@@ -186,16 +186,16 @@ impl TauriDownloadLinkProvider {
 impl QqCredentialSource for TauriQqCredentialSource {
     fn current(&self) -> BoxFuture<'_, Result<Option<QqAuth>, String>> {
         Box::pin(async move {
-            let (auth, refresh_error) =
-                crate::platforms::qqmusic::login::download_auth(&self.app).await;
-            if let Some(error) = refresh_error {
+            let resolved = crate::platforms::qqmusic::login::download_auth(&self.app).await;
+            if let Some(error) = resolved.refresh_error {
+                // 核心保留旧凭据；Tauri 负责向当前窗口报告刷新失败。
                 log::warn!("QQ音乐凭证刷新失败，继续使用旧凭证: {error}");
                 let _ = self.app.emit(
                     crate::events::LOGIN_REFRESH_FAILED,
                     format!("QQ音乐登录已过期，自动刷新失败：{error}"),
                 );
             }
-            Ok(auth)
+            Ok(resolved.auth)
         })
     }
 }

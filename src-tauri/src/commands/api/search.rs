@@ -1,8 +1,9 @@
 //! 搜索命令路由层
 
-use crate::utils::settings::get_artist_separator;
 use hotdownloader_core::platforms::{self, Platform};
 use tauri::{command, AppHandle};
+
+use crate::utils::settings::get_artist_separator;
 
 #[command]
 pub async fn search_songs(

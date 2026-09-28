@@ -2,6 +2,7 @@
 
 use serde_json::Value;
 
+/// 未配置时用于连接多个歌手名称的分隔符。
 pub const DEFAULT_SEPARATOR: &str = "、";
 
 /// 设置缺失、类型错误或为空字符串时使用默认分隔符。

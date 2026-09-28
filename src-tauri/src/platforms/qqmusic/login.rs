@@ -2,7 +2,9 @@
 
 use std::sync::Arc;
 
-use hotdownloader_core::platforms::qqmusic::login::{self as qq_login, LoginCredentialStore};
+use hotdownloader_core::platforms::qqmusic::login::{
+    self as qq_login, LoginCredentialStore, ResolvedDownloadAuth,
+};
 use serde_json::Value;
 use tauri::AppHandle;
 
@@ -65,12 +67,8 @@ impl LoginCredentialStore for TauriLoginStore {
     }
 }
 
-pub(crate) async fn download_auth(
-    app: &AppHandle,
-) -> (
-    Option<hotdownloader_core::platforms::qqmusic::credentials::QqAuth>,
-    Option<String>,
-) {
+/// 使用应用 Store 提供凭据；校验与刷新策略由核心处理。
+pub(crate) async fn download_auth(app: &AppHandle) -> ResolvedDownloadAuth {
     qq_login::download_auth(&TauriLoginStore::new(app)).await
 }
 

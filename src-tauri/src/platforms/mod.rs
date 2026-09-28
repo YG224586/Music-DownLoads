@@ -1,2 +1,2 @@
-// QQ 登录存储是 Tauri 特有的适配器；平台查询直接使用共享核心。
+//! Tauri 平台适配器；QQ 登录状态存放在应用 Store 中。
 pub(crate) mod qqmusic;

@@ -23,6 +23,7 @@ use rumqttc::v5::mqttbytes::QoS;
 use serde_json::{json, Value};
 use tokio::sync::Mutex;
 
+use super::credentials::QqAuth;
 use crate::platforms::CLIENT;
 
 /// 登录流程只读写凭据设置，不接触窗口、IPC 或 Android 文件接口。
@@ -803,26 +804,58 @@ pub async fn get_login_credentials(
     (uin, authst)
 }
 
-/// 下载链接使用当前凭据。只有已登录时才校验过期状态；刷新失败时保留旧凭据
-/// 继续尝试链接请求，同时把错误交给运行时提示用户。
-pub async fn download_auth(
-    store: &dyn LoginCredentialStore,
-) -> (Option<super::credentials::QqAuth>, Option<String>) {
-    let (mut uin, mut authst) = get_login_credentials(store).await;
-    let mut refresh_error = None;
-    if uin.is_some() && authst.is_some() && check_credential_expired(store).await.unwrap_or(false) {
+/// 下载链接使用的凭据，以及需要由运行时提示用户的刷新错误。
+/// 刷新失败仍返回旧凭据，使链接请求有机会继续成功。
+pub struct ResolvedDownloadAuth {
+    /// 当前可用于链接请求的凭据；未登录时为 `None`。
+    pub auth: Option<QqAuth>,
+    /// 仅在确认过期且刷新失败时有值；运行时可据此提示用户。
+    pub refresh_error: Option<String>,
+}
+
+/// 读取当前登录态，并在凭据明确过期时尝试刷新。
+/// 校验接口的网络或解析错误不代表凭据过期，继续使用原凭据。
+pub async fn download_auth(store: &dyn LoginCredentialStore) -> ResolvedDownloadAuth {
+    let (uin, authst) = get_login_credentials(store).await;
+    let Some((uin, authst)) = uin.zip(authst) else {
+        return ResolvedDownloadAuth {
+            auth: None,
+            refresh_error: None,
+        };
+    };
+    let mut auth = QqAuth { uin, authst };
+
+    let expired = match check_credential_expired(store).await {
+        Ok(expired) => expired,
+        Err(error) => {
+            // 校验请求失败无法证明凭据过期，继续用旧凭据获取链接。
+            log::warn!("QQ 凭据校验失败，继续使用现有凭据: {error}");
+            false
+        }
+    };
+
+    if expired {
         match refresh_credential(store).await {
             Ok(credentials) => {
-                uin = Some(credentials.uin);
-                authst = Some(credentials.authst);
+                auth = QqAuth {
+                    uin: credentials.uin,
+                    authst: credentials.authst,
+                };
             }
-            Err(error) => refresh_error = Some(error),
+            Err(error) => {
+                // 保留任务启动时读到的旧凭据；刷新错误交给运行时通知用户。
+                return ResolvedDownloadAuth {
+                    auth: Some(auth),
+                    refresh_error: Some(error),
+                };
+            }
         }
     }
-    let auth = uin
-        .zip(authst)
-        .map(|(uin, authst)| super::credentials::QqAuth { uin, authst });
-    (auth, refresh_error)
+
+    ResolvedDownloadAuth {
+        auth: Some(auth),
+        refresh_error: None,
+    }
 }
 
 /// 检查当前登录凭证是否已过期。

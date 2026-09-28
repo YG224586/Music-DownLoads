@@ -43,7 +43,7 @@ Android SAF、系统通知和窗口功能由 Tauri 运行时适配器实现。
 - QQ 下载凭据由 `QqCredentialSource` 提供。
   - 桌面端使用登录模块。
   - 独立服务可调用 `PlatformDownloadLinkProvider::from_credentials_file(path)`。
-- `platforms::qqmusic::login` 实现 QQ 扫码、MQTT 会话、手动登录和凭据刷新，通过 `LoginCredentialStore` 接入 Tauri Store 或普通 JSON 文件。下载链接获取前的凭据校验与刷新回退由 `download_auth` 处理，运行时负责向用户提示刷新失败。
+- `platforms::qqmusic::login` 实现 QQ 扫码、MQTT 会话、手动登录和凭据刷新，通过 `LoginCredentialStore` 接入 Tauri Store 或普通 JSON 文件。Tauri 下载适配器调用 `download_auth` 校验凭据并尝试刷新；刷新失败时继续使用旧凭据，并由 Tauri 提示用户。
 
 ## 运行时接入
 
