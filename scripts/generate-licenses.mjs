@@ -296,22 +296,22 @@ function writeLicensesTs(rust, frontend, texts) {
 // Do not edit manually. After changing dependencies, run: npm run generate:licenses
 
 export interface ComponentInfo {
-  name: string;
-  version: string;
-  license: string;
+    name: string;
+    version: string;
+    license: string;
 }
 
 export interface LicenseText {
-  id: string;
-  name: string;
-  text: string;
+    id: string;
+    name: string;
+    text: string;
 }
 
-export const rustComponents: ComponentInfo[] = ${JSON.stringify(rust, null, 2)};
+export const rustComponents: ComponentInfo[] = ${JSON.stringify(rust, null, 4)};
 
-export const frontendComponents: ComponentInfo[] = ${JSON.stringify(frontend, null, 2)};
+export const frontendComponents: ComponentInfo[] = ${JSON.stringify(frontend, null, 4)};
 
-export const licenseTexts: LicenseText[] = ${JSON.stringify(texts, null, 2)};
+export const licenseTexts: LicenseText[] = ${JSON.stringify(texts, null, 4)};
 `
     fs.mkdirSync(dataDir, { recursive: true })
     fs.writeFileSync(path.join(dataDir, 'licenses.ts'), content, 'utf8')
