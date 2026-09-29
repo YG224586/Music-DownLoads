@@ -12,7 +12,9 @@ use hotdownloader_core::download::config::{DownloadConfig, DownloadConfigProvide
 use hotdownloader_core::download::context::TaskContext;
 use hotdownloader_core::download::engine::{DownloadEngine, DownloadTaskRunner, TaskController};
 use hotdownloader_core::download::link::PlatformDownloadLinkProvider;
-use hotdownloader_core::download::ports::{DownloadProgressSink, NoopCompletionNotifier};
+use hotdownloader_core::download::ports::{
+    DownloadProgressSink, DownloadWorkerPorts, NoopCompletionNotifier,
+};
 use hotdownloader_core::download::worker::download_task;
 use hotdownloader_core::platforms::qqmusic::login::FileLoginStore;
 use hotdownloader_core::settings::patch::{
@@ -34,6 +36,12 @@ pub struct ServerEvent {
 
 pub struct ServerEvents {
     sender: broadcast::Sender<ServerEvent>,
+}
+
+impl Default for ServerEvents {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ServerEvents {
@@ -266,11 +274,13 @@ impl DownloadTaskRunner for ServerRunner {
                 context,
                 controller,
                 config,
-                links.as_ref(),
-                progress.as_ref(),
-                &opener,
-                &deleter,
-                &postprocessor,
+                DownloadWorkerPorts {
+                    link_provider: links.as_ref(),
+                    progress_sink: progress.as_ref(),
+                    file_opener: &opener,
+                    file_deleter: &deleter,
+                    postprocessor: &postprocessor,
+                },
             )
             .await
         })

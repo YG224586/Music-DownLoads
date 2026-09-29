@@ -15,8 +15,8 @@ use hotdownloader_core::adapters::local::file_deleter::LocalFileDeleter;
 use hotdownloader_core::download::context::TaskContext;
 use hotdownloader_core::download::engine::{DownloadTaskRunner, TaskController};
 use hotdownloader_core::download::ports::{
-    CompletionNotifier, DownloadFileOpener, DownloadProgressSink, FileDeleter, FileOpenRequest,
-    OpenedDownloadFile,
+    CompletionNotifier, DownloadFileOpener, DownloadProgressSink, DownloadWorkerPorts, FileDeleter,
+    FileOpenRequest, OpenedDownloadFile,
 };
 use hotdownloader_core::download::worker::download_task;
 
@@ -48,11 +48,13 @@ impl DownloadTaskRunner for TauriTaskRunner {
                 context,
                 controller,
                 config,
-                &link_provider,
-                &progress_sink,
-                &file_opener,
-                &file_deleter,
-                &postprocessor,
+                DownloadWorkerPorts {
+                    link_provider: &link_provider,
+                    progress_sink: &progress_sink,
+                    file_opener: &file_opener,
+                    file_deleter: &file_deleter,
+                    postprocessor: &postprocessor,
+                },
             )
             .await
         })
@@ -85,26 +87,7 @@ impl DownloadFileOpener for TauriDownloadFileOpener {
         request: FileOpenRequest<'a>,
         progress_sink: &'a dyn DownloadProgressSink,
     ) -> BoxFuture<'a, Option<OpenedDownloadFile>> {
-        Box::pin(async move {
-            let mut downloaded = request.downloaded;
-            let mut saf_file_uri = None;
-            let writer = open_download_file(
-                &self.app,
-                progress_sink,
-                request.task_id,
-                request.file_path,
-                request.is_saf,
-                request.saf_folder_uri,
-                &mut downloaded,
-                &mut saf_file_uri,
-            )
-            .await?;
-            Some(OpenedDownloadFile {
-                writer,
-                downloaded,
-                saf_file_uri,
-            })
-        })
+        Box::pin(async move { open_download_file(&self.app, request, progress_sink).await })
     }
 }
 

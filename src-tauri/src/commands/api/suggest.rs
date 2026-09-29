@@ -5,7 +5,7 @@ use tauri::command;
 
 #[command]
 pub async fn fetch_hot_keywords(platform: String) -> Result<String, String> {
-    let p = Platform::from_str(&platform)?;
+    let p = platform.parse::<Platform>()?;
     match p {
         Platform::QqMusic => platforms::qqmusic::suggest::fetch_hot_keywords().await,
         Platform::Kuwo => platforms::kuwo::suggest::fetch_hot_keywords().await,
@@ -14,7 +14,7 @@ pub async fn fetch_hot_keywords(platform: String) -> Result<String, String> {
 
 #[command]
 pub async fn fetch_suggestions(platform: String, keyword: String) -> Result<String, String> {
-    let p = Platform::from_str(&platform)?;
+    let p = platform.parse::<Platform>()?;
     match p {
         Platform::QqMusic => platforms::qqmusic::suggest::fetch_suggestions(keyword).await,
         Platform::Kuwo => platforms::kuwo::suggest::fetch_suggestions(keyword).await,

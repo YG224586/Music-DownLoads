@@ -3,7 +3,9 @@ use std::io::{BufWriter, Seek};
 use std::path::Path;
 
 use hotdownloader_core::adapters::local::download_file::open_local_download_file;
-use hotdownloader_core::download::ports::DownloadProgressSink;
+use hotdownloader_core::download::ports::{
+    DownloadProgressSink, FileOpenRequest, OpenedDownloadFile,
+};
 use tauri::AppHandle;
 use tauri_plugin_android_fs::{AndroidFsExt, FileAccessMode, FsUri};
 
@@ -20,40 +22,42 @@ const FILE_BUFFER_CAPACITY: usize = 64 * 1024;
 /// # 参数
 /// - `app_handle`: Tauri 应用句柄，仅用于访问 Android FS 插件。
 /// - `progress_sink`: 下载状态输出接口，负责记录错误并通知订阅者。
-/// - `task_id`: 下载任务的唯一标识，用于错误事件中定位具体任务。
-/// - `download_dir`: 下载目标路径。在普通模式下是完整的文件路径；在 SAF 模式下仅作为文件名使用。
-/// - `is_saf`: 是否启用 SAF 模式。
-/// - `saf_folder_uri`: SAF 模式下父目录的 URI（JSON 字符串形式），仅在 `is_saf` 为 `true` 时有效。
-/// - `downloaded`: 可变引用，表示当前已下载的字节数。在文件异常或新文件情况下可能被重置为 0。
-/// - `saf_file_uri`: 可变引用，用于记录最终实际使用的 SAF 文件 URI（仅在 SAF 模式下会被更新）。
+/// - `request`: 核心定义的路径、SAF 设置和已下载偏移快照。
 ///
 /// # 返回
-/// - `Some(BufWriter<fs::File>)`：成功打开或创建文件，调用方可继续写入。
+/// - `Some(OpenedDownloadFile)`：返回写入器及校正后的偏移和 SAF 文件 URI。
 /// - `None`：发生错误（已通过状态接口上报），调用方应中止下载循环。
 pub(crate) async fn open_download_file(
     app_handle: &AppHandle,
+    request: FileOpenRequest<'_>,
     progress_sink: &dyn DownloadProgressSink,
-    task_id: &str,
-    download_dir: &str,
-    is_saf: bool,
-    saf_folder_uri: Option<&str>,
-    downloaded: &mut u64,
-    saf_file_uri: &mut Option<String>,
-) -> Option<BufWriter<fs::File>> {
-    if is_saf {
+) -> Option<OpenedDownloadFile> {
+    let mut downloaded = request.downloaded;
+    let mut saf_file_uri = None;
+    let writer = if request.is_saf {
         open_saf_file(
             app_handle,
             progress_sink,
-            task_id,
-            download_dir,
-            saf_folder_uri,
-            downloaded,
-            saf_file_uri,
+            request.task_id,
+            request.file_path,
+            request.saf_folder_uri,
+            &mut downloaded,
+            &mut saf_file_uri,
         )
         .await
     } else {
-        open_normal_file(progress_sink, task_id, download_dir, downloaded)
-    }
+        open_normal_file(
+            progress_sink,
+            request.task_id,
+            request.file_path,
+            &mut downloaded,
+        )
+    }?;
+    Some(OpenedDownloadFile {
+        writer,
+        downloaded,
+        saf_file_uri,
+    })
 }
 
 /// SAF 模式下打开或创建下载目标文件。

@@ -1,5 +1,9 @@
+use std::sync::Arc;
+
+use tokio::sync::Mutex;
+
 use crate::download::config::DownloadConfig;
-use crate::download::context::SongInfo;
+use crate::download::context::{SongInfo, TaskContext};
 use crate::download::engine::{DownloadEngine, ERR_TASK_CONTEXT_MISSING};
 use crate::platforms::Platform;
 use crate::task::contract::{
@@ -55,26 +59,30 @@ impl<'a> TaskService<'a> {
     async fn register_engine_task(&self, task: &TaskRecord) -> Result<(), String> {
         // 持久化记录是下载器上下文的来源。重试旧任务时可用同一记录重建上下文，
         // 无需依赖前端页面保留 URL、路径或下载参数。
-        let platform = Platform::from_str(&task.platform)?;
-        self.engine
-            .add_task(
-                task.id.clone(),
-                platform,
-                task.song_id,
-                task.song_mid.clone(),
-                String::new(),
-                task.save_path.clone().unwrap_or_default(),
-                task.quality.clone(),
-                task.filename.clone(),
-                String::new(),
-                task.file_size,
-                task.song_title.clone(),
-                task.artist.clone(),
-                task.album.clone(),
-                task.cover_url.clone(),
-                task.downloaded,
-            )
-            .await;
+        let platform = task.platform.parse::<Platform>()?;
+        let context = TaskContext {
+            task_id: task.id.clone(),
+            platform,
+            song_id: task.song_id,
+            song_mid: task.song_mid.clone(),
+            url: String::new(),
+            save_path: task.save_path.clone().unwrap_or_default(),
+            quality: task.quality.clone(),
+            quality_filename: task.filename.clone(),
+            key: String::new(),
+            file_size: task.file_size,
+            downloaded_offset: task.downloaded,
+            song_info: SongInfo {
+                title: task.song_title.clone(),
+                artist: task.artist.clone(),
+                album: task.album.clone(),
+                quality: task.quality.clone(),
+                cover_url: task.cover_url.clone(),
+            },
+            // 引擎和 worker 共享此路径状态，用于下载完成后删除目标文件。
+            final_path: Arc::new(Mutex::new(None)),
+        };
+        self.engine.add_task(context).await;
         Ok(())
     }
 
@@ -147,7 +155,7 @@ impl<'a> TaskService<'a> {
         &self,
         request: CreateTaskRequest,
     ) -> Result<CreateTaskResult, String> {
-        Platform::from_str(&request.song.platform)?;
+        request.song.platform.parse::<Platform>()?;
         let state = self.state;
         // 锁覆盖路径检查、占用和入队，防止并发创建时绕过重名判断。
         let _creation_guard = state.creation_lock.lock().await;
@@ -245,7 +253,9 @@ impl<'a> TaskService<'a> {
                 return Err(e);
             }
         }
-        Ok(CreateTaskResult::Created { task })
+        Ok(CreateTaskResult::Created {
+            task: Box::new(task),
+        })
     }
 
     pub async fn pause_task(&self, task_id: String) -> Result<(), String> {

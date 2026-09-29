@@ -83,19 +83,31 @@ pub enum StreamOutcome {
     Failed,
 }
 
+/// 单次响应流处理期间不变的任务信息与输出端口。
+pub struct StreamWriteContext<'a> {
+    pub total: u64,
+    pub decrypt_context: &'a DecryptContext,
+    pub controller: &'a TaskController,
+    pub progress_sink: &'a dyn DownloadProgressSink,
+    pub task_id: &'a str,
+}
+
 /// 把响应流按文件绝对偏移解密并写入目标。文件可以是普通文件，也可以是 SAF 适配器打开的文件。
 /// 文件的创建和重新打开仍由上层负责，因为 Android SAF 需要平台授权及 URI。
 pub async fn write_response_stream<W: Write + Send>(
     response: reqwest::Response,
     writer: &mut W,
     downloaded: &mut u64,
-    total: u64,
-    decrypt_context: &DecryptContext,
-    controller: &TaskController,
-    progress_sink: &dyn DownloadProgressSink,
-    task_id: &str,
     stream_retries: &mut u32,
+    context: StreamWriteContext<'_>,
 ) -> StreamOutcome {
+    let StreamWriteContext {
+        total,
+        decrypt_context,
+        controller,
+        progress_sink,
+        task_id,
+    } = context;
     let mut stream = response.bytes_stream();
     let mut last_report = Instant::now();
     let mut last_downloaded = *downloaded;

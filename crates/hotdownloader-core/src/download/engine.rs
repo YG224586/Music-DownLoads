@@ -9,9 +9,8 @@ use tokio_util::sync::CancellationToken;
 
 use futures_util::FutureExt;
 
-use super::context::{SongInfo, TaskContext};
+use super::context::TaskContext;
 use super::ports::{CompletionNotifier, FileDeleter};
-use crate::platforms::Platform;
 
 /// 引擎中没有对应任务上下文时的错误码。
 /// Rust 重试命令据此从持久化任务记录重建下载器上下文。
@@ -151,62 +150,23 @@ impl DownloadEngine {
         }
     }
 
-    /// 异步添加任务，同时预计算最终保存路径
-    pub async fn add_task(
-        &self,
-        task_id: String,
-        platform: Platform,
-        song_id: u64,
-        song_mid: String,
-        url: String,
-        save_path: String,
-        quality: String,
-        filename: String,
-        key: String,
-        file_size: u64,
-        song_title: String,
-        artist: String,
-        album: String,
-        cover_url: String,
-        downloaded_offset: u64,
-    ) {
+    /// 注册已组装的任务上下文，并继承重试时可能保存的最终路径。
+    pub async fn add_task(&self, ctx: TaskContext) {
+        let task_id = ctx.task_id.clone();
         let controller = TaskController {
             cancel_token: CancellationToken::new(),
             pause_flag: Arc::new(AtomicBool::new(false)),
             resume_notify: Arc::new(Notify::new()),
             url_ready: Arc::new(Notify::new()),
             delete_file_on_cancel: Arc::new(AtomicBool::new(false)),
-            final_path: Arc::new(Mutex::new(None)),
+            final_path: ctx.final_path.clone(),
             lrc_final_path: Arc::new(Mutex::new(None)),
             started: Arc::new(AtomicBool::new(false)),
             done: Arc::new(Notify::new()),
         };
 
-        let ctx = TaskContext {
-            task_id: task_id.clone(),
-            platform,
-            song_id,
-            song_mid,
-            url,
-            save_path,
-            quality: quality.clone(), // 保留原 quality 字段
-            quality_filename: filename,
-            key,
-            file_size,
-            downloaded_offset,
-            song_info: SongInfo {
-                title: song_title,
-                artist,
-                album,
-                quality,   // 传入品质
-                cover_url, // 传入封面链接
-            },
-            final_path: controller.final_path.clone(), // 共享路径
-        };
-
         // 继承可能已有的最终路径（例如任务重试后路径不变）
         if let Some(p) = self.final_paths.lock().await.get(&task_id).cloned() {
-            *controller.final_path.lock().await = Some(p.clone());
             *ctx.final_path.lock().await = Some(p);
         }
 
@@ -548,6 +508,8 @@ mod tests {
 
     use super::*;
     use crate::adapters::local::file_deleter::LocalFileDeleter;
+    use crate::download::context::SongInfo;
+    use crate::platforms::Platform;
 
     struct StubRunner(Arc<AtomicUsize>);
 
@@ -618,23 +580,27 @@ mod tests {
             async move { engine.run_scheduler().await }
         });
         engine
-            .add_task(
-                "task-1".into(),
-                Platform::QqMusic,
-                1,
-                "mid".into(),
-                String::new(),
-                "/tmp/song.mp3".into(),
-                "320kmp3".into(),
-                "song.mp3".into(),
-                String::new(),
-                100,
-                "歌曲".into(),
-                "歌手".into(),
-                "专辑".into(),
-                String::new(),
-                0,
-            )
+            .add_task(TaskContext {
+                task_id: "task-1".into(),
+                platform: Platform::QqMusic,
+                song_id: 1,
+                song_mid: "mid".into(),
+                url: String::new(),
+                save_path: "/tmp/song.mp3".into(),
+                quality: "320kmp3".into(),
+                quality_filename: "song.mp3".into(),
+                key: String::new(),
+                file_size: 100,
+                downloaded_offset: 0,
+                song_info: SongInfo {
+                    title: "歌曲".into(),
+                    artist: "歌手".into(),
+                    album: "专辑".into(),
+                    quality: "320kmp3".into(),
+                    cover_url: String::new(),
+                },
+                final_path: Arc::new(Mutex::new(None)),
+            })
             .await;
 
         tokio::time::timeout(Duration::from_secs(2), done.notified())

@@ -6,15 +6,12 @@ use super::decryption;
 use crate::download::config::DownloadConfig;
 use crate::download::context::TaskContext;
 use crate::download::engine::TaskController;
-use crate::download::link::{fetch_download_link_with_retry, DownloadLinkProvider};
+use crate::download::link::fetch_download_link_with_retry;
 use crate::download::path::resolve_download_path;
-use crate::download::ports::{
-    DownloadFileOpener, DownloadPostprocessor, DownloadProgressSink, FileDeleter, FileOpenRequest,
-    PostprocessRequest,
-};
+use crate::download::ports::{DownloadWorkerPorts, FileOpenRequest, PostprocessRequest};
 use crate::download::transfer::{
     classify_http_response, request_download_response, write_response_stream, ResponseAction,
-    StreamOutcome,
+    StreamOutcome, StreamWriteContext,
 };
 
 /// 与 Tauri 无关的完整下载任务循环。运行时提供设置、链接、文件、状态和收尾端口。
@@ -23,12 +20,15 @@ pub async fn download_task(
     ctx: TaskContext,
     controller: TaskController,
     config: DownloadConfig,
-    link_provider: &dyn DownloadLinkProvider,
-    progress_sink: &dyn DownloadProgressSink,
-    file_opener: &dyn DownloadFileOpener,
-    file_deleter: &dyn FileDeleter,
-    postprocessor: &dyn DownloadPostprocessor,
+    ports: DownloadWorkerPorts<'_>,
 ) -> bool {
+    let DownloadWorkerPorts {
+        link_provider,
+        progress_sink,
+        file_opener,
+        file_deleter,
+        postprocessor,
+    } = ports;
     // 1. 构建最终保存路径（只需一次）
     // 创建任务时已经确定目标路径；Android SAF 任务需保留 URI 上下文，
     // 否则重试时会把相对文件名当成本地文件系统路径。
@@ -225,12 +225,14 @@ pub async fn download_task(
             response,
             writer,
             &mut downloaded,
-            total,
-            &decrypt_ctx,
-            &controller,
-            progress_sink,
-            &ctx.task_id,
             &mut stream_retries,
+            StreamWriteContext {
+                total,
+                decrypt_context: &decrypt_ctx,
+                controller: &controller,
+                progress_sink,
+                task_id: &ctx.task_id,
+            },
         )
         .await;
         match outcome {
@@ -333,7 +335,9 @@ mod tests {
     use crate::download::context::{SongInfo, TaskContext};
     use crate::download::engine::TaskController;
     use crate::download::link::DownloadLinkProvider;
-    use crate::download::ports::{DownloadProgressSink, NoopDownloadPostprocessor};
+    use crate::download::ports::{
+        DownloadProgressSink, DownloadWorkerPorts, NoopDownloadPostprocessor,
+    };
     use crate::platforms::Platform;
 
     struct RejectedLink;
@@ -414,11 +418,13 @@ mod tests {
             context,
             controller,
             config,
-            &RejectedLink,
-            &sink,
-            &LocalDownloadFileOpener,
-            &LocalFileDeleter,
-            &NoopDownloadPostprocessor,
+            DownloadWorkerPorts {
+                link_provider: &RejectedLink,
+                progress_sink: &sink,
+                file_opener: &LocalDownloadFileOpener,
+                file_deleter: &LocalFileDeleter,
+                postprocessor: &NoopDownloadPostprocessor,
+            },
         )
         .await;
         assert!(!completed);

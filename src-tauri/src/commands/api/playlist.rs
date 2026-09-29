@@ -11,7 +11,7 @@ pub async fn fetch_playlist_songs(
     platform: String,
     input: String,
 ) -> Result<String, String> {
-    let p = Platform::from_str(&platform)?;
+    let p = platform.parse::<Platform>()?;
     // 歌单解析需要用户设置的歌手分隔符，具体请求无需接触 AppHandle。
     let separator = get_artist_separator(&app);
     match p {
@@ -33,7 +33,7 @@ pub async fn search_playlists(
     page: u32,
     limit: u32,
 ) -> Result<String, String> {
-    let p = Platform::from_str(&platform)?;
+    let p = platform.parse::<Platform>()?;
     match p {
         Platform::QqMusic => {
             platforms::qqmusic::playlist::search_playlists(keyword, page, limit).await

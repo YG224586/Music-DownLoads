@@ -95,7 +95,7 @@ pub struct CreateTaskRequest {
 #[derive(Debug, Serialize)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum CreateTaskResult {
-    Created { task: TaskRecord },
+    Created { task: Box<TaskRecord> },
     NeedsConfirmation { song_title: String },
     Cancelled,
 }
@@ -122,8 +122,16 @@ mod tests {
         let task: TaskRecord = serde_json::from_value(old_record).unwrap();
         assert_eq!(task.song_id, 42);
         assert!(task.available_qualities.is_none());
-        let serialized = serde_json::to_value(task).unwrap();
+        let serialized = serde_json::to_value(&task).unwrap();
         assert_eq!(serialized["songTitle"], "Title");
         assert_eq!(serialized["status"], "error");
+
+        // Box 只改变 Rust 内存布局，不改变 IPC 和 HTTP 共用的响应 JSON。
+        let result = serde_json::to_value(CreateTaskResult::Created {
+            task: Box::new(task),
+        })
+        .unwrap();
+        assert_eq!(result["outcome"], "created");
+        assert_eq!(result["task"], serialized);
     }
 }

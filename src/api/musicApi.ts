@@ -305,12 +305,14 @@ export async function loginWithUinAuthst(
     }
     const json = await invoke<string>('login_with_uin_authst', {
         platform,
-        uin,
-        authst,
-        refreshToken,
-        refreshKey,
-        accessToken,
-        openid,
+        credentials: {
+            uin,
+            authst,
+            refreshToken,
+            refreshKey,
+            accessToken,
+            openid,
+        },
     })
     return JSON.parse(json) as LoginCredentials
 }
