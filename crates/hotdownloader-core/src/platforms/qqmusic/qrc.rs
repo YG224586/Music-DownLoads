@@ -75,7 +75,7 @@ const SBOX: [[u8; 64]; 8] = [
 /// Decrypts a hex-encoded QRC payload and returns the inner XML string.
 pub fn decrypt(hex: &str) -> Result<String, String> {
     let bytes = hex_decode(hex)?;
-    if bytes.is_empty() || !bytes.len().is_multiple_of(8) {
+    if bytes.is_empty() || bytes.len() % 8 != 0 {
         return Err("qrc payload length is not a multiple of 8".to_string());
     }
 
@@ -200,7 +200,7 @@ pub fn is_qrc(content: &str) -> bool {
 
 fn hex_decode(hex: &str) -> Result<Vec<u8>, String> {
     let hex = hex.trim().as_bytes();
-    if !hex.len().is_multiple_of(2) {
+    if hex.len() % 2 != 0 {
         return Err("qrc payload is not valid hex (odd length)".to_string());
     }
 

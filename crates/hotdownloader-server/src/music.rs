@@ -40,7 +40,7 @@ pub async fn execute(
     artist_separator: &str,
     login_store: &dyn LoginCredentialStore,
 ) -> Result<Value, String> {
-    let platform = Platform::from_str(&request.platform)?;
+    let platform = request.platform.parse::<Platform>()?;
     if request.page == 0 || request.limit == 0 || request.limit > 100 {
         return Err("无效的分页参数".into());
     }

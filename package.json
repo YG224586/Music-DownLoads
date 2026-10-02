@@ -1,7 +1,7 @@
 {
   "name": "hotdownloader",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.0.1",
   "license": "Apache-2.0",
   "description": "基于共享 Rust 下载核心和 Vue 3 的音乐下载工具",
   "type": "module",
@@ -16,6 +16,7 @@
     "format:ts:check": "prettier --check \"src/**/*.ts\" vite.config.ts",
     "format:css": "prettier --write \"src/**/*.{css,scss,less}\"",
     "format:css:check": "prettier --check \"src/**/*.{css,scss,less}\"",
+    "test:storage-recovery": "node --test scripts/storage-recovery.test.mjs",
     "generate:licenses": "node scripts/generate-licenses.mjs"
   },
   "dependencies": {

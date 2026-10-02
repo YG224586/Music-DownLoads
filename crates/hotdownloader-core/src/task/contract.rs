@@ -26,11 +26,17 @@ pub struct SongInput {
     pub qualities: Vec<QualityItem>,
 }
 
+// 引入平台字段前仅支持 QQ 音乐，历史任务缺失该字段时沿用原平台。
+fn legacy_task_platform() -> String {
+    "qqmusic".to_owned()
+}
+
 /// 持久化任务契约：字段名沿用前端已有的 camelCase 数据，兼容旧任务记录。
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskRecord {
     pub id: String,
+    #[serde(default = "legacy_task_platform")]
     pub platform: String,
     pub song_id: u64,
     pub song_mid: String,
@@ -95,7 +101,7 @@ pub struct CreateTaskRequest {
 #[derive(Debug, Serialize)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum CreateTaskResult {
-    Created { task: TaskRecord },
+    Created { task: Box<TaskRecord> },
     NeedsConfirmation { song_title: String },
     Cancelled,
 }
@@ -114,16 +120,61 @@ mod tests {
     #[test]
     fn reads_existing_frontend_task_record() {
         let old_record = serde_json::json!({
-            "id": "old-1", "platform": "qqmusic", "songId": 42, "songMid": "mid",
+            "id": "old-1", "songId": 42, "songMid": "mid",
             "songTitle": "Title", "artist": "Artist", "album": "Album",
             "filename": "song.mp3", "quality": "320kmp3", "status": "error",
             "fileSize": 100, "downloaded": 0, "retryCount": 1, "addedAt": 1234
         });
         let task: TaskRecord = serde_json::from_value(old_record).unwrap();
+        assert_eq!(task.platform, "qqmusic");
         assert_eq!(task.song_id, 42);
+        assert!(task.cover_url.is_empty());
+        assert!(task.media_mid.is_empty());
         assert!(task.available_qualities.is_none());
-        let serialized = serde_json::to_value(task).unwrap();
+        assert!(task.save_path.is_none());
+        let serialized = serde_json::to_value(&task).unwrap();
+        assert_eq!(serialized["platform"], "qqmusic");
         assert_eq!(serialized["songTitle"], "Title");
         assert_eq!(serialized["status"], "error");
+
+        // Box 只改变 Rust 内存布局，不改变 IPC 和 HTTP 共用的响应 JSON。
+        let result = serde_json::to_value(CreateTaskResult::Created {
+            task: Box::new(task),
+        })
+        .unwrap();
+        assert_eq!(result["outcome"], "created");
+        assert_eq!(result["task"], serialized);
+    }
+
+    #[test]
+    fn loads_mixed_task_history_and_preserves_existing_platforms() {
+        let record = serde_json::json!({
+            "id": "legacy", "songId": 42, "songMid": "mid",
+            "songTitle": "Title", "artist": "Artist", "album": "Album",
+            "filename": "song.mp3", "quality": "320kmp3", "status": "completed",
+            "filePath": "D:/Music/song.mp3", "fileSize": 100, "downloaded": 100,
+            "retryCount": 0, "addedAt": 1234
+        });
+        let mut qqmusic = record.clone();
+        qqmusic["id"] = serde_json::json!("qq");
+        qqmusic["platform"] = serde_json::json!("qqmusic");
+        let mut kuwo = record.clone();
+        kuwo["id"] = serde_json::json!("kw");
+        kuwo["platform"] = serde_json::json!("kuwo");
+        let json = serde_json::json!([record, qqmusic, kuwo]).to_string();
+
+        let tasks: Vec<TaskRecord> = serde_json::from_str(&json).unwrap();
+        assert_eq!(tasks.len(), 3);
+        assert_eq!(tasks[0].platform, "qqmusic");
+        assert_eq!(tasks[1].platform, "qqmusic");
+        assert_eq!(tasks[2].platform, "kuwo");
+        assert_eq!(tasks[0].status, TaskStatus::Completed);
+        assert_eq!(tasks[0].file_path.as_deref(), Some("D:/Music/song.mp3"));
+        assert_eq!(tasks[0].downloaded, 100);
+
+        let saved = serde_json::to_string(&tasks).unwrap();
+        let reloaded: Vec<TaskRecord> = serde_json::from_str(&saved).unwrap();
+        assert_eq!(reloaded[0].platform, "qqmusic");
+        assert_eq!(reloaded[2].platform, "kuwo");
     }
 }

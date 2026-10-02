@@ -2,6 +2,8 @@
 
 use tauri::{command, AppHandle};
 
+use crate::storage::{recovery::RecoveryReport, store_wrapper};
+
 use crate::download::task_service;
 use hotdownloader_core::task::contract::{
     BatchResult, CreateTaskRequest, CreateTaskResult, TaskRecord,
@@ -11,6 +13,12 @@ use hotdownloader_core::task::contract::{
 #[command]
 pub async fn load_tasks(app: AppHandle) -> Result<Vec<TaskRecord>, String> {
     task_service::load_tasks(app).await
+}
+
+// 启动时的事件可能早于前端监听，因此由挂载后的页面主动读取恢复报告。
+#[command]
+pub fn get_storage_recovery_report(app: AppHandle) -> Option<RecoveryReport> {
+    store_wrapper::recovery_report(&app)
 }
 
 #[command]

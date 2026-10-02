@@ -5,6 +5,7 @@ use futures_util::future::BoxFuture;
 
 use crate::download::config::DownloadConfig;
 use crate::download::context::TaskContext;
+use crate::download::link::DownloadLinkProvider;
 
 /// 删除普通文件或平台专有 URI。下载引擎只知道目标路径，不解析 SAF。
 pub trait FileDeleter: Send + Sync {
@@ -72,6 +73,15 @@ pub trait DownloadPostprocessor: Send + Sync {
         request: PostprocessRequest<'a>,
         progress_sink: &'a dyn DownloadProgressSink,
     ) -> BoxFuture<'a, Option<String>>;
+}
+
+/// 一次 worker 执行所需的运行时端口。运行时持有实现，worker 只借用它们。
+pub struct DownloadWorkerPorts<'a> {
+    pub link_provider: &'a dyn DownloadLinkProvider,
+    pub progress_sink: &'a dyn DownloadProgressSink,
+    pub file_opener: &'a dyn DownloadFileOpener,
+    pub file_deleter: &'a dyn FileDeleter,
+    pub postprocessor: &'a dyn DownloadPostprocessor,
 }
 
 /// 不需要歌词或标签处理的独立运行时可先使用此实现。
