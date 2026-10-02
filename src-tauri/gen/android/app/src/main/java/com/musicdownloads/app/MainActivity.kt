@@ -1,4 +1,4 @@
-package lerd.hotdownloader
+package com.musicdownloads.app
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
