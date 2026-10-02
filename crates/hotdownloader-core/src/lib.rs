@@ -5,4 +5,5 @@ pub mod adapters;
 pub mod download;
 pub mod platforms;
 pub mod settings;
+pub mod source_config;
 pub mod task;

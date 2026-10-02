@@ -39,6 +39,13 @@
         </section>
 
         <section class="settings-group">
+            <h2 class="group-title">音乐源配置</h2>
+            <ul class="settings-list">
+                <SourceConfigSetting />
+            </ul>
+        </section>
+
+        <section class="settings-group">
             <h2 class="group-title">基本设置</h2>
             <ul class="settings-list">
                 <QualitySetting />
@@ -105,6 +112,7 @@ import ClearHistoryButton from '../components/settings/ClearHistoryButton.vue'
 import WriteMetadataSetting from '../components/settings/WriteMetadataSetting.vue'
 import DownloadLrcSetting from '../components/settings/DownloadLrcSetting.vue'
 import LoginSetting from '../components/settings/LoginSetting.vue'
+import SourceConfigSetting from '../components/settings/SourceConfigSetting.vue'
 import DuplicateStrategySetting from '../components/settings/DuplicateStrategySetting.vue'
 import NotifySetting from '../components/settings/NotifySetting.vue'
 import UpdateChecker from '../components/settings/UpdateChecker.vue'

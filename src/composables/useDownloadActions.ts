@@ -4,6 +4,7 @@ import { useDialog, useNotification, NButton } from 'naive-ui'
 import type { Quality, SongInfo, QualityItem, DuplicateAction } from '../types'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useTaskStore } from '../stores/taskStore'
+import { useSourceConfigStore } from '../stores/sourceConfigStore'
 import QualitySelector from '../components/search/QualitySelector.vue'
 
 /** 只处理用户交互：音质选择、重名确认及通知。品质降级、路径与重试由 Rust 决定。 */
@@ -13,6 +14,7 @@ export function useDownloadActions() {
     const notification = useNotification()
     const settingsStore = useSettingsStore()
     const taskStore = useTaskStore()
+    const sourceConfigStore = useSourceConfigStore()
 
     /** 只收集用户选择的品质标签，不在页面上做降级或文件名推断。 */
     function askQuality(qualities: QualityItem[]): Promise<string> {
@@ -119,7 +121,13 @@ export function useDownloadActions() {
             let quality = forceQuality ?? settingsStore.settings.defaultQuality
             if (quality === 'ask') {
                 try {
-                    quality = await askQuality(song.qualities)
+                    // 音源配置可在选择器中限制可选档位；未配置或全被过滤时回退原始列表。
+                    quality = await askQuality(
+                        sourceConfigStore.filterQualities(
+                            song.platform,
+                            song.qualities,
+                        ),
+                    )
                 } catch {
                     return
                 }
@@ -152,7 +160,11 @@ export function useDownloadActions() {
                 // 批量操作只询问一次用户偏好的品质；每首歌是否可用由 Rust 逐一判断。
                 const union = new Map<string, QualityItem>()
                 for (const song of songs) {
-                    for (const item of song.qualities) {
+                    // 音源配置限制的选择器档位同样作用于批量合并列表。
+                    for (const item of sourceConfigStore.filterQualities(
+                        song.platform,
+                        song.qualities,
+                    )) {
                         union.set(item.quality, item)
                     }
                 }

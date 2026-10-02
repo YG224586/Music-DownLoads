@@ -6,7 +6,7 @@
                 :keyword="keyword"
                 @update:keyword="onKeywordInput"
                 v-model:platform="currentPlatform"
-                :platform-options="PLATFORMS"
+                :platform-options="platformOptions"
                 :placeholder="searchPlaceholder"
                 button-text="搜索"
                 @search="handleSearch"
@@ -238,6 +238,7 @@ import type {
 } from '../types'
 import { PLATFORMS, DEFAULT_PLATFORM } from '../config/platforms'
 import { useMusicNavigation } from '../composables/useMusicNavigation'
+import { useSourceConfigStore } from '../stores/sourceConfigStore'
 
 const router = useRouter()
 const route = useRoute()
@@ -245,6 +246,24 @@ const { openArtist, openAlbum, openRelatedArtist, openSongAlbum } =
     useMusicNavigation()
 const keyword = ref('')
 const currentPlatform = ref(DEFAULT_PLATFORM)
+
+// 音源配置驱动的平台选择器：仅展示已启用的平台；store 内部兜底（全停用时回退全部）
+const sourceConfigStore = useSourceConfigStore()
+const platformOptions = computed(() =>
+    PLATFORMS.filter((p) => sourceConfigStore.enabledPlatforms.includes(p.key)),
+)
+watch(
+    platformOptions,
+    (options) => {
+        if (
+            options.length > 0 &&
+            !options.some((p) => p.key === currentPlatform.value)
+        ) {
+            currentPlatform.value = options[0].key
+        }
+    },
+    { immediate: true },
+)
 
 // 搜索类型
 type SearchType = 'song' | 'artist' | 'album' | 'playlist'
