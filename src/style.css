@@ -1,3 +1,14 @@
+/* ============================================================================
+ * HotDownloader · Material 3 基础层
+ *
+ * 结构：
+ *   1. M3 语义令牌（颜色 / 字体 / 形状 / 动效 / 间距 / 状态层）
+ *   2. 旧变量别名（视图仍在使用，必须继续可用）
+ *   3. 全局元素与可用性规则（焦点、滚动条、安全区、弹窗尺寸）
+ *
+ * 组件不再直接写字面量颜色：一律引用令牌，保证深浅色与品牌色替换时仍然成立。
+ * ========================================================================== */
+
 *,
 *::before,
 *::after {
@@ -10,10 +21,17 @@ html,
 body {
     height: 100%;
     font-family:
-        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
-        Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        Roboto,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        'Noto Sans SC',
+        'PingFang SC',
+        'Microsoft YaHei',
+        sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
 }
 
 #app {
@@ -23,47 +41,326 @@ body {
     height: 100dvh;
 }
 
-/* 浅色模式（默认） */
+/* ---------------------------------------------------------------------------
+ * 1. M3 语义令牌 · 浅色
+ * ------------------------------------------------------------------------- */
 :root {
-    --bg-body: #f4f7f6;
-    --bg-sidebar: #ffffff;
-    --bg-bottom: #ffffff;
-    --bg-content: #f4f7f6;
-    --border-color: #dfe7e3;
-    --color-text: #202d28; /* 主文字颜色 */
-    --color-text-secondary: #6b7b73; /* 次要文字颜色 */
-    --color-primary: #178366;
-    /* 优先使用插件注入的变量；如果插件未生效，回退到 env()；再回退到 0px 保证兼容。 */
+    color-scheme: light dark;
+
+    /* 主色 / 强调色 */
+    --md-primary: #006c4c;
+    --md-on-primary: #ffffff;
+    --md-primary-container: #8cf8c7;
+    --md-on-primary-container: #002114;
+    --md-primary-hover: #0a7a58;
+    --md-primary-pressed: #005139;
+
+    --md-secondary: #4c6358;
+    --md-on-secondary: #ffffff;
+    --md-secondary-container: #cee9da;
+    --md-on-secondary-container: #092017;
+    --md-secondary-hover: #dcefe2;
+    --md-secondary-pressed: #c2dfd0;
+
+    --md-tertiary: #3d6473;
+    --md-on-tertiary: #ffffff;
+    --md-tertiary-container: #c0e8fb;
+    --md-on-tertiary-container: #001f29;
+    --md-tertiary-hover: #cdeefd;
+    --md-tertiary-pressed: #b1dcef;
+
+    --md-error: #ba1a1a;
+    --md-on-error: #ffffff;
+    --md-error-container: #ffdad6;
+    --md-on-error-container: #410002;
+    --md-error-hover: #a51616;
+    --md-error-pressed: #8c1010;
+
+    /* 业务语义（M3 无 success/warning 角色，按同一套色调关系补充） */
+    --md-success: #1e6b45;
+    --md-on-success: #ffffff;
+    --md-success-container: #a5f2c8;
+    --md-on-success-container: #00210f;
+    --md-warning: #7a5900;
+    --md-on-warning: #ffffff;
+    --md-warning-container: #ffdea6;
+    --md-on-warning-container: #261900;
+    --md-info: var(--md-tertiary);
+    --md-on-info: var(--md-on-tertiary);
+    --md-info-container: var(--md-tertiary-container);
+    --md-on-info-container: var(--md-on-tertiary-container);
+
+    /* 表面层级（surface container 阶梯用于区分区块高度，不靠边框堆叠） */
+    --md-surface: #f5fbf7;
+    --md-on-surface: #171d1a;
+    --md-surface-variant: #dbe5dd;
+    --md-on-surface-variant: #404943;
+    --md-surface-container-lowest: #ffffff;
+    --md-surface-container-low: #eff5f0;
+    --md-surface-container: #e9efea;
+    --md-surface-container-high: #e3eae4;
+    --md-surface-container-highest: #dee4df;
+    --md-surface-dim: #d5dbd6;
+    --md-surface-bright: #f5fbf7;
+
+    --md-outline: #707972;
+    --md-outline-variant: #bfc9c1;
+    --md-inverse-surface: #2c322e;
+    --md-inverse-on-surface: #edf2ed;
+    --md-inverse-primary: #70dbab;
+    --md-scrim: rgba(0, 0, 0, 0.45);
+    --md-shadow: #000000;
+    --md-surface-tint: var(--md-primary);
+
+    /* 状态层不透明度（hover / focus / pressed） */
+    --md-state-hover: 0.08;
+    --md-state-focus: 0.1;
+    --md-state-pressed: 0.1;
+    --md-state-drag: 0.16;
+
+    /* 形状 */
+    --md-shape-xs: 4px;
+    --md-shape-sm: 8px;
+    --md-shape-md: 12px;
+    --md-shape-lg: 16px;
+    --md-shape-xl: 28px;
+    --md-shape-full: 999px;
+
+    /* 高度（M3 elevation level 1-3） */
+    --md-elevation-1:
+        0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+    --md-elevation-2:
+        0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+    --md-elevation-3:
+        0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+
+    /* 间距（4dp 节奏） */
+    --md-space-1: 4px;
+    --md-space-2: 8px;
+    --md-space-3: 12px;
+    --md-space-4: 16px;
+    --md-space-5: 20px;
+    --md-space-6: 24px;
+    --md-space-8: 32px;
+    --md-space-10: 40px;
+
+    /* 字体阶梯（size / line-height / weight） */
+    --md-font-plain:
+        Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC',
+        'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --md-label-small: 11px;
+    --md-label-small-line: 16px;
+    --md-label-medium: 12px;
+    --md-label-medium-line: 16px;
+    --md-label-large: 14px;
+    --md-label-large-line: 20px;
+    --md-body-small: 12px;
+    --md-body-small-line: 16px;
+    --md-body-medium: 14px;
+    --md-body-medium-line: 20px;
+    --md-body-large: 16px;
+    --md-body-large-line: 24px;
+    --md-title-small: 14px;
+    --md-title-small-line: 20px;
+    --md-title-medium: 16px;
+    --md-title-medium-line: 24px;
+    --md-title-large: 22px;
+    --md-title-large-line: 28px;
+    --md-headline-small: 24px;
+    --md-headline-small-line: 32px;
+    --md-weight-regular: 400;
+    --md-weight-medium: 500;
+    --md-weight-bold: 700;
+
+    /* 动效 */
+    --md-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+    --md-easing-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);
+    --md-easing-linear: linear;
+    --md-duration-short: 150ms;
+    --md-duration-medium: 250ms;
+    --md-duration-long: 400ms;
+
+    /* 组件尺寸 */
+    --md-target-min: 48px;
+    --md-top-app-bar-height: 64px;
+    --md-bottom-nav-height: 80px;
+    --md-rail-width: 80px;
+    --md-content-max-width: 1100px;
+
+    /* 安全区：优先使用插件注入的变量，其次 env()，最后 0px */
     --safe-area-top: var(--edge-top, env(safe-area-inset-top, 0px));
     --safe-area-bottom: var(--edge-bottom, env(safe-area-inset-bottom, 0px));
     --safe-area-left: var(--edge-left, env(safe-area-inset-left, 0px));
     --safe-area-right: var(--edge-right, env(safe-area-inset-right, 0px));
 
-    /* 让浏览器根据系统主题自动切换滚动条配色 */
-    color-scheme: light dark;
+    /* -----------------------------------------------------------------------
+     * 2. 旧变量别名 —— 视图与设置组件仍在使用这些名字
+     * --------------------------------------------------------------------- */
+    --bg-body: var(--md-surface);
+    --bg-content: var(--md-surface);
+    --bg-sidebar: var(--md-surface-container-low);
+    --bg-bottom: var(--md-surface-container);
+    --bg-elevated: var(--md-surface-container-low);
+    --bg-subtle: var(--md-surface-container);
+    --bg-inset: var(--md-surface-container-high);
+    --border-color: var(--md-outline-variant);
+    --border-strong: var(--md-outline);
+    --color-text: var(--md-on-surface);
+    --color-text-secondary: var(--md-on-surface-variant);
+    --color-text-tertiary: #6b7a72;
+    --color-primary: var(--md-primary);
+    --color-primary-hover: var(--md-primary-hover);
+    --color-primary-pressed: var(--md-primary-pressed);
+    --color-primary-soft: var(--md-secondary-container);
+    --color-primary-ring: rgba(0, 108, 76, 0.24);
+    --color-success: var(--md-success);
+    --color-warning: var(--md-warning);
+    --color-danger: var(--md-error);
+    --page-glow: transparent;
+    --page-padding: var(--md-space-4);
+
+    /* Naive UI 内部变量回退（部分组件直接读这两个变量） */
+    --n-text-color: var(--md-on-surface);
+    --n-warning-color: var(--md-warning);
+    --n-error-color: var(--md-error);
+
+    /* 搜索栏令牌（M3 search bar：56dp 高、全圆角、surface container high） */
+    --search-height: 56px;
+    --search-font-size: var(--md-body-large);
+    --search-radius: var(--md-shape-full);
+    --search-padding: var(--md-space-1);
+    --search-gap: var(--md-space-2);
+    --search-bg: var(--md-surface-container-high);
+    --search-shadow: none;
+    --search-shadow-focus: var(--md-elevation-1);
 }
 
-/* 深色模式 */
+/* ---------------------------------------------------------------------------
+ * 1b. M3 语义令牌 · 深色
+ * ------------------------------------------------------------------------- */
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-body: #111815;
-        --bg-sidebar: #18211d;
-        --bg-bottom: #18211d;
-        --bg-content: #111815;
-        --border-color: #314139;
-        --color-text: #e5eee9; /* 浅色文字 */
-        --color-text-secondary: #96aaa0; /* 次要文字 */
-        --color-primary: #6ee7bc;
+        --md-primary: #5fdcac;
+        --md-on-primary: #003825;
+        --md-primary-container: #005138;
+        --md-on-primary-container: #7bf8c4;
+        --md-primary-hover: #7fe8bd;
+        --md-primary-pressed: #4cc394;
+
+        --md-secondary: #b2ccbe;
+        --md-on-secondary: #1e352a;
+        --md-secondary-container: #344c40;
+        --md-on-secondary-container: #cee9da;
+        --md-secondary-hover: #3d574a;
+        --md-secondary-pressed: #2b4136;
+
+        --md-tertiary: #a5ccdd;
+        --md-on-tertiary: #073543;
+        --md-tertiary-container: #24485a;
+        --md-on-tertiary-container: #c0e8fb;
+        --md-tertiary-hover: #2f5468;
+        --md-tertiary-pressed: #1d3d4d;
+
+        --md-error: #ffb4ab;
+        --md-on-error: #690005;
+        --md-error-container: #93000a;
+        --md-on-error-container: #ffdad6;
+        --md-error-hover: #ffc7c0;
+        --md-error-pressed: #e79a93;
+
+        --md-success: #8ad6ab;
+        --md-on-success: #00391f;
+        --md-success-container: #00522f;
+        --md-on-success-container: #a5f2c8;
+        --md-warning: #f5c06a;
+        --md-on-warning: #3f2e00;
+        --md-warning-container: #5c4600;
+        --md-on-warning-container: #ffdea6;
+
+        --md-surface: #0f1512;
+        --md-on-surface: #dee4df;
+        --md-surface-variant: #404943;
+        --md-on-surface-variant: #bfc9c1;
+        --md-surface-container-lowest: #0a0f0d;
+        --md-surface-container-low: #171d1a;
+        --md-surface-container: #1b211e;
+        --md-surface-container-high: #262c29;
+        --md-surface-container-highest: #313733;
+        --md-surface-dim: #0f1512;
+        --md-surface-bright: #353b37;
+
+        --md-outline: #899389;
+        --md-outline-variant: #404943;
+        --md-inverse-surface: #dee4df;
+        --md-inverse-on-surface: #2c322e;
+        --md-inverse-primary: #006c4c;
+        --md-scrim: rgba(0, 0, 0, 0.6);
+
+        --md-elevation-1:
+            0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+        --md-elevation-2:
+            0 1px 3px rgba(0, 0, 0, 0.5), 0 2px 6px 2px rgba(0, 0, 0, 0.4);
+        --md-elevation-3:
+            0 1px 3px rgba(0, 0, 0, 0.5), 0 4px 8px 3px rgba(0, 0, 0, 0.45);
+
+        --color-text-tertiary: #a5b0a8;
+        --color-primary-ring: rgba(95, 220, 172, 0.32);
     }
 }
 
-/* 应用背景到 body，确保滚动背景不露白 */
+/* ---------------------------------------------------------------------------
+ * 3. 全局规则
+ * ------------------------------------------------------------------------- */
 body {
     background-color: var(--bg-body);
     color: var(--color-text);
 
     /* 页面在主内容区滚动，底部导航保持正常流占位。 */
     overflow: hidden;
+}
+
+/* 焦点可见：键盘/辅助设备操作时始终有明确的焦点环。 */
+:focus-visible {
+    outline: 3px solid var(--md-primary);
+    outline-offset: 2px;
+    border-radius: var(--md-shape-xs);
+}
+
+::selection {
+    background: var(--md-primary-container);
+    color: var(--md-on-primary-container);
+}
+
+/* 滚动条跟随表面层级，不抢内容注意力。 */
+:where(.main-content, .n-scrollbar-container, .n-modal-body-wrapper) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--md-outline-variant) transparent;
+}
+
+:where(
+    .main-content,
+    .n-scrollbar-container,
+    .n-modal-body-wrapper
+)::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+:where(
+    .main-content,
+    .n-scrollbar-container,
+    .n-modal-body-wrapper
+)::-webkit-scrollbar-thumb {
+    border-radius: var(--md-shape-full);
+    background: var(--md-outline-variant);
+}
+
+:where(
+    .main-content,
+    .n-scrollbar-container,
+    .n-modal-body-wrapper
+)::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 /* 通用确认弹窗适应窄屏和较小视口，长内容滚动后仍可操作底部按钮。 */
@@ -77,25 +374,101 @@ body .n-dialog {
     );
     overflow-y: auto;
     overflow-wrap: anywhere;
+    border-radius: var(--md-shape-xl);
 }
 
 body .n-dialog__action {
     flex-wrap: wrap;
 }
 
-/* ---------- Android 安全区适配 ---------- */
-
-/* 主内容区顶部预留状态栏高度 */
-html.android .main-content {
-    padding-top: calc(
-        var(--page-padding, 16px) + var(--safe-area-top)
-    ) !important;
+/* Naive 组件补齐 M3 形状：文字输入使用 M3 outlined 字段的 4dp 圆角。 */
+body .n-input,
+body .n-input-number {
+    --n-border-radius: var(--md-shape-xs) !important;
 }
 
-/* 移动端底部导航区域避开 Android 手势条/底部安全区 */
+/*
+ * Naive 默认 text-overflow: clip，占位符在 320–360px 窄屏下被硬裁且无省略号
+ * （/#/search 削 25.2px、/#/playlist 削 48px）。注意真正承载文本、产生溢出的盒是
+ * `.n-input__placeholder > span`（display:block、overflow:visible）：只给外层
+ * flex 盒设 text-overflow 不会画出省略号（探测证实 span 上仍是 clip），
+ * 因此必须在 span 上同时给 overflow:hidden + text-overflow:ellipsis。
+ */
+body .n-input .n-input__placeholder,
+body .n-input .n-input__placeholder > span {
+    text-overflow: ellipsis;
+}
+
+body .n-input .n-input__placeholder > span {
+    overflow: hidden;
+}
+
+/* 触控目标：任何可点区域不小于 48dp（可见图形可以更小，命中区域不能小）。 */
+body .n-button,
+body .n-switch,
+body .n-checkbox,
+body .n-radio-button,
+body .n-tabs-tab {
+    min-height: var(--md-target-min);
+}
+
+/* 纯图标按钮：宽度也要达到 48dp，否则命中区只有图标那么大。 */
+body .n-button.n-button--circle-type,
+body .n-button:has(> .n-button__icon:only-child),
+body .n-button:has(> .n-button__content > .n-button__icon:only-child) {
+    min-width: var(--md-target-min);
+}
+
+/* 开关本体只有 40x32 左右：用不改变视觉尺寸的内边距把命中区补到 48dp，
+   负外边距抵消布局占位，因此周围元素的排布不受影响。 */
+body .n-switch {
+    min-width: var(--md-target-min);
+    padding: 8px;
+    margin: -8px;
+}
+
+/* 弹窗（含音质选择等）右上角关闭按钮只有 22px：补到 48dp 命中区，视觉图标不变。 */
+body .n-dialog .n-base-close,
+body .n-card .n-base-close {
+    min-width: var(--md-target-min);
+    min-height: var(--md-target-min);
+}
+
+/* 触屏设备不使用 hover 状态层，避免「点了还亮着」。 */
+@media (hover: none) {
+    body .n-button:not(.n-button--disabled):hover {
+        --n-color: var(--n-color);
+    }
+}
+
+/* ---------- Android 安全区适配 ---------- */
+
+/* 顶栏避开状态栏（顶栏自身负责内边距）。 */
+html.android .top-app-bar {
+    height: calc(
+        var(--md-top-app-bar-height) + var(--safe-area-top)
+    ) !important;
+    padding-top: var(--safe-area-top) !important;
+    padding-left: calc(var(--md-space-4) + var(--safe-area-left)) !important;
+    padding-right: calc(var(--md-space-4) + var(--safe-area-right)) !important;
+}
+
+/* 底部导航避开 Android 手势条。 */
 html.android .bottom-nav {
-    height: calc(56px + var(--safe-area-bottom)) !important;
+    height: calc(
+        var(--md-bottom-nav-height) + var(--safe-area-bottom)
+    ) !important;
     padding-bottom: var(--safe-area-bottom) !important;
+}
+
+/* 导航轨在横屏时避开侧边安全区。 */
+html.android .nav-rail {
+    padding-top: calc(var(--md-space-3) + var(--safe-area-top)) !important;
+    padding-left: var(--safe-area-left) !important;
+}
+
+html.android .nav-rail .rail-brand {
+    padding-top: var(--md-space-2) !important;
 }
 
 /* 弹窗容器顶部避开状态栏 */
@@ -107,4 +480,16 @@ html.android .n-modal-container {
 /* 通知提示避开状态栏 */
 html.android .n-notification-container {
     top: calc(12px + var(--safe-area-top)) !important;
+}
+
+/* ---------- 降低动效 ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

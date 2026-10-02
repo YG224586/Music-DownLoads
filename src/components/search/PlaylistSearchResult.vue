@@ -1,13 +1,14 @@
 <template>
     <div class="playlist-search-result">
         <template v-if="playlists.length > 0">
-            <div class="playlist-card-list">
+            <div class="playlist-row-list">
                 <div
                     v-for="pl in playlists"
                     :key="`${pl.id}:${pl.dirid ?? ''}`"
-                    class="playlist-card"
+                    class="playlist-row"
                     role="button"
                     tabindex="0"
+                    :aria-label="`打开歌单 ${pl.name}`"
                     @click="$emit('click-playlist', pl)"
                     @keydown.enter="$emit('click-playlist', pl)"
                     @keydown.space.prevent="$emit('click-playlist', pl)"
@@ -15,25 +16,42 @@
                     <img
                         v-if="pl.coverUrl"
                         :src="pl.coverUrl"
-                        class="playlist-card-cover"
+                        class="playlist-cover"
                         alt="歌单封面"
                     />
-                    <div class="playlist-card-info">
-                        <div class="playlist-card-name">{{ pl.name }}</div>
-                        <div v-if="pl.creator" class="playlist-card-creator">
+                    <div v-else class="playlist-cover playlist-cover--empty" />
+                    <div class="playlist-info">
+                        <div class="playlist-name">{{ pl.name }}</div>
+                        <div v-if="pl.creator" class="playlist-creator">
                             {{ pl.creator }}
                         </div>
-                        <div class="playlist-card-meta">
+                        <div class="playlist-meta">
                             {{ pl.songCount }} 首 ·
                             {{ formatPlayCount(pl.playCount) }}
                         </div>
-                        <div v-if="pl.createdAt" class="playlist-card-date">
+                        <div v-if="pl.createdAt" class="playlist-date">
                             创建：{{ formatUnixTime(pl.createdAt) }}
                         </div>
-                        <div v-if="pl.updatedAt" class="playlist-card-date">
+                        <div v-if="pl.updatedAt" class="playlist-date">
                             更新：{{ formatUnixTime(pl.updatedAt) }}
                         </div>
                     </div>
+                    <svg
+                        class="row-arrow"
+                        viewBox="0 0 24 24"
+                        width="20"
+                        height="20"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="m9 5 7 7-7 7"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
                 </div>
             </div>
             <LoadMoreButton
@@ -69,79 +87,105 @@ defineEmits<{
 </script>
 
 <style scoped>
-.playlist-card-list {
+.playlist-row-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
 }
 
-.playlist-card {
+/* 整行是一个导航目标：role=button + Enter/Space 键盘可达。 */
+.playlist-row {
     display: flex;
-    gap: 12px;
     align-items: center;
+    gap: var(--md-space-3);
     min-width: 0;
-    padding: 12px;
-    background-color: var(--bg-sidebar);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    min-height: var(--md-target-min);
+    padding: var(--md-space-3) 0;
+    border-top: 1px solid var(--md-outline-variant);
     cursor: pointer;
-    transition: border-color 0.2s;
+    transition: background-color var(--md-duration-short)
+        var(--md-easing-standard);
 }
 
-.playlist-card:hover {
-    border-color: var(--color-text-secondary);
+.playlist-row:first-child {
+    border-top: none;
 }
 
-.playlist-card:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+.playlist-row:hover {
+    background-color: var(--md-surface-container-high);
 }
 
-.playlist-card-cover {
-    width: 60px;
-    height: 60px;
-    border-radius: 6px;
+.playlist-row:focus-visible {
+    outline: 3px solid var(--md-primary);
+    outline-offset: -3px;
+    border-radius: var(--md-shape-sm);
+}
+
+.playlist-cover {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--md-shape-md);
     object-fit: cover;
     flex-shrink: 0;
+    background-color: var(--md-surface-container-high);
 }
 
-.playlist-card-info {
+.playlist-cover--empty {
+    border: 1px solid var(--md-outline-variant);
+}
+
+.playlist-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.playlist-card-name {
-    font-size: 15px;
-    font-weight: 600;
+.playlist-name {
+    font-size: var(--md-title-medium);
+    line-height: var(--md-title-medium-line);
+    font-weight: var(--md-weight-medium);
+    color: var(--md-on-surface);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.playlist-card-creator {
+.playlist-creator {
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+    color: var(--md-on-surface-variant);
     overflow-wrap: anywhere;
-    color: var(--color-text-secondary);
-    font-size: 13px;
-    margin-top: 2px;
 }
 
-.playlist-card-meta {
+.playlist-meta {
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
+    color: var(--md-on-surface-variant);
     overflow-wrap: anywhere;
-    color: var(--color-text-secondary);
-    font-size: 12px;
-    margin-top: 2px;
 }
 
-.playlist-card-date {
+.playlist-date {
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
+    color: var(--md-on-surface-variant);
     overflow-wrap: anywhere;
-    color: var(--color-text-secondary);
-    font-size: 12px;
-    margin-top: 2px;
+}
+
+.row-arrow {
+    flex-shrink: 0;
+    color: var(--md-on-surface-variant);
 }
 
 .empty-result {
     display: flex;
     justify-content: center;
-    padding: 40px 0;
+    padding: var(--md-space-10) var(--md-space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .playlist-row {
+        transition: none;
+    }
 }
 </style>

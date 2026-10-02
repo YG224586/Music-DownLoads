@@ -1,22 +1,26 @@
 <template>
-    <n-form-item label="示例">
-        <div class="preview-container">
-            <div class="preview-line">
-                <span class="preview-label">歌手：</span>
-                <code class="preview-value">{{ exampleArtists }}</code>
+    <SettingRow label="示例">
+        <template #description>
+            <div class="preview-container">
+                <div class="preview-line">
+                    <span class="preview-label">歌手：</span>
+                    <code class="preview-value">{{ exampleArtists }}</code>
+                </div>
+                <div class="preview-line">
+                    <span class="preview-label">文件名：</span>
+                    <code class="preview-value"
+                        >{{ exampleFilename }}.flac</code
+                    >
+                </div>
             </div>
-            <div class="preview-line">
-                <span class="preview-label">文件名：</span>
-                <code class="preview-value">{{ exampleFilename }}.flac</code>
-            </div>
-        </div>
-    </n-form-item>
+        </template>
+    </SettingRow>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { NFormItem } from 'naive-ui'
 import { useSettingsStore } from '../../stores/settingsStore'
+import SettingRow from './SettingRow.vue'
 
 const settingsStore = useSettingsStore()
 
@@ -65,34 +69,28 @@ const exampleFilename = computed(() => {
 
 <style scoped>
 .preview-container {
-    min-width: 0;
-    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: var(--md-space-1);
+    min-width: 0;
+    width: 100%;
 }
 
 .preview-line {
-    display: block;
-    /* 确保每行占满 */
-    width: 100%;
-    font-size: 12px;
-    color: var(--color-text-secondary);
-    line-height: 1.8;
-    word-break: break-all;
+    /* 长文件名整行换行而不是撑宽容器 */
+    overflow-wrap: anywhere;
 }
 
 .preview-label {
-    color: var(--color-text-secondary);
-    margin-right: 4px;
+    margin-right: var(--md-space-1);
 }
 
 .preview-value {
-    color: var(--color-text);
-    font-family: monospace;
-    font-size: 12px;
-    background: rgba(127, 127, 127, 0.15);
     padding: 1px 4px;
     border-radius: 3px;
+    background: var(--md-surface-container-high);
+    color: var(--md-on-surface);
+    font-family: var(--md-font-plain);
+    font-size: var(--md-label-medium);
 }
 </style>

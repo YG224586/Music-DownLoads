@@ -1,8 +1,8 @@
 <template>
-    <div class="login-setting">
+    <li class="setting-item is-stacked login-item">
         <!-- 未登录状态 -->
         <template v-if="!isLoggedIn">
-            <n-tabs v-model:value="activeTab" type="line" size="small">
+            <n-tabs v-model:value="activeTab" type="line" class="login-tabs">
                 <n-tab-pane name="qr" tab="扫码登录">
                     <div class="qr-container">
                         <img
@@ -11,7 +11,7 @@
                             alt="二维码"
                             class="qr-img"
                         />
-                        <div class="qr-tips">
+                        <div class="qr-tips" role="status">
                             <span v-if="qrStatus === 'waiting'"
                                 >请使用 QQ 音乐 App 扫码</span
                             >
@@ -26,18 +26,16 @@
                             >
                         </div>
                         <n-button
-                            size="small"
                             @click="refreshQr"
                             :loading="qrLoading"
+                            type="primary"
+                            secondary
                             >刷新二维码</n-button
                         >
                     </div>
                 </n-tab-pane>
                 <n-tab-pane name="manual" tab="手动登录">
-                    <n-form
-                        :label-placement="isNarrow ? 'top' : 'left'"
-                        :label-width="isNarrow ? undefined : 110"
-                    >
+                    <n-form class="manual-form" label-placement="top">
                         <n-form-item label="UIN">
                             <n-input
                                 v-model:value="manualUin"
@@ -90,13 +88,13 @@
         <!-- 已登录状态 -->
         <template v-else>
             <div class="logged-in">
-                <span>已登录：{{ loginUin }}</span>
-                <n-button size="small" type="error" @click="handleLogout"
+                <span class="logged-in-text">已登录：{{ loginUin }}</span>
+                <n-button type="error" secondary @click="handleLogout"
                     >退出登录</n-button
                 >
             </div>
         </template>
-    </div>
+    </li>
 </template>
 
 <script setup lang="ts">
@@ -112,14 +110,12 @@ import {
 } from 'naive-ui'
 import * as musicApi from '../../api/musicApi'
 import { useSettingsStore } from '../../stores/settingsStore'
-import { useNarrowLayout } from '../../composables/useNarrowLayout'
 import { isNativeRuntime } from '../../api/runtimeApi'
 
 const PLATFORM = 'qqmusic'
 
 const notification = useNotification()
 const settingsStore = useSettingsStore()
-const isNarrow = useNarrowLayout()
 const isLoggedIn = ref(false)
 const loginUin = ref('')
 const activeTab = ref('qr')
@@ -270,7 +266,28 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.login-setting {
+/* 与 SettingRow 保持同一套行内边距，使登录项在列表中视觉一致 */
+.setting-item {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--md-space-3);
+    min-height: 56px;
+    padding: var(--md-space-3) var(--md-space-4);
+    list-style: none;
+}
+
+.login-item {
+    width: 100%;
+    min-width: 0;
+}
+
+.login-tabs {
+    width: 100%;
+    min-width: 0;
+}
+
+.manual-form {
     width: 100%;
     min-width: 0;
 }
@@ -279,8 +296,8 @@ onUnmounted(() => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: var(--md-space-3);
+    padding: var(--md-space-2) 0;
 }
 
 .qr-img {
@@ -289,14 +306,16 @@ onUnmounted(() => {
     /* 深色模式下二维码与页面背景易融合，添加白底和内边距形成白色边框，便于扫描定位 */
     background-color: #fff;
     padding: 8px;
-    border-radius: 8px;
+    border-radius: var(--md-shape-sm);
     box-sizing: border-box;
 }
 
 .qr-tips {
-    font-size: 13px;
-    color: var(--color-text-secondary);
+    color: var(--md-on-surface-variant);
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
     text-align: center;
+    overflow-wrap: anywhere;
 }
 
 .logged-in {
@@ -304,11 +323,15 @@ onUnmounted(() => {
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: var(--md-space-4);
 }
 
-.logged-in > span {
+.logged-in-text {
     min-width: 0;
+    flex: 1 1 auto;
+    color: var(--md-on-surface);
+    font-size: var(--md-body-large);
+    line-height: var(--md-body-large-line);
     overflow-wrap: anywhere;
 }
 

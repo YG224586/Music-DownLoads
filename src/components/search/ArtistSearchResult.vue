@@ -1,34 +1,51 @@
 <template>
     <div class="artist-search-result">
         <template v-if="artists.length > 0">
-            <div class="artist-card-list">
+            <div class="artist-row-list">
                 <button
                     type="button"
                     v-for="pl in artists"
                     :key="pl.id"
-                    class="artist-card"
+                    class="artist-row"
                     @click="$emit('click-artist', pl)"
                 >
                     <img
                         v-if="pl.coverUrl"
                         :src="pl.coverUrl"
-                        class="artist-card-cover"
+                        class="artist-cover"
                         alt="歌手封面"
                     />
-                    <div class="artist-card-info">
-                        <div class="artist-card-name">{{ pl.name }}</div>
-                        <div class="artist-card-creator">
+                    <div v-else class="artist-cover artist-cover--empty" />
+                    <div class="artist-info">
+                        <div class="artist-name">{{ pl.name }}</div>
+                        <div class="artist-sub">
                             {{
                                 [pl.alias, pl.region]
                                     .filter(Boolean)
                                     .join(' · ')
                             }}
                         </div>
-                        <div class="artist-card-meta">
+                        <div class="artist-meta">
                             {{ pl.songCount }} 首歌曲 ·
                             {{ pl.albumCount }} 张专辑
                         </div>
                     </div>
+                    <svg
+                        class="row-arrow"
+                        viewBox="0 0 24 24"
+                        width="20"
+                        height="20"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="m9 5 7 7-7 7"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
                 </button>
             </div>
             <LoadMoreButton
@@ -62,71 +79,98 @@ defineEmits<{
 </script>
 
 <style scoped>
-.artist-card-list {
+/* 歌手结果是可点击的 list item：整行命中，不做行行套卡。 */
+.artist-row-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
 }
 
-.artist-card {
-    width: 100%;
-    text-align: left;
-    color: inherit;
-    font: inherit;
+.artist-row {
     display: flex;
-    gap: 12px;
     align-items: center;
+    gap: var(--md-space-3);
+    width: 100%;
     min-width: 0;
-    padding: 12px;
-    background-color: var(--bg-sidebar);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    min-height: var(--md-target-min);
+    padding: var(--md-space-3) 0;
+    border: none;
+    border-top: 1px solid var(--md-outline-variant);
+    background: transparent;
+    color: var(--md-on-surface);
+    font: inherit;
+    text-align: left;
     cursor: pointer;
-    transition: border-color 0.2s;
+    transition: background-color var(--md-duration-short)
+        var(--md-easing-standard);
 }
 
-.artist-card:hover {
-    border-color: var(--color-text-secondary);
+.artist-row:first-child {
+    border-top: none;
 }
 
-.artist-card-cover {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
+.artist-row:hover {
+    background-color: var(--md-surface-container-high);
+}
+
+.artist-cover {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--md-shape-full);
     object-fit: cover;
     flex-shrink: 0;
+    background-color: var(--md-surface-container-high);
 }
 
-.artist-card-info {
+.artist-cover--empty {
+    border: 1px solid var(--md-outline-variant);
+}
+
+.artist-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.artist-card-name {
-    font-size: 15px;
-    font-weight: 600;
+.artist-name {
+    font-size: var(--md-title-medium);
+    line-height: var(--md-title-medium-line);
+    font-weight: var(--md-weight-medium);
+    color: var(--md-on-surface);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.artist-card-creator {
+.artist-sub {
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+    color: var(--md-on-surface-variant);
     overflow-wrap: anywhere;
-    color: var(--color-text-secondary);
-    font-size: 13px;
-    margin-top: 2px;
 }
 
-.artist-card-meta {
+.artist-meta {
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
+    color: var(--md-on-surface-variant);
     overflow-wrap: anywhere;
-    color: var(--color-text-secondary);
-    font-size: 12px;
-    margin-top: 2px;
+}
+
+.row-arrow {
+    flex-shrink: 0;
+    color: var(--md-on-surface-variant);
 }
 
 .empty-result {
     display: flex;
     justify-content: center;
-    padding: 40px 0;
+    padding: var(--md-space-10) var(--md-space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .artist-row {
+        transition: none;
+    }
 }
 </style>

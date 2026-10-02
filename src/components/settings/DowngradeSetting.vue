@@ -1,29 +1,20 @@
 <template>
-    <template v-if="isNarrow">
-        <!-- 移动端：开关保持行内布局，排序入口单独占一行，避免窄屏拥挤。 -->
-        <div class="setting-row">
-            <span class="setting-label">自动降级</span>
+    <SettingRow label="自动降级">
+        <template #default="{ labelId }">
             <n-switch
+                aria-label="自动降级"
+                :aria-labelledby="labelId"
                 :value="settingsStore.settings.autoDowngrade"
                 @update:value="
                     (val) => (settingsStore.settings.autoDowngrade = val)
                 "
             />
-        </div>
-    </template>
-    <template v-else>
-        <n-form-item label="自动降级">
-            <n-switch
-                :value="settingsStore.settings.autoDowngrade"
-                @update:value="
-                    (val) => (settingsStore.settings.autoDowngrade = val)
-                "
-            />
-        </n-form-item>
-    </template>
+        </template>
+    </SettingRow>
 
-    <n-form-item label="降级顺序">
-        <div class="downgrade-setting">
+    <SettingRow label="降级顺序" stacked>
+        <template #description>
+            <!-- 顺序文本允许换行：音质名称较长时截断会让用户看不到完整顺序 -->
             <div
                 class="downgrade-summary"
                 :title="downgradeOrderText"
@@ -39,15 +30,18 @@
                     当前顺序已保留，开启自动降级后可编辑并生效。
                 </template>
             </p>
+        </template>
+        <template #default>
             <n-button
-                size="small"
+                type="primary"
+                secondary
                 :disabled="!settingsStore.settings.autoDowngrade"
                 @click="openEditor"
             >
                 自定义顺序
             </n-button>
-        </div>
-    </n-form-item>
+        </template>
+    </SettingRow>
 
     <!--
         排序过程只修改 draftOrder，点击“保存”后才一次性写回 Pinia。
@@ -84,7 +78,6 @@
                 </n-tag>
                 <div class="move-actions">
                     <n-button
-                        size="small"
                         quaternary
                         :disabled="index === 0"
                         :aria-label="`上移 ${quality}`"
@@ -93,7 +86,6 @@
                         ↑
                     </n-button>
                     <n-button
-                        size="small"
                         quaternary
                         :disabled="index === draftOrder.length - 1"
                         :aria-label="`下移 ${quality}`"
@@ -111,7 +103,6 @@
         <template #footer>
             <div class="modal-actions">
                 <n-button
-                    size="small"
                     text
                     :disabled="isDefaultOrder"
                     @click="resetDraftOrder"
@@ -133,11 +124,11 @@
 </template>
 
 <script setup lang="ts">
-import { useNarrowLayout } from '../../composables/useNarrowLayout'
 import { computed, ref } from 'vue'
-import { NButton, NFormItem, NModal, NSwitch, NTag } from 'naive-ui'
+import { NButton, NModal, NSwitch, NTag } from 'naive-ui'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { QUALITY_DOWNGRADE_ORDER } from '../../types'
+import SettingRow from './SettingRow.vue'
 
 const settingsStore = useSettingsStore()
 
@@ -198,9 +189,6 @@ function saveOrder() {
     settingsStore.settings.qualityDowngradeOrder = [...draftOrder.value]
     showEditor.value = false
 }
-
-// 移动端判断
-const isNarrow = useNarrowLayout()
 </script>
 
 <style scoped>
@@ -212,6 +200,7 @@ const isNarrow = useNarrowLayout()
     max-height: calc(
         100dvh - 32px - var(--safe-area-top) - var(--safe-area-bottom)
     );
+    border-radius: var(--md-shape-xl);
 }
 
 :global(.downgrade-modal > .n-card-content) {
@@ -219,66 +208,73 @@ const isNarrow = useNarrowLayout()
     overflow-y: auto;
 }
 
-.downgrade-setting {
-    min-width: 0;
-    width: 100%;
+/* Naive 卡片内置的关闭按钮只有 18dp；放大到 48dp 命中区并保留圆形状态层 */
+:global(.downgrade-modal .n-card-header__close) {
+    box-sizing: border-box;
+    width: var(--md-target-min);
+    height: var(--md-target-min);
+    border-radius: var(--md-shape-full);
+    font-size: 22px;
 }
 
 .downgrade-summary {
-    max-width: 100%;
-    overflow: hidden;
-    color: var(--color-text);
-    font-size: 13px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    color: var(--md-on-surface);
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+    /* 完整展示顺序，不用省略号裁切 */
+    overflow-wrap: anywhere;
 }
 
 .downgrade-help,
 .editor-help {
-    color: var(--color-text-secondary);
-    font-size: 12px;
-    line-height: 1.5;
+    color: var(--md-on-surface-variant);
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
 }
 
 .downgrade-help {
-    margin: 4px 0 8px;
+    margin: var(--md-space-1) 0 0;
 }
 
 .editor-help {
-    margin-bottom: 12px;
+    margin: 0 0 var(--md-space-3);
 }
 
 .quality-order-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--md-space-2);
     max-height: 58vh;
     overflow-y: auto;
-    padding-right: 4px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
 }
 
 .quality-order-item {
     display: flex;
-    min-height: 38px;
+    min-height: 56px;
     align-items: center;
-    gap: 10px;
-    padding: 4px 6px 4px 10px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
+    gap: var(--md-space-3);
+    padding: var(--md-space-1) var(--md-space-1) var(--md-space-1)
+        var(--md-space-4);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--md-shape-md);
+    background: var(--md-surface-container-lowest);
 }
 
 .quality-index {
     width: 22px;
     flex: 0 0 22px;
-    color: var(--color-text-secondary);
-    font-size: 12px;
+    color: var(--md-on-surface-variant);
+    font-size: var(--md-label-medium);
     text-align: right;
 }
 
 .quality-name {
     min-width: 0;
     flex: 1;
-    color: var(--color-text);
+    color: var(--md-on-surface);
     overflow-wrap: anywhere;
 }
 
@@ -290,30 +286,22 @@ const isNarrow = useNarrowLayout()
 }
 
 .move-actions {
-    gap: 2px;
+    gap: var(--md-space-1);
+}
+
+/* 「↑ / ↓」是纯文本按钮，不会被全局的纯图标按钮规则加宽，这里显式保证 48dp 命中区 */
+.move-actions :deep(.n-button) {
+    min-width: var(--md-target-min);
 }
 
 .modal-primary-actions {
-    gap: 8px;
+    gap: var(--md-space-2);
 }
 
 .modal-actions {
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--md-space-4);
     flex-wrap: wrap;
-}
-
-/* 移动端行内布局 */
-.setting-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.setting-label {
-    font-size: 14px;
-    color: var(--n-text-color);
 }
 
 .sr-only {
@@ -332,17 +320,8 @@ const isNarrow = useNarrowLayout()
     :global(.downgrade-modal > .n-card-header),
     :global(.downgrade-modal > .n-card-content),
     :global(.downgrade-modal > .n-card__footer) {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-
-    .quality-order-item {
-        min-height: 48px;
-    }
-
-    .move-actions :deep(.n-button) {
-        min-width: 44px;
-        min-height: 44px;
+        padding-left: var(--md-space-4);
+        padding-right: var(--md-space-4);
     }
 
     .modal-actions {

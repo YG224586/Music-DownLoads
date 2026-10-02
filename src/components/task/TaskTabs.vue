@@ -1,30 +1,49 @@
 <template>
-    <n-tabs
-        :value="activeTab"
-        @update:value="$emit('update:activeTab', $event)"
-        :type="isNarrow ? 'line' : 'segment'"
-        size="medium"
+    <!-- 紧凑窗口：7 个筛选项在 390dp 下无法一次排开，改用可换行的 M3 过滤 chip，
+         既不横向滚动也不裁切标签文字；选中态用 secondaryContainer 表达。 -->
+    <div
+        v-if="isNarrow"
+        class="task-tabs-compact"
+        role="tablist"
+        aria-label="任务筛选"
     >
-        <n-tab-pane name="all" :tab="`全部 (${counts.total})`" />
-        <n-tab-pane name="waiting" :tab="`等待中 (${counts.waiting})`" />
+        <button
+            v-for="tab in tabs"
+            :key="tab.name"
+            type="button"
+            role="tab"
+            class="task-filter-chip"
+            :class="{ 'is-selected': tab.name === activeTab }"
+            :aria-selected="tab.name === activeTab"
+            @click="emit('update:activeTab', tab.name)"
+        >
+            {{ tab.label }}
+        </button>
+    </div>
+
+    <!-- 更宽窗口：分段标签一次全部可见，形态与断点前的行为保持一致。 -->
+    <n-tabs
+        v-else
+        :value="activeTab"
+        :type="'segment'"
+        size="medium"
+        @update:value="emit('update:activeTab', $event)"
+    >
         <n-tab-pane
-            name="downloading"
-            :tab="`下载中 (${counts.downloading})`"
+            v-for="tab in tabs"
+            :key="tab.name"
+            :name="tab.name"
+            :tab="tab.label"
         />
-        <n-tab-pane name="paused" :tab="`暂停 (${counts.paused})`" />
-        <n-tab-pane name="completed" :tab="`已完成 (${counts.completed})`" />
-        <n-tab-pane
-            name="interrupted"
-            :tab="`已中断 (${counts.interrupted})`"
-        />
-        <n-tab-pane name="error" :tab="`错误 (${counts.error})`" />
     </n-tabs>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { NTabs, NTabPane } from 'naive-ui'
 import { useNarrowLayout } from '../../composables/useNarrowLayout'
 
+// 与外壳断点一致：窄屏用 chip，宽屏用分段标签。
 const isNarrow = useNarrowLayout()
 
 export interface TabCounts {
@@ -37,12 +56,61 @@ export interface TabCounts {
     error: number
 }
 
-defineProps<{
+const props = defineProps<{
     activeTab: string
     counts: TabCounts
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
     (e: 'update:activeTab', value: string): void
 }>()
+
+/** 标签顺序、名称与计数文案与改造前完全一致。 */
+const tabs = computed(() => [
+    { name: 'all', label: `全部 (${props.counts.total})` },
+    { name: 'waiting', label: `等待中 (${props.counts.waiting})` },
+    { name: 'downloading', label: `下载中 (${props.counts.downloading})` },
+    { name: 'paused', label: `暂停 (${props.counts.paused})` },
+    { name: 'completed', label: `已完成 (${props.counts.completed})` },
+    { name: 'interrupted', label: `已中断 (${props.counts.interrupted})` },
+    { name: 'error', label: `错误 (${props.counts.error})` },
+])
 </script>
+
+<style scoped>
+.task-tabs-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--md-space-2);
+    min-width: 0;
+}
+
+/* M3 过滤 chip：描边未选中 / secondaryContainer 选中，命中区域 48dp。 */
+.task-filter-chip {
+    min-height: var(--md-target-min);
+    padding: 0 var(--md-space-4);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--md-shape-full);
+    background-color: transparent;
+    color: var(--md-on-surface-variant);
+    font-family: inherit;
+    font-size: var(--md-label-large);
+    line-height: var(--md-label-large-line);
+    font-weight: var(--md-weight-medium);
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--md-duration-short) var(--md-easing-standard),
+        color var(--md-duration-short) var(--md-easing-standard);
+}
+
+.task-filter-chip:hover {
+    background-color: var(--md-surface-container-high);
+}
+
+.task-filter-chip.is-selected {
+    background-color: var(--md-secondary-container);
+    border-color: transparent;
+    color: var(--md-on-secondary-container);
+}
+</style>

@@ -1,59 +1,62 @@
 <template>
-    <n-form-item label="下载目录">
-        <template v-if="isWeb">
-            <div class="current-dir">
-                <n-text
+    <SettingRow label="下载目录" :stacked="!isWeb">
+        <template #description>
+            <template v-if="isWeb">
+                <span class="dir-line"
                     >服务器下载目录：{{
                         settingsStore.settings.downloadDir
-                    }}</n-text
+                    }}</span
                 >
-                <n-text depth="3"
+                <span class="dir-line"
                     >通过 HOTDOWNLOADER_DOWNLOAD_DIR
-                    设置容器内路径，并为该路径挂载下载卷。</n-text
+                    设置容器内路径，并为该路径挂载下载卷。</span
                 >
-            </div>
+            </template>
+            <template v-else-if="isAndroid">
+                <span
+                    v-if="settingsStore.settings.safFolderName"
+                    class="dir-line"
+                    >当前 SAF 文件夹：{{
+                        settingsStore.settings.safFolderName
+                    }}</span
+                >
+                <span v-else class="dir-line"
+                    >默认下载目录：{{
+                        settingsStore.settings.downloadDir
+                    }}</span
+                >
+            </template>
         </template>
-        <template v-else-if="!isAndroid">
-            <n-input-group>
+        <template #default="{ labelId }">
+            <n-input-group v-if="!isWeb && !isAndroid" class="dir-input-group">
                 <n-input
                     :value="settingsStore.settings.downloadDir"
                     readonly
                     placeholder="请选择下载目录"
+                    :input-props="{ 'aria-labelledby': labelId }"
                 />
                 <n-button type="primary" @click="selectDirectory"
                     >选择</n-button
                 >
             </n-input-group>
+            <n-button
+                v-else-if="isAndroid"
+                type="primary"
+                @click="selectSafFolder"
+            >
+                选择 SAF 文件夹
+            </n-button>
         </template>
-        <template v-else>
-            <div class="android-dir-setting">
-                <n-button type="primary" @click="selectSafFolder">
-                    选择 SAF 文件夹
-                </n-button>
-                <div class="current-dir">
-                    <n-text
-                        v-if="settingsStore.settings.safFolderName"
-                        type="info"
-                    >
-                        当前 SAF 文件夹：{{
-                            settingsStore.settings.safFolderName
-                        }}
-                    </n-text>
-                    <n-text v-else depth="3">
-                        默认下载目录：{{ settingsStore.settings.downloadDir }}
-                    </n-text>
-                </div>
-            </div>
-        </template>
-    </n-form-item>
+    </SettingRow>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { NFormItem, NInput, NInputGroup, NButton, NText } from 'naive-ui'
+import { NInput, NInputGroup, NButton } from 'naive-ui'
 import { chooseDownloadDirectory, pickSafFolder } from '../../api/fileApi'
 import { getRuntimePlatform } from '../../api/runtimeApi'
 import { useSettingsStore } from '../../stores/settingsStore'
+import SettingRow from './SettingRow.vue'
 
 const settingsStore = useSettingsStore()
 
@@ -116,19 +119,17 @@ async function selectSafFolder() {
 </script>
 
 <style scoped>
-.android-dir-setting {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 0;
+/* 输入组在换行布局下占满整行宽度，窄视口下由输入框收缩，不产生横向溢出 */
+.dir-input-group {
     width: 100%;
-    align-items: flex-start;
 }
 
-.current-dir {
-    font-size: 13px;
-    max-width: 100%;
+.dir-line {
+    display: block;
     overflow-wrap: anywhere;
-    line-height: 1.6;
+}
+
+.dir-line + .dir-line {
+    margin-top: var(--md-space-1);
 }
 </style>

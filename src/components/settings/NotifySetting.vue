@@ -1,38 +1,26 @@
 <template>
-    <template v-if="isNarrow">
-        <!-- 移动端：开关行内布局，与其他开关组件保持一致 -->
-        <div class="setting-row">
-            <span class="setting-label">下载完成后发送系统通知</span>
+    <SettingRow label="下载完成后发送系统通知">
+        <template #default="{ labelId }">
             <n-switch
+                aria-label="下载完成后发送系统通知"
+                :aria-labelledby="labelId"
                 :value="settingsStore.settings.notifyOnComplete"
                 @update:value="handleNotifyToggle"
             />
-        </div>
-    </template>
-    <template v-else>
-        <!-- 桌面端：原有表单布局 -->
-        <n-form-item label="下载完成后发送系统通知">
-            <n-switch
-                :value="settingsStore.settings.notifyOnComplete"
-                @update:value="handleNotifyToggle"
-            />
-        </n-form-item>
-    </template>
+        </template>
+    </SettingRow>
 </template>
 
 <script setup lang="ts">
-import { useNarrowLayout } from '../../composables/useNarrowLayout'
-import { NFormItem, NSwitch } from 'naive-ui'
+import { NSwitch } from 'naive-ui'
 import { useSettingsStore } from '../../stores/settingsStore'
 import {
     requestNotificationPermission,
     checkNotificationPermission,
 } from '../../api/musicApi'
+import SettingRow from './SettingRow.vue'
 
 const settingsStore = useSettingsStore()
-
-// 移动端判断
-const isNarrow = useNarrowLayout()
 
 const notify = () => window.$notify
 
@@ -80,17 +68,3 @@ async function handleNotifyToggle(val: boolean) {
     }
 }
 </script>
-
-<style scoped>
-.setting-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.setting-label {
-    font-size: 14px;
-    color: var(--n-text-color);
-}
-</style>

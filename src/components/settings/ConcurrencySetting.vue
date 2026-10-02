@@ -1,59 +1,96 @@
 <template>
-    <template v-if="isNarrow">
-        <div class="setting-row">
-            <span class="setting-label">同时下载数</span>
-            <n-input-number
-                :value="settingsStore.settings.maxConcurrent"
-                @update:value="
-                    (val) => (settingsStore.settings.maxConcurrent = val ?? 1)
-                "
-                :min="1"
-                :max="10"
-                step="1"
-                button-placement="both"
-                class="concurrency-input"
-            />
-        </div>
-    </template>
-    <template v-else>
-        <n-form-item label="同时下载数">
-            <n-input-number
-                :value="settingsStore.settings.maxConcurrent"
-                @update:value="
-                    (val) => (settingsStore.settings.maxConcurrent = val ?? 1)
-                "
-                :min="1"
-                :max="10"
-                step="1"
-                button-placement="both"
-                class="concurrency-input"
-            />
-        </n-form-item>
-    </template>
+    <SettingRow label="同时下载数">
+        <template #default="{ labelId }">
+            <!--
+                不使用输入框内置的步进按钮：它们只有约 18dp 宽，触屏上难以命中。
+                这里用两个独立按钮提供 ≥48dp 的加减目标，并各自带上可访问名。
+            -->
+            <div class="concurrency-control">
+                <n-button
+                    type="primary"
+                    secondary
+                    circle
+                    class="step-button"
+                    aria-label="减少同时下载数"
+                    :disabled="current <= minConcurrent"
+                    @click="setConcurrent(current - 1)"
+                >
+                    −
+                </n-button>
+                <n-input-number
+                    :value="settingsStore.settings.maxConcurrent"
+                    @update:value="setConcurrent"
+                    :min="minConcurrent"
+                    :max="maxConcurrent"
+                    step="1"
+                    :show-button="false"
+                    class="concurrency-input"
+                    :input-props="{
+                        'aria-labelledby': labelId,
+                        'aria-label': '同时下载数',
+                    }"
+                />
+                <n-button
+                    type="primary"
+                    secondary
+                    circle
+                    class="step-button"
+                    aria-label="增加同时下载数"
+                    :disabled="current >= maxConcurrent"
+                    @click="setConcurrent(current + 1)"
+                >
+                    +
+                </n-button>
+            </div>
+        </template>
+    </SettingRow>
 </template>
 
 <script setup lang="ts">
-import { useNarrowLayout } from '../../composables/useNarrowLayout'
-import { NFormItem, NInputNumber } from 'naive-ui'
+import { computed } from 'vue'
+import { NButton, NInputNumber } from 'naive-ui'
 import { useSettingsStore } from '../../stores/settingsStore'
+import SettingRow from './SettingRow.vue'
+
+const minConcurrent = 1
+const maxConcurrent = 10
 
 const settingsStore = useSettingsStore()
 
-// 移动端判断
-const isNarrow = useNarrowLayout()
+const current = computed(
+    () => settingsStore.settings.maxConcurrent ?? minConcurrent,
+)
+
+/** 手输与加减按钮共用同一收敛逻辑，避免出现越界或 NaN。 */
+function setConcurrent(value: number | null) {
+    const numeric =
+        typeof value === 'number' && Number.isFinite(value)
+            ? Math.round(value)
+            : minConcurrent
+    settingsStore.settings.maxConcurrent = Math.min(
+        maxConcurrent,
+        Math.max(minConcurrent, numeric),
+    )
+}
 </script>
 
 <style scoped>
-.setting-row {
+.concurrency-control {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    justify-content: flex-end;
+    gap: var(--md-space-2);
+    flex-wrap: wrap;
 }
 
-.setting-label {
-    font-size: 14px;
-    color: var(--n-text-color);
+.step-button {
+    min-width: var(--md-target-min);
+    font-size: var(--md-title-medium);
+}
+
+.concurrency-input {
+    width: 104px;
+    max-width: 100%;
 }
 
 .concurrency-input :deep(.n-input__input-el) {

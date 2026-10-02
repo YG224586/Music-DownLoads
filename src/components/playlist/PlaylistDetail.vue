@@ -1,7 +1,10 @@
 <template>
     <div class="playlist-detail">
-        <n-button class="back-button" @click="emit('back')">
-            {{ backLabel }}
+        <!-- 返回是文字按钮 + 前置箭头，命中区由全局 48px 规则保证 -->
+        <n-button class="back-button" quaternary @click="emit('back')">
+            <span class="back-icon" aria-hidden="true" v-html="BACK_ICON" />{{
+                backLabel
+            }}
         </n-button>
 
         <div v-if="loading" class="loading-wrapper">
@@ -105,42 +108,65 @@ const emit = defineEmits<{
     (e: 'click-album', song: SongInfo): void
     (e: 'batch-download'): void
 }>()
+
+/** 返回箭头为纯装饰，按钮的可访问名来自 backLabel 文字 */
+const BACK_ICON =
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M14.5 6 9 12l5.5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 </script>
 
 <style scoped>
+/* 详情页纵向排布：信息卡 → 选择栏 → 歌曲列表 → 批量下载条 */
 .playlist-detail {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--md-space-4);
     min-width: 0;
 }
 
 .back-button {
     align-self: flex-start;
+    /* 文字按钮左内边距去掉后与页面左边缘对齐，命中区仍为 48dp 高 */
+    margin-left: calc(var(--md-space-3) * -1);
+}
+
+.back-icon {
+    display: inline-flex;
+    margin-right: var(--md-space-1);
 }
 
 .loading-wrapper {
     display: flex;
     justify-content: center;
-    padding: 40px 0;
+    padding: var(--md-space-8) 0;
 }
 
+.playlist-detail :deep(.n-alert) {
+    border-radius: var(--md-shape-md);
+}
+
+/* 歌单信息卡：封面 + 名称/创建者/统计 */
 .playlist-info {
     display: flex;
-    gap: 16px;
+    gap: var(--md-space-4);
     align-items: center;
-    padding: 16px;
-    background-color: var(--bg-sidebar);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    padding: var(--md-space-4);
+    min-width: 0;
+    background-color: var(--md-surface-container-low);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--md-shape-lg);
 }
 
 .playlist-cover {
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
+    width: 96px;
+    height: 96px;
+    border-radius: var(--md-shape-md);
     object-fit: cover;
     flex-shrink: 0;
+    /* 封面加载失败时仍是可辨识的占位块，避免出现破图 */
+    background-color: var(--md-surface-container-high);
+    color: var(--md-on-surface-variant);
+    font-size: var(--md-label-small);
+    line-height: var(--md-label-small-line);
 }
 
 .playlist-details {
@@ -150,50 +176,66 @@ const emit = defineEmits<{
 }
 
 .playlist-name {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-size: var(--md-title-large);
+    line-height: var(--md-title-large-line);
+    font-weight: var(--md-weight-medium);
+    color: var(--md-on-surface);
 }
 
 .playlist-creator {
-    color: var(--color-text-secondary);
-    font-size: 14px;
+    margin-top: var(--md-space-1);
+    color: var(--md-on-surface-variant);
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
 }
 
 .playlist-meta {
-    color: var(--color-text-secondary);
-    font-size: 13px;
-    margin-top: 4px;
+    margin-top: var(--md-space-1);
+    color: var(--md-on-surface-variant);
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
 }
 
+/* 全选与已选计数：勾选框自带 48dp 命中区 */
 .list-header {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: var(--md-space-3);
+    min-width: 0;
+    padding: 0 var(--md-space-1);
 }
 
 .count-text {
-    font-size: 13px;
-    color: var(--color-text-secondary);
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+    color: var(--md-on-surface-variant);
+    font-variant-numeric: tabular-nums;
 }
 
 .song-items {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--md-space-2);
+    min-width: 0;
 }
 
+/* 手机端信息卡收紧：封面 80dp，名称降一级 */
 @media (max-width: 767px) {
     .playlist-info {
         align-items: flex-start;
-        gap: 12px;
-        padding: 12px;
+        gap: var(--md-space-3);
+        padding: var(--md-space-3);
     }
 
     .playlist-cover {
-        width: 64px;
-        height: 64px;
+        width: 80px;
+        height: 80px;
+    }
+
+    .playlist-name {
+        font-size: var(--md-title-medium);
+        line-height: var(--md-title-medium-line);
     }
 }
 </style>

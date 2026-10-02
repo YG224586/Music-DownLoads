@@ -361,7 +361,8 @@ export async function fetchAlbumSongs(
             id,
         },
     )
-    result.songs = result.songs.map((song) => ({
+    // 后端可能返回 200 但缺少 songs 字段；兜底空数组，避免 TypeError 直接暴露给用户
+    result.songs = (result.songs ?? []).map((song) => ({
         ...song,
         platform,
     }))
@@ -398,7 +399,8 @@ export async function fetchArtistSongs(
             limit,
         },
     )
-    result.songs = result.songs.map((song) => ({
+    // 后端可能返回 200 但缺少 songs 字段；兜底空数组，避免 TypeError 直接暴露给用户
+    result.songs = (result.songs ?? []).map((song) => ({
         ...song,
         platform,
     }))
@@ -411,10 +413,17 @@ export async function fetchArtistAlbums(
     page = 1,
     limit = 20,
 ): Promise<ArtistAlbumsResponse> {
-    return musicCall('fetch_artist_albums', 'artists/albums', {
-        platform,
-        id,
-        page,
-        limit,
-    })
+    const result = await musicCall<ArtistAlbumsResponse>(
+        'fetch_artist_albums',
+        'artists/albums',
+        {
+            platform,
+            id,
+            page,
+            limit,
+        },
+    )
+    // 后端可能返回 200 但缺少 albums 字段；兜底空数组，避免 usePagedList 里 items.filter 抛 TypeError 直接暴露给用户
+    result.albums = result.albums ?? []
+    return result
 }

@@ -1,7 +1,12 @@
 <template>
     <!-- 检查更新入口（移动端与桌面端通用） -->
     <div v-if="showEntry" class="check-update-entry">
-        <n-button :loading="checkingUpdate" @click="handleCheckUpdate">
+        <n-button
+            type="primary"
+            secondary
+            :loading="checkingUpdate"
+            @click="handleCheckUpdate"
+        >
             {{ updateButtonText }}
         </n-button>
     </div>
@@ -113,14 +118,9 @@ const updateButtonText = computed(() => {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: var(--md-space-3);
     flex-wrap: wrap;
-    margin-top: 24px;
-}
-
-.update-status-text {
-    font-size: 13px;
-    color: var(--color-text-secondary);
+    margin-top: var(--md-space-6);
 }
 
 /* 更新信息弹窗内部样式 */
@@ -132,6 +132,7 @@ const updateButtonText = computed(() => {
     max-height: calc(
         100dvh - 32px - var(--safe-area-top) - var(--safe-area-bottom)
     );
+    border-radius: var(--md-shape-xl);
 }
 
 :global(.update-modal > .n-card-content) {
@@ -139,38 +140,51 @@ const updateButtonText = computed(() => {
     overflow-y: auto;
 }
 
+/* Naive 卡片内置的关闭按钮只有 18dp；放大到 48dp 命中区并保留圆形状态层 */
+:global(.update-modal .n-card-header__close) {
+    box-sizing: border-box;
+    width: var(--md-target-min);
+    height: var(--md-target-min);
+    border-radius: var(--md-shape-full);
+    font-size: 22px;
+}
+
 .update-content {
     min-width: 0;
     overflow-wrap: anywhere;
     line-height: 1.6;
     /* 增加内容区上下空白，使弹窗不显得拥挤 */
-    padding: 8px 0;
+    padding: var(--md-space-2) 0;
 }
 
 .version-line {
-    font-size: 15px;
-    font-weight: 500;
-    margin-bottom: 8px;
+    color: var(--md-on-surface);
+    font-size: var(--md-body-large);
+    line-height: var(--md-body-large-line);
+    font-weight: var(--md-weight-medium);
+    margin: 0 0 var(--md-space-2);
 }
 
 .publish-date {
-    font-size: 13px;
-    color: var(--color-text-secondary);
-    margin-bottom: 16px;
+    color: var(--md-on-surface-variant);
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
+    margin: 0 0 var(--md-space-4);
 }
 
 .update-body {
-    margin-bottom: 20px;
+    margin-bottom: var(--md-space-5);
 }
 
 .body-label {
-    font-weight: 500;
+    color: var(--md-on-surface);
+    font-weight: var(--md-weight-medium);
 }
 
 .body-text {
-    margin-top: 4px;
+    margin-top: var(--md-space-1);
     /* 适配 Markdown 渲染后的 HTML 内容，取消 pre-wrap 改为正常换行 */
-    color: var(--color-text);
+    color: var(--md-on-surface);
     max-height: 300px;
     overflow-y: auto;
     line-height: 1.6;
@@ -181,31 +195,31 @@ const updateButtonText = computed(() => {
 .markdown-body :deep(h2),
 .markdown-body :deep(h3),
 .markdown-body :deep(h4) {
-    margin: 12px 0 8px;
+    margin: var(--md-space-3) 0 var(--md-space-2);
     font-weight: 600;
 }
 
 .markdown-body :deep(p) {
-    margin: 8px 0;
+    margin: var(--md-space-2) 0;
 }
 
 .markdown-body :deep(ul),
 .markdown-body :deep(ol) {
-    padding-left: 24px;
-    margin: 8px 0;
+    padding-left: var(--md-space-6);
+    margin: var(--md-space-2) 0;
 }
 
 .markdown-body :deep(code) {
-    background-color: var(--bg-body);
+    background-color: var(--md-surface-container-high);
     padding: 2px 4px;
-    border-radius: 3px;
+    border-radius: var(--md-shape-xs);
     font-size: 0.9em;
 }
 
 .markdown-body :deep(pre) {
-    background-color: var(--bg-body);
-    padding: 12px;
-    border-radius: 6px;
+    background-color: var(--md-surface-container-high);
+    padding: var(--md-space-3);
+    border-radius: var(--md-shape-sm);
     overflow-x: auto;
 }
 
@@ -226,38 +240,46 @@ const updateButtonText = computed(() => {
 }
 
 .markdown-body :deep(a) {
-    color: var(--color-primary);
+    color: var(--md-primary);
 }
 
 /* 资产列表样式 */
 .assets-section {
-    margin-bottom: 20px;
+    margin-bottom: var(--md-space-5);
 }
 
 .asset-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-top: 8px;
+    gap: var(--md-space-1);
+    margin-top: var(--md-space-2);
 }
 
+/* 安装包直链是触屏上的主要操作，保证 48dp 触控高度并允许长文件名换行 */
 .asset-link {
+    display: flex;
+    align-items: center;
+    min-height: var(--md-target-min);
+    padding: 0 var(--md-space-2);
+    border-radius: var(--md-shape-sm);
     overflow-wrap: anywhere;
-    color: var(--color-primary);
+    color: var(--md-primary);
+    font-size: var(--md-body-medium);
     text-decoration: none;
-    font-size: 14px;
-    transition: opacity 0.2s;
+    transition: background-color var(--md-duration-short)
+        var(--md-easing-standard);
 }
 
-.asset-link:hover {
-    opacity: 0.8;
+.asset-link:hover,
+.asset-link:focus-visible {
+    background-color: var(--md-state-hover);
     text-decoration: underline;
 }
 
 .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--md-space-3);
     flex-wrap: wrap;
 }
 
@@ -265,12 +287,8 @@ const updateButtonText = computed(() => {
     :global(.update-modal > .n-card-header),
     :global(.update-modal > .n-card-content),
     :global(.update-modal > .n-card__footer) {
-        padding-left: 12px;
-        padding-right: 12px;
-    }
-
-    .modal-actions :deep(.n-button) {
-        min-height: 44px;
+        padding-left: var(--md-space-4);
+        padding-right: var(--md-space-4);
     }
 }
 </style>

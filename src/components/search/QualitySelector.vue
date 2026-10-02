@@ -1,22 +1,29 @@
 <template>
     <div class="quality-selector">
-        <n-button
-            v-for="q in sortedQualities"
-            :key="q.quality"
-            :type="selected === q.quality ? 'primary' : 'default'"
-            block
-            class="quality-btn"
-            @click="selected = q.quality"
+        <!-- 互斥单选：用 radio 列表，选中态由圆点填充形状表达，不只靠颜色。 -->
+        <n-radio-group
+            v-model:value="selected"
+            class="quality-group"
+            aria-label="选择下载音质"
         >
-            <div class="quality-name">{{ q.quality }}</div>
-            <div class="quality-size">{{ formatSize(q.size) }}</div>
-        </n-button>
+            <n-radio
+                v-for="q in sortedQualities"
+                :key="q.quality"
+                :value="q.quality"
+                class="quality-option"
+            >
+                <span class="quality-text">
+                    <span class="quality-name">{{ q.quality }}</span>
+                    <span class="quality-size">{{ formatSize(q.size) }}</span>
+                </span>
+            </n-radio>
+        </n-radio-group>
     </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { NButton } from 'naive-ui'
+import { NRadio, NRadioGroup } from 'naive-ui'
 import type { QualityItem } from '../../types'
 import { ALL_QUALITY_ORDER } from '../../types'
 
@@ -54,39 +61,88 @@ defineExpose({ selected })
 
 <style scoped>
 .quality-selector {
-    max-height: 320px;
+    max-height: min(50vh, 320px);
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    overscroll-behavior: contain;
 }
 
-.quality-btn {
-    flex-shrink: 0;
-    height: auto;
-    padding: 10px 14px;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-}
-
-.quality-btn :deep(.n-button__content) {
+.quality-group {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    gap: var(--md-space-1);
+    min-width: 0;
+}
+
+/* 每个品质是一行 list item，命中区域不小于 48dp。 */
+.quality-option.n-radio {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
     width: 100%;
+    min-height: var(--md-target-min);
+    padding: var(--md-space-1) var(--md-space-3);
+    border-radius: var(--md-shape-md);
+    --n-radio-size: 20px;
+    --n-label-padding: 0 0 0 var(--md-space-3);
+    --n-color: transparent;
+    --n-box-shadow: inset 0 0 0 2px var(--md-outline);
+    --n-color-active: var(--md-primary);
+    --n-box-shadow-active: inset 0 0 0 2px var(--md-primary);
+    --n-dot-color-active: var(--md-on-primary);
+    --n-text-color: var(--md-on-surface);
+    --n-box-shadow-hover: inset 0 0 0 2px var(--md-on-surface);
+    --n-box-shadow-focus: inset 0 0 0 2px var(--md-primary);
+    transition: background-color var(--md-duration-short)
+        var(--md-easing-standard);
+}
+
+.quality-option.n-radio:hover {
+    background-color: var(--md-surface-container-high);
+}
+
+/* 选中：容器色调 + 圆点填充 + 字重加粗，三重非颜色独有线索。 */
+.quality-option.n-radio--checked {
+    background-color: var(--md-secondary-container);
+}
+
+.quality-option :deep(.n-radio__label) {
+    flex: 1;
+    min-width: 0;
+}
+
+.quality-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.quality-option.n-radio--checked .quality-name {
+    font-weight: var(--md-weight-bold);
+    color: var(--md-on-secondary-container);
+}
+
+.quality-option.n-radio--checked .quality-size {
+    color: var(--md-on-secondary-container);
 }
 
 .quality-name {
-    white-space: normal;
     overflow-wrap: anywhere;
-    font-weight: 600;
-    font-size: 15px;
-    margin-bottom: 4px;
+    font-weight: var(--md-weight-medium);
+    font-size: var(--md-body-large);
+    line-height: var(--md-body-large-line);
+    color: var(--md-on-surface);
 }
 
 .quality-size {
-    font-size: 12px;
-    color: var(--color-text-secondary);
-    line-height: 1.4;
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+    color: var(--md-on-surface-variant);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .quality-option.n-radio {
+        transition: none;
+    }
 }
 </style>

@@ -1,22 +1,41 @@
 <template>
     <div class="song-item" :class="{ 'is-selected': selected }">
+        <!-- 选中态不只靠颜色：复选框勾选形状 + 容器色调同时变化 -->
         <n-checkbox
             :checked="selected"
+            :aria-label="`选择 ${song.title}`"
             @update:checked="$emit('toggleSelect', $event)"
         />
         <div class="cover-wrapper">
             <img
-                v-if="coverUrl"
+                v-if="coverUrl && !coverFailed"
                 :src="coverUrl"
                 class="cover"
                 alt="封面"
                 loading="lazy"
+                @error="coverFailed = true"
+            />
+            <!-- 图片加载失败：回落到占位块，并给读屏器一个明确的失败说明 -->
+            <div
+                v-else-if="coverFailed"
+                class="cover placeholder"
+                role="img"
+                aria-label="封面加载失败"
             />
             <div v-else-if="coverLoading" class="cover placeholder" />
-            <div v-else class="cover placeholder default" />
+            <div
+                v-else
+                class="cover placeholder default"
+                role="img"
+                aria-label="暂无封面"
+            />
         </div>
         <div class="info">
             <div class="title">{{ song.title }}</div>
+            <!--
+                歌手与专辑合并进同一条 48dp 元信息行：两个链接各自 ≥48x48 命中矩形且互不重叠，
+                同时不把列表行撑高（若各占一行 48dp，每行会多出约 44px）。
+            -->
             <div class="subtitle">
                 <ArtistNames
                     :platform="song.platform"
@@ -27,18 +46,20 @@
                             $emit('click-artist', platform, artist)
                     "
                 />
-            </div>
-            <div v-if="song.album" class="subtitle">
-                <n-button
-                    v-if="albumId"
-                    text
-                    size="small"
-                    class="album-link"
-                    @click.stop="$emit('click-album', song)"
-                >
-                    {{ song.album }}
-                </n-button>
-                <span v-else>{{ song.album }}</span>
+                <template v-if="song.album">
+                    <span class="meta-separator" aria-hidden="true">·</span>
+                    <n-button
+                        v-if="albumId"
+                        text
+                        size="small"
+                        class="album-link"
+                        :aria-label="`查看专辑 ${song.album}`"
+                        @click.stop="$emit('click-album', song)"
+                    >
+                        {{ song.album }}
+                    </n-button>
+                    <span v-else class="album-plain">{{ song.album }}</span>
+                </template>
             </div>
             <div class="quality-tags">
                 <n-tag
@@ -47,6 +68,7 @@
                     size="tiny"
                     :bordered="false"
                     type="info"
+                    class="quality-tag"
                 >
                     {{ q.quality }}
                 </n-tag>
@@ -55,6 +77,7 @@
                     size="tiny"
                     :bordered="false"
                     type="info"
+                    class="quality-tag"
                 >
                     +{{ sortedQualities.length - 4 }}
                 </n-tag>
@@ -62,6 +85,7 @@
         </div>
         <n-button
             size="small"
+            secondary
             class="download-btn"
             @click="$emit('download', song)"
         >
@@ -114,8 +138,11 @@ const sortedQualities = computed(() => {
 // 优先展示歌曲自带的封面，缺少地址时按需请求。
 const coverUrl = ref<string>('')
 const coverLoading = ref(false)
+// 图片请求失败（404/解码失败）时切回占位块，避免浏览器默认的破图图标。
+const coverFailed = ref(false)
 
 async function loadCoverIfNeeded() {
+    coverFailed.value = false
     // 已有 URL 直接使用
     if (props.song.coverUrl) {
         coverUrl.value = props.song.coverUrl
@@ -124,10 +151,11 @@ async function loadCoverIfNeeded() {
     // 酷我场景下按需加载
     if (!props.song.id) return
     coverLoading.value = true
+    // 捕获本次请求对应的歌曲 id：await 期间列表项可能已被复用（song prop 改变）
+    const requestedId = props.song.id
     try {
-        const url = await fetchCover('kuwo', props.song.id)
-        // 检查组件是否已被卸载（song prop 改变）
-        if (props.song.id === props.song.id) {
+        const url = await fetchCover('kuwo', requestedId)
+        if (props.song.id === requestedId) {
             coverUrl.value = url
         }
     } catch {
@@ -145,6 +173,7 @@ onMounted(() => {
 watch(
     () => props.song.id,
     () => {
+        coverFailed.value = false
         coverUrl.value = props.song.coverUrl
         loadCoverIfNeeded()
     },
@@ -152,93 +181,188 @@ watch(
 </script>
 
 <style scoped>
+/* M3 list item：分隔线用 border-top，列表第一项不画线，末项也不留尾线。 */
 .song-item {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    align-items: flex-start;
+    gap: var(--md-space-3);
     min-width: 0;
-    padding: 12px;
-    background-color: var(--bg-sidebar);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    padding: var(--md-space-3) 0;
+    border-top: 1px solid var(--md-outline-variant);
+    transition: background-color var(--md-duration-short)
+        var(--md-easing-standard);
+}
+
+.song-item:first-child {
+    border-top: none;
 }
 
 .song-item.is-selected {
-    border-color: var(--color-text-secondary);
+    background-color: var(--md-secondary-container);
+}
+
+.song-item :deep(.n-checkbox) {
+    flex-shrink: 0;
+    /* 全局规则已给 .n-checkbox min-height:48px，这里补齐宽度得到 48x48 命中区；
+       左右负 margin 抵消多出来的 32px 占位，视觉位置与行内排版保持不变。 */
+    width: var(--md-target-min);
+    justify-content: center;
+    margin-left: calc(-1 * var(--md-space-4));
+    margin-right: calc(-1 * var(--md-space-4));
 }
 
 .cover-wrapper {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     flex-shrink: 0;
 }
 
 .cover {
-    width: 48px;
-    height: 48px;
-    border-radius: 6px;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--md-shape-md);
     object-fit: cover;
     display: block;
 }
 
 .cover.placeholder {
-    background-color: var(--border-color);
+    background-color: var(--md-surface-container-high);
 }
 
 .cover.placeholder.default {
-    background-color: var(--bg-body);
+    background-color: var(--md-surface-container);
 }
 
 .info {
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .title {
-    font-size: 15px;
-    font-weight: 500;
+    font-size: var(--md-body-large);
+    line-height: var(--md-body-large-line);
+    font-weight: var(--md-weight-medium);
+    color: var(--md-on-surface);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: var(--color-text);
-    line-height: 1.5;
 }
 
+/*
+ * 元信息行：歌手与专辑共用同一条 48dp 命中带。
+ * 两个链接都撑到 48x48（靠 min-width/min-height，不用 padding，避免相邻可点区重叠），
+ * 文本超出时由 .n-button__content 省略号截断，行高不随内容膨胀。
+ */
 .subtitle {
-    margin-top: 2px;
-    font-size: 13px;
-    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--md-space-1);
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+    color: var(--md-on-surface-variant);
+    min-width: 0;
+    min-height: var(--md-target-min);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.album-link {
-    font: inherit;
-    vertical-align: baseline;
+/* 子组件 ArtistNames 的容器：允许整组收缩，超长歌手名走省略号。 */
+.subtitle :deep(.artist-names) {
+    display: flex;
+    align-items: center;
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.meta-separator {
+    flex-shrink: 0;
+    color: var(--md-on-surface-variant);
+}
+
+.song-item.is-selected .subtitle {
+    color: var(--md-on-secondary-container);
+}
+
+/* 可点击的歌手/专辑名用下划线区分，不单靠颜色表达可交互。 */
+.subtitle :deep(.artist-link.n-button),
+.album-link.n-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 1 auto;
+    width: auto;
+    height: auto;
+    min-width: var(--md-target-min);
+    min-height: var(--md-target-min);
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+    font-weight: inherit;
+    color: var(--md-primary);
+    text-decoration: underline;
+    overflow: hidden;
+}
+
+.subtitle :deep(.artist-link.n-button .n-button__content),
+.album-link.n-button :deep(.n-button__content) {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.album-plain {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--md-on-surface-variant);
 }
 
 .quality-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-top: 4px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    column-gap: var(--md-space-1);
+    row-gap: var(--md-space-1);
+    margin-top: var(--md-space-1);
 }
 
-.download-btn {
+.quality-tag.n-tag {
+    height: 22px;
+    padding: 0 var(--md-space-2);
+    border-radius: var(--md-shape-full);
+    background-color: var(--md-surface-container-high);
+    color: var(--md-on-surface-variant);
+    font-size: var(--md-label-medium);
+    line-height: var(--md-label-medium-line);
+}
+
+.quality-tag.n-tag :deep(.n-tag__content) {
+    font-size: var(--md-label-medium);
+    line-height: var(--md-label-medium-line);
+}
+
+.download-btn.n-button {
     flex-shrink: 0;
+    align-self: center;
 }
 
-/* 手机保留封面和操作入口，长歌名在剩余空间内省略 */
-@media (max-width: 767px) {
+@media (prefers-reduced-motion: reduce) {
     .song-item {
-        gap: 8px;
-        padding: 10px 8px;
-    }
-
-    .download-btn {
-        min-height: 44px;
+        transition: none;
     }
 }
 </style>

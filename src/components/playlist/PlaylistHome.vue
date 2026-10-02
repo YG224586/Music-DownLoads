@@ -24,7 +24,9 @@
             <div v-else-if="!loggedIn" class="empty-wrapper">
                 <n-empty description="登录 QQ 音乐后即可查看自己创建的歌单">
                     <template #extra>
-                        <n-button @click="router.push('/settings')"
+                        <n-button
+                            type="primary"
+                            @click="router.push('/settings')"
                             >前往登录</n-button
                         >
                     </template>
@@ -124,22 +126,32 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 入口页：两个分区各自是一块 surface container，纵向按 4dp 节奏排布 */
 .playlist-home {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--md-space-4);
     min-width: 0;
 }
 
 .playlist-section {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--md-space-3);
+    min-width: 0;
+    padding: var(--md-space-4);
+    background: var(--md-surface-container-low);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--md-shape-lg);
 }
 
 .playlist-section h2 {
     margin: 0;
-    font-size: 18px;
+    font-size: var(--md-title-medium);
+    line-height: var(--md-title-medium-line);
+    font-weight: var(--md-weight-medium);
+    color: var(--md-on-surface);
+    overflow-wrap: anywhere;
 }
 
 /* SearchBar 自带下边距；入口页使用父容器的 gap 控制间距。 */
@@ -151,6 +163,11 @@ onUnmounted(() => {
 .empty-wrapper {
     display: flex;
     justify-content: center;
-    padding: 40px 0;
+    padding: var(--md-space-8) 0;
+}
+
+/* 错误提示里的重试按钮与正文分行，避免在窄屏上与文字挤在一行 */
+.playlist-home :deep(.n-alert) {
+    border-radius: var(--md-shape-md);
 }
 </style>

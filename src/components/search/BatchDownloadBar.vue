@@ -1,6 +1,13 @@
 <template>
-    <div v-if="selectedCount > 0" class="batch-bar">
-        <span class="selected-text">已选择 {{ selectedCount }} 首</span>
+    <div
+        v-if="selectedCount > 0"
+        class="batch-bar"
+        role="region"
+        aria-label="批量下载操作栏"
+    >
+        <span class="selected-text" aria-live="polite"
+            >已选择 {{ selectedCount }} 首</span
+        >
         <n-button
             type="primary"
             class="batch-download-btn"
@@ -24,39 +31,44 @@ defineEmits<{
 </script>
 
 <style scoped>
+/* 上下文操作栏：粘在滚动区底部，圆角朝上，一个 filled 主操作。 */
 .batch-bar {
     position: sticky;
     bottom: 0;
     z-index: 1;
-    background-color: var(--bg-bottom);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    margin-top: 12px;
-    padding: 12px 16px;
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 16px;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+    gap: var(--md-space-2) var(--md-space-3);
+    min-width: 0;
+    margin-top: var(--md-space-6);
+    padding: var(--md-space-3) var(--md-space-4);
+    background-color: var(--md-surface-container-high);
+    border-top: 1px solid var(--md-outline-variant);
+    border-radius: var(--md-shape-lg) var(--md-shape-lg) 0 0;
+    box-shadow: var(--md-elevation-2);
 }
 
 .selected-text {
-    font-weight: 500;
-    color: var(--color-text);
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+    font-weight: var(--md-weight-medium);
+    color: var(--md-on-surface);
+    min-width: 0;
 }
 
-.batch-download-btn {
+.batch-download-btn.n-button {
     flex-shrink: 0;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 599px) {
     .batch-bar {
-        padding: 8px 12px;
+        padding: var(--md-space-2) var(--md-space-3);
     }
 
-    .batch-download-btn {
-        min-height: 44px;
+    .batch-download-btn.n-button {
+        flex: 1 1 auto;
     }
 }
 </style>

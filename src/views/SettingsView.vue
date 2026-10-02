@@ -1,5 +1,5 @@
 <template>
-    <div class="settings-view" :class="{ 'is-narrow': isNarrow }">
+    <div class="settings-view">
         <n-alert
             v-if="settingsStore.saveError"
             type="error"
@@ -18,48 +18,38 @@
                 :key="field"
                 class="conflict-row"
             >
-                <span>{{ settingLabel(field) }}</span>
-                <n-button
-                    size="small"
-                    @click="settingsStore.resolveConflict(field, false)"
+                <span class="conflict-label">{{ settingLabel(field) }}</span>
+                <n-button @click="settingsStore.resolveConflict(field, false)"
                     >使用最新设置</n-button
                 >
                 <n-button
-                    size="small"
                     type="primary"
                     @click="settingsStore.resolveConflict(field, true)"
                     >保留本页修改</n-button
                 >
             </div>
         </n-alert>
-        <!-- 移动端：分组纵向布局；桌面端：原有左右分栏表单。
-             共用组件实例，缩放窗口时保留登录输入和弹窗中的编辑草稿。 -->
-        <!-- 账号设置：独立分类，位于基本设置上方，增加底部间距避免与下方黏连 -->
-        <div class="settings-section account-section">
-            <h2 class="section-title">账号设置</h2>
-            <n-form :label-placement="isNarrow ? 'top' : 'left'">
-                <LoginSetting />
-            </n-form>
-        </div>
 
-        <div class="settings-section">
-            <h2 class="section-title">基本设置</h2>
-            <n-form
-                :label-placement="isNarrow ? 'top' : 'left'"
-                :label-width="isNarrow ? undefined : 180"
-            >
+        <!-- 按主题分组：组标题 + 列表项 + 分隔线（移动端优先，避免每项套卡片） -->
+        <section class="settings-group">
+            <h2 class="group-title">账号设置</h2>
+            <ul class="settings-list">
+                <LoginSetting />
+            </ul>
+        </section>
+
+        <section class="settings-group">
+            <h2 class="group-title">基本设置</h2>
+            <ul class="settings-list">
                 <QualitySetting />
                 <DowngradeSetting />
                 <ClearHistoryButton />
-            </n-form>
-        </div>
+            </ul>
+        </section>
 
-        <div class="settings-section">
-            <h2 class="section-title">下载设置</h2>
-            <n-form
-                :label-placement="isNarrow ? 'top' : 'left'"
-                :label-width="isNarrow ? undefined : 180"
-            >
+        <section class="settings-group">
+            <h2 class="group-title">下载设置</h2>
+            <ul class="settings-list">
                 <DirectorySetting />
                 <NamingTemplate />
                 <ArtistSeparator />
@@ -70,23 +60,39 @@
                 <JumpToTaskSetting />
                 <DuplicateStrategySetting />
                 <NotifySetting v-if="native" />
-            </n-form>
-        </div>
+            </ul>
+        </section>
 
         <!-- 检查更新组件 -->
         <UpdateChecker v-if="native" />
 
         <!-- 关于入口（始终位于页面底部） -->
-        <div class="about-entry">
-            <n-button text @click="goAbout">关于 HotDownloader</n-button>
-        </div>
+        <section class="settings-group about-group">
+            <ul class="settings-list">
+                <li class="nav-item">
+                    <button type="button" class="nav-row" @click="goAbout">
+                        <span class="nav-label">关于 HotDownloader</span>
+                        <svg
+                            class="nav-chevron"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            focusable="false"
+                        >
+                            <path
+                                d="M9.29 6.71a1 1 0 0 0 0 1.41L13.17 12l-3.88 3.88a1 1 0 1 0 1.42 1.41l4.58-4.58a1 1 0 0 0 0-1.42l-4.58-4.58a1 1 0 0 0-1.42 0z"
+                                fill="currentColor"
+                            />
+                        </svg>
+                    </button>
+                </li>
+            </ul>
+        </section>
     </div>
 </template>
 
 <script setup lang="ts">
-import { useNarrowLayout } from '../composables/useNarrowLayout'
 import { useRouter } from 'vue-router'
-import { NForm, NButton, NAlert } from 'naive-ui'
+import { NAlert, NButton } from 'naive-ui'
 import QualitySetting from '../components/settings/QualitySetting.vue'
 import DowngradeSetting from '../components/settings/DowngradeSetting.vue'
 import DirectorySetting from '../components/settings/DirectorySetting.vue'
@@ -108,8 +114,6 @@ import type { Settings } from '../types'
 
 const router = useRouter()
 
-// 移动端响应式布局状态
-const isNarrow = useNarrowLayout()
 const native = isNativeRuntime()
 const settingsStore = useSettingsStore()
 
@@ -151,87 +155,117 @@ function goAbout() {
 }
 
 .settings-alert {
-    margin-bottom: 16px;
+    margin-bottom: var(--md-space-4);
 }
 
 .conflict-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--md-space-2);
     flex-wrap: wrap;
-    margin-top: 8px;
+    margin-top: var(--md-space-2);
 }
 
-/* 移动端移除最大宽度限制，撑满父容器 */
-.settings-view.is-narrow {
-    max-width: none;
-}
-
-.settings-section {
-    margin-bottom: 16px;
-    padding: 20px;
+.conflict-label {
+    flex: 1 1 120px;
     min-width: 0;
-    background: var(--bg-sidebar);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    overflow-wrap: anywhere;
 }
 
-.account-section {
-    margin-bottom: 20px;
+.settings-group {
+    margin-bottom: var(--md-space-6);
+    min-width: 0;
 }
 
-.settings-section + .settings-section {
-    padding-top: 20px;
+.group-title {
+    margin: 0 0 var(--md-space-2);
+    padding: 0 var(--md-space-4);
+    color: var(--md-primary);
+    font-size: var(--md-label-large);
+    line-height: var(--md-label-large-line);
+    font-weight: var(--md-weight-medium);
 }
 
-.section-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    color: var(--color-text);
+.settings-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    min-width: 0;
 }
 
-.about-entry {
-    /* 将关于入口推到底部 */
+/* 列表项之间用分隔线，而不是把每一项做成卡片 */
+.settings-list :deep(.setting-item + .setting-item) {
+    border-top: 1px solid var(--md-outline-variant);
+}
+
+/* 触控目标兜底：本选择器比全局 body .n-button 更具体，
+   保证设置页里的按钮（含 size="small"）命中区不低于 48dp。 */
+.settings-view :deep(.n-button) {
+    min-height: var(--md-target-min);
+}
+
+/* 关于入口：整行可点击的导航项，始终位于页面底部 */
+.about-group {
     margin-top: auto;
-    padding-top: 24px;
-    text-align: center;
+    margin-bottom: 0;
+    padding-top: var(--md-space-6);
 }
 
-/* 统一子组件的表单收缩和行间距，长标签与路径在自己的区域内换行 */
-.settings-view :deep(.n-form-item-blank),
-.settings-view :deep(.n-input-group) {
+.nav-item {
+    list-style: none;
+}
+
+.nav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--md-space-3);
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 56px;
+    padding: 0 var(--md-space-4);
+    border: 0;
+    border-radius: var(--md-shape-sm);
+    background: transparent;
+    color: var(--md-on-surface);
+    font: inherit;
+    font-size: var(--md-body-large);
+    line-height: var(--md-body-large-line);
+    text-align: left;
+    cursor: pointer;
+    transition: background-color var(--md-duration-short)
+        var(--md-easing-standard);
+}
+
+.nav-row:hover {
+    background-color: var(--md-state-hover);
+}
+
+.nav-row:active {
+    background-color: var(--md-state-pressed);
+}
+
+.nav-label {
     min-width: 0;
+    flex: 1 1 auto;
+    overflow-wrap: anywhere;
 }
 
-.settings-view :deep(.setting-row) {
-    gap: 12px;
-    min-height: 44px;
-    flex-wrap: wrap;
+.nav-chevron {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    color: var(--md-on-surface-variant);
 }
 
-.settings-view :deep(.setting-label) {
-    color: var(--color-text);
-    flex: 1;
-    min-width: 140px;
-}
-
-.settings-view :deep(.setting-row .n-switch) {
-    flex-shrink: 0;
-}
-
-.settings-view :deep(.setting-row .n-input-number) {
-    width: 132px;
-}
-
-@media (max-width: 767px) {
-    .settings-section,
-    .settings-section + .settings-section {
-        padding: 16px 12px;
+/* 窄屏收紧分组间距，保证首屏能看到更多设置项 */
+@media (max-width: 599px) {
+    .settings-group {
+        margin-bottom: var(--md-space-5);
     }
 
-    .settings-view :deep(.n-button) {
-        min-height: 44px;
+    .group-title {
+        padding: 0 var(--md-space-4);
     }
 }
 </style>

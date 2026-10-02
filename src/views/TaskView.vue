@@ -3,14 +3,11 @@
         <TaskTabs v-model:activeTab="activeTab" :counts="tabCounts" />
 
         <!-- 批量操作栏：按当前标签页显示可用的一键操作 -->
-        <div v-if="showToolbar" class="task-toolbar">
+        <section v-if="showToolbar" class="task-toolbar" aria-label="批量操作">
             <!-- 中断恢复与错误重试按任务状态分别选择，实际规则交给 Rust。 -->
             <n-button
-                v-if="
-                    (activeTab === 'error' && tabCounts.error > 0) ||
-                    (activeTab === 'interrupted' && tabCounts.interrupted > 0)
-                "
-                size="small"
+                v-if="showRetryAll"
+                class="task-toolbar-primary"
                 type="primary"
                 :loading="retryingAll"
                 :disabled="retryingAll"
@@ -27,71 +24,98 @@
                         : tabCounts.error
                 }}）
             </n-button>
-            <span
-                v-if="activeTab === 'error' || activeTab === 'interrupted'"
-                class="task-toolbar-hint"
-            >
+            <p v-if="showRetryAll" class="task-toolbar-hint">
                 会依次重新入队，实际同时下载数量由“最大并发数”决定
-            </span>
+            </p>
 
-            <!-- 清除所有已下载（已完成）的任务记录 -->
-            <n-popconfirm
-                v-if="canClearCompleted"
-                :style="{ maxWidth: 'calc(100vw - 32px)' }"
-                @positive-click="handleClearCompleted"
+            <!-- 清除类动作不可逆，窄屏默认收纳在展开区里，避免误触 -->
+            <div
+                v-show="clearActionsVisible"
+                id="task-toolbar-clear"
+                class="task-toolbar-clear"
             >
-                <template #trigger>
-                    <n-button
-                        size="small"
-                        type="warning"
-                        :loading="clearing"
-                        :disabled="clearing"
-                    >
-                        清除所有已下载的任务（{{ tabCounts.completed }}）
-                    </n-button>
-                </template>
-                <n-space vertical :size="8" class="task-toolbar-confirm">
-                    <span
-                        >确定清除
-                        {{ tabCounts.completed }} 个已下载的任务记录吗？</span
-                    >
-                    <n-checkbox v-model:checked="deleteFileForCompleted">
-                        同时删除磁盘上已下载的文件（不可恢复）
-                    </n-checkbox>
-                </n-space>
-            </n-popconfirm>
+                <!-- 清除所有已下载（已完成）的任务记录 -->
+                <n-popconfirm
+                    v-if="canClearCompleted"
+                    :style="{ maxWidth: 'calc(100vw - 32px)' }"
+                    @positive-click="handleClearCompleted"
+                >
+                    <template #trigger>
+                        <n-button
+                            type="warning"
+                            secondary
+                            :loading="clearing"
+                            :disabled="clearing"
+                        >
+                            清除所有已下载的任务（{{ tabCounts.completed }}）
+                        </n-button>
+                    </template>
+                    <n-space vertical :size="8" class="task-toolbar-confirm">
+                        <span
+                            >确定清除
+                            {{ tabCounts.completed }}
+                            个已下载的任务记录吗？</span
+                        >
+                        <n-checkbox v-model:checked="deleteFileForCompleted">
+                            同时删除磁盘上已下载的文件（不可恢复）
+                        </n-checkbox>
+                    </n-space>
+                </n-popconfirm>
 
-            <!-- 清除所有历史任务（含进行中的任务，会被取消） -->
-            <n-popconfirm
-                v-if="canClearAll"
-                :style="{ maxWidth: 'calc(100vw - 32px)' }"
-                @positive-click="handleClearAll"
+                <!-- 清除所有历史任务（含进行中的任务，会被取消） -->
+                <n-popconfirm
+                    v-if="canClearAll"
+                    :style="{ maxWidth: 'calc(100vw - 32px)' }"
+                    @positive-click="handleClearAll"
+                >
+                    <template #trigger>
+                        <n-button
+                            type="error"
+                            secondary
+                            :loading="clearing"
+                            :disabled="clearing"
+                        >
+                            清除所有历史任务（{{ tabCounts.total }}）
+                        </n-button>
+                    </template>
+                    <n-space vertical :size="8" class="task-toolbar-confirm">
+                        <span
+                            >确定清除全部
+                            {{ tabCounts.total }} 个任务记录吗？</span
+                        >
+                        <span
+                            v-if="activeTaskCount > 0"
+                            class="task-toolbar-warn"
+                        >
+                            其中
+                            {{ activeTaskCount }}
+                            个任务正在进行（等待/下载/暂停/处理中），会被一并取消。
+                        </span>
+                        <n-checkbox v-model:checked="deleteFileForAll">
+                            同时删除磁盘上的文件（不可恢复）
+                        </n-checkbox>
+                    </n-space>
+                </n-popconfirm>
+            </div>
+
+            <!-- 窄屏渐进披露：清除动作先收纳，点击后展开 -->
+            <n-button
+                v-if="isNarrow && hasClearActions"
+                class="task-toolbar-disclosure"
+                quaternary
+                :aria-expanded="clearActionsOpen"
+                aria-controls="task-toolbar-clear"
+                @click="clearActionsOpen = !clearActionsOpen"
             >
-                <template #trigger>
-                    <n-button
-                        size="small"
-                        type="error"
-                        :loading="clearing"
-                        :disabled="clearing"
-                    >
-                        清除所有历史任务（{{ tabCounts.total }}）
-                    </n-button>
-                </template>
-                <n-space vertical :size="8" class="task-toolbar-confirm">
-                    <span
-                        >确定清除全部 {{ tabCounts.total }} 个任务记录吗？</span
-                    >
-                    <span v-if="activeTaskCount > 0" class="task-toolbar-warn">
-                        其中
-                        {{ activeTaskCount }}
-                        个任务正在进行（等待/下载/暂停/处理中），会被一并取消。
-                    </span>
-                    <n-checkbox v-model:checked="deleteFileForAll">
-                        同时删除磁盘上的文件（不可恢复）
-                    </n-checkbox>
-                </n-space>
-            </n-popconfirm>
-        </div>
+                {{ clearActionsOpen ? '收起清除操作' : '更多清除操作' }}
+                <span
+                    class="task-toolbar-chevron"
+                    :class="{ 'is-open': clearActionsOpen }"
+                    aria-hidden="true"
+                    v-html="CHEVRON_ICON"
+                />
+            </n-button>
+        </section>
 
         <TaskTable
             :tasks="pagedTasks"
@@ -131,6 +155,7 @@ import {
 import { useTaskStore } from '../stores/taskStore'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useDownloadActions } from '../composables/useDownloadActions'
+import { useNarrowLayout } from '../composables/useNarrowLayout'
 import TaskTabs from '../components/task/TaskTabs.vue'
 import TaskTable from '../components/task/TaskTable.vue'
 import TaskBatchActions from '../components/task/TaskBatchActions.vue'
@@ -225,9 +250,33 @@ const showToolbar = computed(
         canClearAll.value,
 )
 
-// 切换标签页时回到第一页
+/** 是否显示“全部重试/恢复全部中断任务” */
+const showRetryAll = computed(
+    () =>
+        (activeTab.value === 'error' && tabCounts.value.error > 0) ||
+        (activeTab.value === 'interrupted' && tabCounts.value.interrupted > 0),
+)
+
+/** 是否存在可用的清除动作 */
+const hasClearActions = computed(
+    () => canClearCompleted.value || canClearAll.value,
+)
+
+/** 窄屏使用渐进披露，宽屏一次性展示全部批量操作 */
+const isNarrow = useNarrowLayout()
+const clearActionsOpen = ref(false)
+const clearActionsVisible = computed(
+    () => !isNarrow.value || clearActionsOpen.value,
+)
+
+/** 展开箭头为纯装饰，展开状态同时由按钮文字表达 */
+const CHEVRON_ICON =
+    '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
+// 切换标签页时回到第一页，并收起清除操作展开区
 watch(activeTab, () => {
     page.value = 1
+    clearActionsOpen.value = false
 })
 
 // 任务被删除或筛选结果变少时，纠正越界页码，避免停留在空白页
@@ -420,9 +469,11 @@ async function handleClearAll() {
 </script>
 
 <style scoped>
+/* 页面按 4dp 网格纵向排列，容器的宽度由 .main-content 控制 */
 .task-view {
     display: flex;
     flex-direction: column;
+    gap: var(--md-space-3);
     min-height: 100%;
     min-width: 0;
 }
@@ -430,26 +481,59 @@ async function handleClearAll() {
 .task-pagination {
     display: flex;
     justify-content: center;
-    padding: 16px 0 0;
+    padding-top: var(--md-space-1);
     flex-shrink: 0;
+    min-width: 0;
+    overflow-x: auto;
 }
 
+/* 批量操作区：一块 surface container，主操作最醒目 */
 .task-toolbar {
     display: flex;
     align-items: center;
-    gap: 8px 12px;
-    padding: 12px;
-    margin-bottom: 12px;
     flex-wrap: wrap;
-    background: var(--bg-sidebar);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    gap: var(--md-space-2) var(--md-space-3);
+    padding: var(--md-space-4);
+    min-width: 0;
+    background: var(--md-surface-container-low);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--md-shape-lg);
+    flex-shrink: 0;
+}
+
+.task-toolbar-primary {
+    flex-shrink: 0;
 }
 
 .task-toolbar-hint {
-    font-size: 12px;
-    color: var(--color-text-secondary);
+    flex: 1 1 200px;
+    margin: 0;
+    min-width: 0;
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
+    color: var(--md-on-surface-variant);
     overflow-wrap: anywhere;
+}
+
+.task-toolbar-clear {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--md-space-2);
+    min-width: 0;
+}
+
+.task-toolbar-disclosure {
+    flex-shrink: 0;
+}
+
+.task-toolbar-chevron {
+    display: inline-flex;
+    margin-left: var(--md-space-1);
+    transition: transform 0.15s ease;
+}
+
+.task-toolbar-chevron.is-open {
+    transform: rotate(180deg);
 }
 
 .task-toolbar-confirm {
@@ -457,22 +541,39 @@ async function handleClearAll() {
 }
 
 .task-toolbar-warn {
-    font-size: 12px;
-    color: var(--n-warning-color, #f0a020);
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
+    color: var(--md-warning);
 }
 
+/* 紧凑布局：主操作整行，清除动作整行堆叠，触控高度由全局 48px 规则保证 */
 @media (max-width: 767px) {
     .task-toolbar {
         align-items: stretch;
     }
 
-    .task-toolbar > .n-button {
-        min-height: 44px;
-        flex: 1 1 auto;
+    .task-toolbar-primary,
+    .task-toolbar-disclosure,
+    .task-toolbar-clear {
+        flex: 1 1 100%;
+    }
+
+    .task-toolbar-clear {
+        flex-direction: column;
+    }
+
+    .task-toolbar-clear > :deep(.n-button),
+    .task-toolbar-primary,
+    .task-toolbar-disclosure {
+        width: 100%;
     }
 
     .task-toolbar-hint {
-        flex-basis: 100%;
+        flex: 1 1 100%;
+    }
+
+    .task-toolbar-disclosure {
+        justify-content: flex-start;
     }
 }
 </style>

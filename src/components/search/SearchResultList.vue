@@ -5,11 +5,12 @@
                 <n-checkbox
                     :checked="isAllSelected"
                     :indeterminate="isIndeterminate"
+                    aria-label="全选搜索结果"
                     @update:checked="toggleAll"
                 >
                     全选
                 </n-checkbox>
-                <span class="count-text"
+                <span class="count-text" aria-live="polite"
                     >已选 {{ selectedIds.length }} / {{ songs.length }} 首</span
                 >
             </div>
@@ -113,34 +114,39 @@ function toggleSelect(songMid: string, selected: boolean) {
 </script>
 
 <style scoped>
+/* 选择栏是列表的紧邻上文，不做成卡片；勾选状态由复选框形状承担。 */
 .list-header {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
+    justify-content: space-between;
+    gap: var(--md-space-2) var(--md-space-3);
+    min-width: 0;
+    padding-bottom: var(--md-space-1);
 }
 
 .count-text {
-    font-size: 13px;
-    color: var(--color-text-secondary);
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+    color: var(--md-on-surface-variant);
+    min-width: 0;
 }
 
 .song-items {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    margin-top: var(--md-space-1);
 }
 
 .empty-result {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 40px 0;
+    gap: var(--md-space-4);
+    padding: var(--md-space-10) var(--md-space-4);
 }
 
 .retry-wrapper {
-    margin-top: 16px;
     text-align: center;
 }
 </style>

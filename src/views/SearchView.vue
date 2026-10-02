@@ -12,32 +12,46 @@
                 @search="handleSearch"
             />
 
-            <!-- 搜索类型切换按钮 -->
+            <!-- 搜索类型：互斥单选，用 M3 segmented button（选中段带勾选标记） -->
             <div class="type-switch">
-                <n-button
-                    quaternary
-                    :type="searchType === 'song' ? 'primary' : 'default'"
-                    @click="switchSearchType('song')"
-                    >歌曲</n-button
+                <n-radio-group
+                    :value="searchType"
+                    class="type-group"
+                    aria-label="搜索类型"
+                    @update:value="(v) => switchSearchType(v as SearchType)"
                 >
-                <n-button
-                    quaternary
-                    :type="searchType === 'artist' ? 'primary' : 'default'"
-                    @click="switchSearchType('artist')"
-                    >歌手</n-button
-                >
-                <n-button
-                    quaternary
-                    :type="searchType === 'album' ? 'primary' : 'default'"
-                    @click="switchSearchType('album')"
-                    >专辑</n-button
-                >
-                <n-button
-                    quaternary
-                    :type="searchType === 'playlist' ? 'primary' : 'default'"
-                    @click="switchSearchType('playlist')"
-                    >歌单</n-button
-                >
+                    <n-radio-button
+                        v-for="option in SEARCH_TYPES"
+                        :key="option.value"
+                        :value="option.value"
+                        class="type-segment"
+                    >
+                        <span class="segment-content">
+                            <svg
+                                class="segment-check"
+                                :class="{
+                                    'is-visible': searchType === option.value,
+                                }"
+                                viewBox="0 0 24 24"
+                                width="18"
+                                height="18"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    d="m5 13 4 4 10-10"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                            <span class="segment-label">{{
+                                option.label
+                            }}</span>
+                        </span>
+                    </n-radio-button>
+                </n-radio-group>
             </div>
         </div>
 
@@ -69,6 +83,7 @@
             <!-- 加载中 -->
             <div v-if="searchLoading" class="loading-wrapper">
                 <n-spin size="medium" />
+                <span class="visually-hidden" role="status">正在搜索…</span>
             </div>
 
             <!-- 歌曲搜索结果列表 -->
@@ -87,7 +102,12 @@
 
             <!-- 歌手搜索结果列表 -->
             <template v-else-if="searchType === 'artist'">
-                <n-alert v-if="artistError" type="error" title="歌手搜索失败">
+                <n-alert
+                    v-if="artistError"
+                    type="error"
+                    title="歌手搜索失败"
+                    class="search-error"
+                >
                     {{ artistError }}
                     <n-button
                         @click="
@@ -120,7 +140,7 @@
                     v-if="albumError"
                     type="error"
                     title="专辑搜索失败"
-                    class="album-error"
+                    class="search-error album-error"
                 >
                     {{ albumError }}
                     <n-button
@@ -174,7 +194,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
-import { NSpin, NButton, NAlert } from 'naive-ui'
+import { NSpin, NButton, NAlert, NRadioGroup, NRadioButton } from 'naive-ui'
 import { useRoute, useRouter } from 'vue-router'
 import SearchBar from '../components/search/SearchBar.vue'
 import SearchHistory from '../components/search/SearchHistory.vue'
@@ -210,6 +230,14 @@ const currentPlatform = ref(DEFAULT_PLATFORM)
 // 搜索类型
 type SearchType = 'song' | 'artist' | 'album' | 'playlist'
 const searchType = ref<SearchType>('song')
+
+// 分段按钮的取值与文案（顺序即界面顺序）
+const SEARCH_TYPES: { value: SearchType; label: string }[] = [
+    { value: 'song', label: '歌曲' },
+    { value: 'artist', label: '歌手' },
+    { value: 'album', label: '专辑' },
+    { value: 'playlist', label: '歌单' },
+]
 const pageMode = ref<'idle' | 'suggestions' | 'results'>('idle')
 
 // 使用歌曲搜索 composable，解构出状态和方法
@@ -496,14 +524,9 @@ function onBatchDownload() {
 .search-header {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 16px;
-}
-
-.type-switch {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: var(--md-space-3);
+    margin-bottom: var(--md-space-4);
+    min-width: 0;
 }
 
 /* 搜索栏和类型切换的间距由 search-header 统一控制 */
@@ -511,15 +534,78 @@ function onBatchDownload() {
     margin-bottom: 0;
 }
 
-@media (max-width: 767px) {
-    .type-switch .n-button {
-        min-height: 44px;
-    }
+/* M3 segmented button：整组等宽、外轮廓胶囊、内部分隔用描边。 */
+.type-switch {
+    min-width: 0;
+}
+
+.type-switch :deep(.n-radio-group) {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+}
+
+.type-switch :deep(.n-radio-button) {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: var(--md-target-min);
+    padding: 0 var(--md-space-2);
+}
+
+.type-switch :deep(.n-radio-button__label) {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+}
+
+.segment-content {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--md-space-1);
+    min-width: 0;
+}
+
+/* 勾选标记只在选中段显示；未选中保留占位，避免文字左右跳动。 */
+.segment-check {
+    flex-shrink: 0;
+    visibility: hidden;
+    opacity: 0;
+}
+
+.segment-check.is-visible {
+    visibility: visible;
+    opacity: 1;
+}
+
+.segment-label {
+    font-size: var(--md-label-large);
+    line-height: var(--md-label-large-line);
+    font-weight: var(--md-weight-medium);
+    white-space: nowrap;
 }
 
 .loading-wrapper {
     display: flex;
-    justify-content: center;
-    padding: 40px 0;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--md-space-3);
+    padding: var(--md-space-10) 0;
+}
+
+.search-error {
+    margin-bottom: var(--md-space-4);
+}
+
+/* 屏幕阅读器专用文本：为加载状态提供可朗读名称。 */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
 }
 </style>
