@@ -59,6 +59,7 @@ import { NMenu, useNotification, type MenuOption } from 'naive-ui'
 import { useCloseGuard } from '../composables/useCloseGuard'
 import { useNarrowLayout } from '../composables/useNarrowLayout'
 import { isNativeRuntime } from '../api/runtimeApi'
+import { showStorageRecoveryReport } from '../api/storageRecovery'
 import { useTaskStore } from '../stores/taskStore'
 
 const router = useRouter()
@@ -118,6 +119,7 @@ window.$notify = notification
 const isNarrow = useNarrowLayout()
 
 onMounted(() => {
+    if (native) void showStorageRecoveryReport()
     // 注册全局前置守卫，在离开当前路由前保存滚动位置
     removeRouteGuard = router.beforeEach((_to, from) => {
         if (mainContentRef.value) {

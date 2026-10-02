@@ -34,6 +34,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init()) // 注册通知插件，支持下载完成系统通知
         .plugin(tauri_plugin_safe_area_insets_css_edge::init()) // 注册安全区域插件
         .setup(|app| {
+            store_wrapper::initialize(app.handle())?;
             // 下载器启动前先恢复持久化任务；后续下载事件才能更新权威任务状态。
             let task_io = Arc::new(adapters::tauri_task_io::TauriTaskIo::new(
                 app.handle().clone(),
@@ -132,6 +133,7 @@ pub fn run() {
             commands::history::load_history,
             commands::history::save_history,
             commands::tasks::load_tasks,
+            commands::tasks::get_storage_recovery_report,
             commands::tasks::create_download_task,
             commands::tasks::pause_task,
             commands::tasks::resume_task,

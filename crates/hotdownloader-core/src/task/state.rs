@@ -52,7 +52,11 @@ impl TaskState {
             }
         }
         if changed {
-            repository.save(&tasks)?;
+            // 启动恢复的写盘失败不应阻断窗口打开。内存仍标记为中断，后续
+            // 用户操作通过仓库报告写入错误；只读恢复模式不会覆盖原始数据。
+            if let Err(error) = repository.save(&tasks) {
+                log::warn!("保存启动恢复的任务状态失败: {error}");
+            }
         }
         Ok(Self {
             repository,
@@ -310,6 +314,25 @@ mod tests {
         }
         assert_eq!(repository.saves.load(Ordering::SeqCst), 1);
         assert!(events.0.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn restart_still_loads_interrupted_tasks_when_storage_is_read_only() {
+        let repository = Arc::new(MemoryRepository::new(vec![task(TaskStatus::Waiting)]));
+        repository.fail_save.store(true, Ordering::SeqCst);
+        let events = Arc::new(RecordedEvents::default());
+        let state = TaskState::load(repository.clone(), events.clone()).unwrap();
+
+        assert_eq!(state.list()[0].status, TaskStatus::Interrupted);
+        assert_eq!(
+            repository.rows.lock().unwrap()[0].status,
+            TaskStatus::Waiting
+        );
+        assert!(events.0.lock().unwrap().is_empty());
+        let mut new_task = task(TaskStatus::Completed);
+        new_task.id = "new-task".into();
+        assert!(state.insert(new_task).is_err());
+        assert_eq!(state.list().len(), 1);
     }
 
     #[test]
