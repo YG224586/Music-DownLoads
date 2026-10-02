@@ -4,6 +4,7 @@ pub mod lyrics;
 pub mod parser;
 pub mod playlist;
 pub mod search;
+pub mod sign;
 pub mod suggest;
 
 pub mod credentials;

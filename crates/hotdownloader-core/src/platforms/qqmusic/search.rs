@@ -4,6 +4,10 @@
 //! 搜索歌曲、歌手与专辑，返回解析后的列表和分页信息。
 //! 旧的移动端方法 `DoSearchForQQMusicLite` 已失效：接口仍返回 `code=0`，
 //! 但 `item_song` / `singer` / `item_album` 恒为空数组，前端因此只会看到「暂无搜索结果」。
+//!
+//! 请求优先走带 `zzc` 签名的 `musics.fcg`：实测未签名的 `musicu.fcg` 会被限流
+//! （子请求 `code=2001`），未签名的 `musics.fcg` 直接报 `code=2000` 要求签名，
+//! 只有签名请求在同一下行时刻仍能正常返回结果，签名算法见 [`super::sign`]。
 //! 歌曲解析复用 [`super::parser::parse_song`] 函数。
 //!
 //! 参考实现：<https://github.com/lyswhut/lx-music-desktop/blob/9c364b482e5621a1d38b50e8610d2fb974457e6e/src/renderer/utils/musicSdk/tx/musicSearch.js#L13>
@@ -13,10 +17,13 @@ use std::time::Duration;
 use serde_json::{json, Value};
 
 use super::parser::parse_song;
+use super::sign::zzc_sign;
 use crate::platforms::{get_guid, CLIENT};
 
-/// QQ 音乐统一接口地址。匿名调用 `musicu.fcg` 不需要 `sign` 参数；
-/// `musics.fcg` 才要求 `?sign=`，本模块不使用。
+/// 带签名的接口地址：`?sign=<zzc 签名>` 由请求体算出，实测能绕过未签名接口的限流。
+const SIGNED_SEARCH_ENDPOINT: &str = "https://u.y.qq.com/cgi-bin/musics.fcg";
+
+/// 未签名的接口地址，仅在签名请求失败时兜底。
 const SEARCH_ENDPOINT: &str = "https://u.y.qq.com/cgi-bin/musicu.fcg";
 
 /// 桌面端搜索的模块名与方法名，同时作为请求体的顶层键与响应中的子响应键。
@@ -109,6 +116,9 @@ async fn search_request(
 }
 
 /// 单次搜索请求，返回子响应的 `data` 字段。
+///
+/// 先带签名请求 `musics.fcg`，失败再退回未签名的 `musicu.fcg`；
+/// 两次都失败时返回后者的错误信息。
 async fn search_request_once(
     keyword: &str,
     page: u32,
@@ -133,13 +143,31 @@ async fn search_request_once(
             }
         }
     });
+    let body_text =
+        serde_json::to_string(&request_body).map_err(|e| format!("请求体序列化失败: {}", e))?;
 
+    // 签名必须覆盖真正发出去的字节，所以先序列化再签名。
+    let signed_url = format!("{}?sign={}", SIGNED_SEARCH_ENDPOINT, zzc_sign(&body_text));
+
+    let mut last_error = String::from("搜索请求失败");
+    for url in [signed_url.as_str(), SEARCH_ENDPOINT] {
+        match post_search(url, &body_text).await {
+            Ok(data) => return Ok(data),
+            Err(error) => last_error = error,
+        }
+    }
+
+    Err(last_error)
+}
+
+/// 发送一次搜索请求并校验业务状态码。
+async fn post_search(url: &str, body_text: &str) -> Result<Value, String> {
     // 发送 POST 请求
     let resp = CLIENT
-        .post(SEARCH_ENDPOINT)
+        .post(url)
         .header("Content-Type", "application/json")
         .header("Referer", "https://y.qq.com")
-        .json(&request_body)
+        .body(body_text.to_string())
         .send()
         .await
         .map_err(|e| format!("网络错误: {}", e))?;
