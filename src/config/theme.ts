@@ -183,9 +183,11 @@ function buildOverrides(p: MdPalette): GlobalThemeOverrides {
             heightLarge: '56px',
             heightHuge: '60px',
 
-            /* 组件圆角只能由 common 提供（Card/Dialog/Menu 没有独立圆角键） */
-            borderRadius: '12px',
-            borderRadiusSmall: '8px',
+            /* 组件圆角只能由 common 提供（Card/Dialog/Menu 没有独立圆角键）。
+               M3 Expressive：圆角整体上调 4dp，跟进 style.css 的形状令牌
+               （--md-shape-md 12dp、sm 8dp 对应此处 16px/12px） */
+            borderRadius: '16px',
+            borderRadiusSmall: '12px',
 
             primaryColor: p.primary,
             primaryColorHover: p.primaryHover,
@@ -340,7 +342,7 @@ function buildOverrides(p: MdPalette): GlobalThemeOverrides {
             textColor: p.onSurfaceVariant,
             titleTextColor: p.onSurface,
             borderColor: p.outlineVariant,
-            titleFontWeight: '500',
+            titleFontWeight: '700',
             boxShadow: 'none',
         },
 
@@ -349,7 +351,7 @@ function buildOverrides(p: MdPalette): GlobalThemeOverrides {
             titleTextColor: p.onSurface,
             textColor: p.onSurfaceVariant,
             border: `1px solid ${p.outlineVariant}`,
-            titleFontWeight: '500',
+            titleFontWeight: '700',
             iconColor: p.onSurfaceVariant,
         },
 
