@@ -1,0 +1,15 @@
+# 统一使用 LF 换行，避免 Windows 检出时产生 CRLF 造成的格式检查漂移
+* text=auto eol=lf
+
+# 二进制资源不做换行转换
+*.png binary
+*.ico binary
+*.icns binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.mp3 binary
+*.flac binary
+*.ttf binary
+*.woff binary
+*.woff2 binary

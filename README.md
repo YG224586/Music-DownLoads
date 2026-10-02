@@ -1,4 +1,4 @@
-# 🎵 HotDownloader
+# 🎵 音乐下载吧
 
 > 基于共享 Rust 下载核心和 Vue 3 的音乐下载工具，支持 Tauri 桌面端、Android 端与 Docker/Web 部署。
 
@@ -69,8 +69,8 @@
 克隆仓库并安装依赖：
 
 ```bash
-git clone https://github.com/lerdb/HotDownloader.git
-cd HotDownloader
+git clone https://github.com/YG224586/Music-DownLoads.git
+cd Music-DownLoads
 npm install
 ```
 
@@ -110,6 +110,8 @@ npx tauri android build
 
 本项目基于 [Apache License 2.0](LICENSE) 开源。
 
+本项目 fork 自 [lerdb/HotDownloader](https://github.com/lerdb/HotDownloader)，遵循 Apache License 2.0，保留原始版权声明与 `NOTICE` 文件。
+
 ### 第三方组件许可
 
 本软件打包了完整的第三方许可证声明，随安装包分发：
@@ -125,6 +127,6 @@ npx tauri android build
 
 ## ⚠️ 免责声明
 
-**HotDownloader 仅用于学习和研究目的。**
+**音乐下载吧 仅用于学习和研究目的。**
 
 用户需自行承担使用本软件所带来的法律责任。请确保你下载的音乐文件拥有合法的使用权，遵守相关音乐平台的版权规定。本项目开发者不对任何侵权行为负责。

@@ -1,10 +1,10 @@
 [package]
 name = "hotdownloader"
-version = "2.0.1"
+version = "1.0.0"
 description = "跨平台音乐下载器"
 authors = ["lerdb"]
 license = "Apache-2.0"
-repository = "https://github.com/lerdb/HotDownloader"
+repository = "https://github.com/YG224586/Music-DownLoads"
 edition = "2021"
 rust-version = "1.77.2"
 

@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "HotDownloader",
-  "version": "2.0.1",
-  "identifier": "lerd.hotdownloader",
+  "productName": "音乐下载吧",
+  "version": "1.0.0",
+  "identifier": "com.musicdownloads.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -13,7 +13,7 @@
   "app": {
     "windows": [
       {
-        "title": "HotDownloader",
+        "title": "音乐下载吧",
         "width": 1600,
         "height": 800,
         "resizable": true,

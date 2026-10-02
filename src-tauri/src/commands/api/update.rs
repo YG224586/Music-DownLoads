@@ -26,7 +26,7 @@ use crate::utils::http::CLIENT;
 /// - `Err(String)`：错误信息，包括网络错误、响应读取失败、JSON 解析失败等。
 #[command]
 pub async fn check_update() -> Result<String, String> {
-    let url = "https://api.github.com/repos/lerdb/HotDownloader/releases/latest";
+    let url = "https://api.github.com/repos/YG224586/Music-DownLoads/releases/latest";
 
     // 使用全局 CLIENT 发起 GET 请求，并携带 GitHub API 推荐的头信息
     let resp = CLIENT

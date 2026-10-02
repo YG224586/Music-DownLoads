@@ -19,7 +19,7 @@
         </n-button>
 
         <header class="about-header">
-            <h1 class="app-title">HotDownloader</h1>
+            <h1 class="app-title">音乐下载吧</h1>
             <!-- 直接使用注入的变量，不再硬编码 -->
             <div class="app-version">版本 {{ version }}</div>
             <!-- 更新为与 README 一致的跨平台描述 -->
@@ -37,7 +37,7 @@
                     <!-- 独立成行的链接需要 ≥48dp 的命中区，方便触屏点击 -->
                     <a
                         class="link-row"
-                        href="https://github.com/lerdb/HotDownloader"
+                        href="https://github.com/YG224586/Music-DownLoads"
                         target="_blank"
                         rel="noopener noreferrer"
                     >
