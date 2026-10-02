@@ -262,7 +262,7 @@ const screenTitle = computed(() => {
     if (route.path.startsWith('/settings/')) return '关于'
     return (
         destinations.find((item) => item.key === currentRoute.value)?.label ??
-        '音乐下载吧'
+        '音乐下载'
     )
 })
 

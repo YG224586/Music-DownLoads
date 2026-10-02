@@ -71,7 +71,7 @@
             <ul class="settings-list">
                 <li class="nav-item">
                     <button type="button" class="nav-row" @click="goAbout">
-                        <span class="nav-label">关于 音乐下载吧</span>
+                        <span class="nav-label">关于 音乐下载</span>
                         <svg
                             class="nav-chevron"
                             viewBox="0 0 24 24"

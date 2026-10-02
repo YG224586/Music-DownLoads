@@ -17,6 +17,8 @@ export function usePlaylistSearch() {
     const hasMore = ref(false)
     // 是否正在加载更多
     const loadingMore = ref(false)
+    // 搜索失败时的错误信息：用于把「请求失败」与「没有结果」区分开
+    const error = ref<string | null>(null)
     // 当前页码
     const currentPage = ref(1)
     // 每页数量
@@ -36,6 +38,7 @@ export function usePlaylistSearch() {
         playlists.value = []
         hasMore.value = false
         currentPage.value = 1
+        error.value = null
 
         try {
             const res = await musicApi.searchPlaylists(
@@ -46,10 +49,11 @@ export function usePlaylistSearch() {
             )
             playlists.value = res.playlists
             hasMore.value = res.has_more
-        } catch (error) {
-            console.error('搜索歌单失败:', error)
+        } catch (err) {
+            console.error('搜索歌单失败:', err)
             playlists.value = []
             hasMore.value = false
+            error.value = err instanceof Error ? err.message : String(err)
         } finally {
             loading.value = false
         }
@@ -82,8 +86,9 @@ export function usePlaylistSearch() {
 
             currentPage.value = nextPage
             hasMore.value = res.has_more
-        } catch (error) {
-            console.error('加载更多歌单失败:', error)
+        } catch (err) {
+            console.error('加载更多歌单失败:', err)
+            error.value = err instanceof Error ? err.message : String(err)
         } finally {
             loadingMore.value = false
         }
@@ -99,6 +104,7 @@ export function usePlaylistSearch() {
         hasMore.value = false
         loadingMore.value = false
         currentPage.value = 1
+        error.value = null
     }
 
     return {
@@ -108,6 +114,7 @@ export function usePlaylistSearch() {
         hasMore,
         loadingMore,
         currentPage,
+        error,
         searchPlaylists,
         loadMorePlaylists,
         reset,

@@ -93,6 +93,7 @@
                 v-model:selectedIds="songSelectedIds"
                 :has-more="songHasMore"
                 :loading-more="songLoadingMore"
+                :error="songError"
                 @download="onSingleDownload"
                 @retry="handleSearch"
                 @load-more="loadMoreSongs"
@@ -169,18 +170,36 @@
             </template>
 
             <!-- 歌单搜索结果列表 -->
-            <PlaylistSearchResult
-                v-else-if="
-                    searchType === 'playlist' &&
-                    playlistHasSearched &&
-                    !playlistLoading
-                "
-                :playlists="playlistSearchResults"
-                :has-more="playlistHasMore"
-                :loading-more="playlistLoadingMore"
-                @click-playlist="goToPlaylist"
-                @load-more="loadMorePlaylists"
-            />
+            <template v-else-if="searchType === 'playlist'">
+                <n-alert
+                    v-if="playlistError"
+                    type="error"
+                    title="歌单搜索失败"
+                    class="search-error"
+                >
+                    {{ playlistError }}
+                    <n-button
+                        @click="
+                            playlistSearchResults.length
+                                ? loadMorePlaylists()
+                                : handleSearch()
+                        "
+                        >重试</n-button
+                    >
+                </n-alert>
+                <PlaylistSearchResult
+                    v-if="
+                        playlistHasSearched &&
+                        !playlistLoading &&
+                        (!playlistError || playlistSearchResults.length)
+                    "
+                    :playlists="playlistSearchResults"
+                    :has-more="playlistHasMore"
+                    :loading-more="playlistLoadingMore"
+                    @click-playlist="goToPlaylist"
+                    @load-more="loadMorePlaylists"
+                />
+            </template>
 
             <!-- 批量下载栏（仅在歌曲搜索模式且有选中时显示） -->
             <BatchDownloadBar
@@ -248,6 +267,7 @@ const {
     hasSearched: songHasSearched,
     hasMore: songHasMore,
     loadingMore: songLoadingMore,
+    error: songError,
     searchSongs: searchSongFunc,
     loadMoreSongs: loadMoreSongsFunc,
     reset: resetSongSearch,
@@ -260,6 +280,7 @@ const {
     hasSearched: playlistHasSearched,
     hasMore: playlistHasMore,
     loadingMore: playlistLoadingMore,
+    error: playlistError,
     searchPlaylists: searchPlaylistFunc,
     loadMorePlaylists: loadMorePlaylistFunc,
     reset: resetPlaylistSearch,

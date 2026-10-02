@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "音乐下载吧",
+  "productName": "音乐下载",
   "version": "1.0.0",
   "identifier": "com.musicdownloads.app",
   "build": {
@@ -13,7 +13,7 @@
   "app": {
     "windows": [
       {
-        "title": "音乐下载吧",
+        "title": "音乐下载",
         "width": 1600,
         "height": 800,
         "resizable": true,
@@ -35,7 +35,7 @@
       "icons/icon.ico"
     ],
     "shortDescription": "安卓端音乐下载器",
-    "longDescription": "音乐下载吧 —— 安卓端音乐下载器，基于 Tauri 2 与 Vue 3 构建界面，复用 Rust 下载核心，提供搜索、歌单导入、多任务下载、自动降级与音频解密等功能。",
+    "longDescription": "音乐下载 —— 安卓端音乐下载器，基于 Tauri 2 与 Vue 3 构建界面，复用 Rust 下载核心，提供搜索、歌单导入、多任务下载、自动降级与音频解密等功能。",
     "resources": {
       "../LICENSE": "licenses/LICENSE",
       "../NOTICE": "licenses/NOTICE",

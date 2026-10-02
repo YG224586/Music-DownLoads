@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "license": "Apache-2.0",
-  "description": "音乐下载吧 —— 安卓端音乐下载器（Tauri 2 + Vue 3 + Rust 下载核心）",
+  "description": "音乐下载 —— 安卓端音乐下载器（Tauri 2 + Vue 3 + Rust 下载核心）",
   "type": "module",
   "scripts": {
     "dev": "vite",

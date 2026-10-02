@@ -40,6 +40,16 @@
             />
         </template>
 
+        <!-- 请求失败与「确实没有结果」是两种状态，必须分开呈现，否则用户只会看到空列表 -->
+        <div v-else-if="error" class="error-result">
+            <n-alert type="error" title="搜索失败" class="search-error">
+                {{ error }}
+            </n-alert>
+            <div class="retry-wrapper">
+                <n-button type="primary" @click="$emit('retry')">重试</n-button>
+            </div>
+        </div>
+
         <div v-else class="empty-result">
             <n-empty description="暂无搜索结果" />
             <div class="retry-wrapper">
@@ -51,7 +61,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { NCheckbox, NEmpty, NButton } from 'naive-ui'
+import { NAlert, NCheckbox, NEmpty, NButton } from 'naive-ui'
 import type { ArtistReference, SongInfo } from '../../types'
 import SongItem from './SongItem.vue'
 import LoadMoreButton from './LoadMoreButton.vue'
@@ -63,10 +73,13 @@ const props = withDefaults(
         selectedIds: string[]
         hasMore?: boolean
         loadingMore?: boolean
+        /** 搜索失败时的错误信息；为空表示请求成功（结果可能确实是 0 条） */
+        error?: string | null
     }>(),
     {
         hasMore: false,
         loadingMore: false,
+        error: null,
     },
 )
 
@@ -144,6 +157,18 @@ function toggleSelect(songMid: string, selected: boolean) {
     align-items: center;
     gap: var(--md-space-4);
     padding: var(--md-space-10) var(--md-space-4);
+}
+
+/* 失败态是「需要用户动作」的状态：错误说明 + 唯一的重试操作 */
+.error-result {
+    display: flex;
+    flex-direction: column;
+    gap: var(--md-space-4);
+    padding: var(--md-space-6) 0;
+}
+
+.error-result .search-error {
+    border-radius: var(--md-shape-md);
 }
 
 .retry-wrapper {

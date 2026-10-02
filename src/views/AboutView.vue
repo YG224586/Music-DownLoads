@@ -19,13 +19,13 @@
         </n-button>
 
         <header class="about-header">
-            <h1 class="app-title">音乐下载吧</h1>
+            <h1 class="app-title">音乐下载</h1>
             <!-- 直接使用注入的变量，不再硬编码 -->
             <div class="app-version">版本 {{ version }}</div>
             <!-- 与 README 保持一致的项目描述 -->
             <p class="app-description">
-                音乐下载吧是安卓端音乐下载器，基于 Tauri 2 与 Vue 3
-                构建界面、复用 Rust
+                本应用是安卓端音乐下载器，基于 Tauri 2 与 Vue 3 构建界面、复用
+                Rust
                 下载核心，提供搜索、歌单导入、多任务下载、自动降级、音频解密等功能。
             </p>
         </header>

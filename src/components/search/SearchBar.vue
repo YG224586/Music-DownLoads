@@ -1,40 +1,69 @@
 <template>
     <div class="search-bar">
-        <!-- 平台选择：贴靠在文本框前缘的前置操作，不占据输入区宽度 -->
-        <n-dropdown
-            :options="platformDropdownOptions"
-            trigger="click"
-            @select="handlePlatformSelect"
-        >
-            <n-button class="platform-btn" :title="currentPlatformLabel">
-                <span class="platform-label">{{ currentPlatformLabel }}</span>
-                <svg
-                    class="platform-arrow"
-                    viewBox="0 0 24 24"
-                    width="16"
-                    height="16"
-                    aria-hidden="true"
+        <!-- 平台选择：前置的次级操作。只有一个平台时整块隐藏 —— 不可用的选择器
+             只会在输入区前堆一个假控件，藏起来视觉最干净。 -->
+        <template v-if="showPlatformPicker">
+            <n-dropdown
+                :options="platformDropdownOptions"
+                trigger="click"
+                @select="handlePlatformSelect"
+            >
+                <button
+                    type="button"
+                    class="platform-btn"
+                    :title="currentPlatformLabel"
+                    :aria-label="currentPlatformLabel"
                 >
-                    <path
-                        d="m7 10 5 5 5-5"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    />
-                </svg>
-            </n-button>
-        </n-dropdown>
+                    <span class="platform-label">{{
+                        currentPlatformLabel
+                    }}</span>
+                    <svg
+                        class="platform-arrow"
+                        viewBox="0 0 24 24"
+                        width="18"
+                        height="18"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="m7 10 5 5 5-5"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </button>
+            </n-dropdown>
+            <!-- 1px 竖分隔符：把次级操作与输入区在视觉上切开 -->
+            <span class="search-divider" aria-hidden="true"></span>
+        </template>
 
+        <!-- 输入区：无边框、无独立底色，与容器同形 -->
         <n-input
             v-model:value="keywordModel"
             :placeholder="placeholder"
-            clearable
             @keyup.enter="handleSearch"
-            @clear="handleClear"
             class="search-input"
         />
+
+        <!-- 清空：有内容时才出现的次级操作，命中区 48dp -->
+        <button
+            v-if="keywordModel.length > 0"
+            type="button"
+            class="search-clear-btn"
+            aria-label="清空搜索关键词"
+            @click="handleClear"
+        >
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path
+                    d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                    fill="currentColor"
+                />
+            </svg>
+        </button>
+
+        <!-- 搜索：区域内唯一的 filled 主操作，48x48、图标 24dp -->
         <n-button
             type="primary"
             @click="handleSearch"
@@ -95,6 +124,9 @@ const emit = defineEmits<{
 
 const keywordModel = ref(props.keyword)
 
+// 只有一个平台时没有可选项，平台选择器整块隐藏（组件对外契约不变）。
+const showPlatformPicker = computed(() => props.platformOptions.length > 1)
+
 // 当前平台对应的显示 label
 const currentPlatformLabel = computed(() => {
     const found = props.platformOptions.find((p) => p.key === props.platform)
@@ -136,58 +168,100 @@ function handleSearch() {
 }
 
 function handleClear() {
-    // 点击清空按钮时，输入框已经变为空，同时通知父组件清理页面状态
+    // 清空输入并通知父组件清理页面状态（与 Naive 自带 clearable 的顺序一致）
+    keywordModel.value = ''
     emit('clear')
 }
 </script>
 
 <style scoped>
-/* M3 search bar：56dp 高、全圆角、surface-container-high 容器，
-   内部为「平台前置操作 + 无边框文本框 + 搜索动作」。 */
+/* M3 search bar：单一容器、单一形状语言。
+   56dp 高、全圆角、surface-container-high；默认态没有描边也没有外框阴影，
+   内部控件一律退成「无边框 + 无独立底色」，只有聚焦时才出现 ring。 */
 .search-bar {
+    /* 容器内水平内边距：4(容器 padding) + 12 = 16dp，对齐 M3 的 16dp 起始留白 */
+    --search-inline-pad: var(--md-space-3);
+
     display: flex;
     align-items: center;
-    gap: var(--md-space-1);
     min-width: 0;
     min-height: var(--search-height);
-    padding: var(--md-space-1);
-    /* 不画 1px 边框，让内部控件正好占满 48dp（56 - 4 - 4）；
-       聚焦轮廓改用 inset 阴影，视觉等价且不占高度。 */
+    padding: var(--search-padding);
     border: none;
     border-radius: var(--search-radius);
     background-color: var(--search-bg);
-    box-shadow: var(--search-shadow);
-    transition: box-shadow var(--md-duration-short) var(--md-easing-standard);
+    box-shadow: none;
+    /* 透明 ring 常驻，聚焦时只换颜色：不占高度、不引起任何布局位移 */
+    outline: 2px solid transparent;
+    outline-offset: 1px;
+    transition: outline-color var(--md-duration-short) var(--md-easing-standard);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .search-bar:focus-within {
-    box-shadow:
-        var(--search-shadow-focus),
-        inset 0 0 0 1px var(--md-outline-variant);
+    outline-color: var(--md-primary);
 }
 
-/* 平台选择是次级动作：tonal 外形，与 filled 的搜索按钮区分主次。 */
-.search-bar .platform-btn {
-    flex-shrink: 0;
-    max-width: 40vw;
-    /* 命中区域 48dp：搜索栏内容盒正好 48dp（56 - 4 - 4）。 */
-    min-height: var(--md-target-min);
-    padding: 0 var(--md-space-3);
+/* ---------- 次级操作（平台选择 / 清空）：透明底 + 状态层 ---------- */
+
+.search-bar .platform-btn,
+.search-bar .search-clear-btn {
+    position: relative;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--md-target-min);
+    padding: 0;
+    border: none;
     border-radius: var(--md-shape-full);
-    font-size: var(--md-label-large);
-    --n-color: var(--md-secondary-container);
-    --n-color-hover: var(--md-secondary-hover);
-    --n-color-pressed: var(--md-secondary-pressed);
-    --n-color-focus: var(--md-secondary-container);
-    --n-text-color: var(--md-on-secondary-container);
-    --n-text-color-hover: var(--md-on-secondary-container);
-    --n-text-color-pressed: var(--md-on-secondary-container);
-    --n-text-color-focus: var(--md-on-secondary-container);
-    --n-border: none;
-    --n-border-hover: none;
-    --n-border-pressed: none;
-    --n-border-focus: none;
-    --n-border-radius: var(--md-shape-full);
+    background-color: transparent;
+    color: var(--md-on-surface-variant);
+    font-family: var(--md-font-plain);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* M3 状态层：用 currentColor + 不透明度表达 hover/pressed，状态不只靠颜色 */
+.search-bar .platform-btn::before,
+.search-bar .search-clear-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--md-duration-short) var(--md-easing-standard);
+}
+
+@media (hover: hover) {
+    .search-bar .platform-btn:hover::before,
+    .search-bar .search-clear-btn:hover::before {
+        opacity: var(--md-state-hover);
+    }
+}
+
+.search-bar .platform-btn:active::before,
+.search-bar .search-clear-btn:active::before {
+    opacity: var(--md-state-pressed);
+}
+
+.search-bar .platform-btn:focus-visible,
+.search-bar .search-clear-btn:focus-visible {
+    outline: 2px solid var(--md-primary);
+    outline-offset: 0;
+}
+
+.search-bar .platform-btn {
+    flex: 0 1 auto;
+    gap: var(--md-space-1);
+    min-width: 0;
+    max-width: 40%;
+    padding: 0 var(--search-inline-pad);
+    font-size: var(--md-body-medium);
+    font-weight: var(--md-weight-medium);
+    line-height: var(--md-body-medium-line);
 }
 
 .platform-label {
@@ -198,38 +272,50 @@ function handleClear() {
 
 .platform-arrow {
     flex-shrink: 0;
-    margin-left: var(--md-space-1);
-    color: currentColor;
 }
 
-/* 文本框退到容器里，自身不画边框与底色。 */
+.search-divider {
+    flex: 0 0 auto;
+    width: 1px;
+    height: var(--md-space-6);
+    margin: 0 var(--md-space-2);
+    background-color: var(--md-outline-variant);
+}
+
+.search-bar .search-clear-btn {
+    width: var(--md-target-min);
+}
+
+/* ---------- 输入区：与容器同形，自身不画边框与底色 ---------- */
+
 .search-bar .search-input {
-    flex: 1;
+    flex: 1 1 0%;
     min-width: 0;
-    --n-height: var(--md-target-min);
-    --n-border: none;
-    --n-border-hover: none;
-    --n-border-focus: none;
-    --n-border-disabled: none;
-    --n-box-shadow-focus: none;
-    --n-color: transparent;
-    --n-color-focus: transparent;
-    --n-color-disabled: transparent;
-    --n-text-color: var(--md-on-surface);
-    --n-text-color-focus: var(--md-on-surface);
-    --n-placeholder-color: var(--md-on-surface-variant);
-    --n-caret-color: var(--md-primary);
-    --n-padding-left: var(--md-space-2);
-    --n-padding-right: var(--md-space-2);
+    height: var(--md-target-min);
+    padding: 0;
+    border: none;
+    border-radius: var(--md-shape-full);
+    background-color: transparent;
+    box-shadow: none;
+    color: var(--md-on-surface);
+    /* 注意：Naive 会把主题写成元素上的内联 --n-* 变量，内联变量压过类选择器，
+       因此这里（以及下面 :deep 内）必须写真实属性，不能只覆盖 --n-* 变量。 */
 }
 
 .search-input :deep(.n-input-wrapper) {
-    padding-left: var(--n-padding-left);
-    padding-right: var(--n-padding-right);
+    padding-left: var(--search-inline-pad);
+    padding-right: var(--md-space-2);
 }
 
 .search-input :deep(.n-input__input-el) {
     font-size: var(--search-font-size);
+    color: var(--md-on-surface);
+    caret-color: var(--md-primary);
+}
+
+.search-input :deep(.n-input__placeholder) {
+    font-size: var(--search-font-size);
+    color: var(--md-on-surface-variant);
 }
 
 .search-input :deep(.n-input__border),
@@ -241,14 +327,16 @@ function handleClear() {
     align-items: center;
 }
 
-/* 搜索动作：区域内唯一的 filled 主操作，图标 24dp、命中区域 48dp。 */
+/* ---------- 主操作：唯一的 filled 圆形搜索按钮 ---------- */
+
 .search-bar .search-btn {
-    flex-shrink: 0;
+    flex: 0 0 auto;
     width: var(--md-target-min);
+    min-width: var(--md-target-min);
+    height: var(--md-target-min);
     min-height: var(--md-target-min);
     padding: 0;
     border-radius: var(--md-shape-full);
-    --n-border-radius: var(--md-shape-full);
 }
 
 .search-bar .search-btn :deep(.n-button__content) {
