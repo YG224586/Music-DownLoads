@@ -44,7 +44,7 @@ export interface TaskTransport {
     subscribe(handlers: TaskEventHandlers): Promise<() => void>
 }
 
-// 桌面与移动端走 Tauri IPC，浏览器走 HTTP/SSE；页面和 store 只依赖此接口。
+// Tauri 端走 IPC，浏览器预览走 HTTP/SSE；页面和 store 只依赖此接口。
 export const taskTransport: TaskTransport = isTauri()
     ? tauriTaskTransport
     : webTaskTransport

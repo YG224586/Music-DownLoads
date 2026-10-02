@@ -33,7 +33,7 @@ impl PlatformDownloadLinkProvider {
         }
     }
 
-    /// 独立进程入口只需提供持久化凭据文件路径；凭据会在每次请求时读取并按需刷新。
+    /// 直接以持久化凭据文件构造时只需提供文件路径；凭据会在每次请求时读取并按需刷新。
     pub fn from_credentials_file(path: impl Into<PathBuf>) -> Self {
         let client = link_client();
         let qq_credentials = Arc::new(FileQqCredentialSource::new(path, client.clone()));

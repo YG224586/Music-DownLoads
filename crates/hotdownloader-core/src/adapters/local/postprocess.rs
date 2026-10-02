@@ -109,7 +109,7 @@ pub fn write_audio_metadata(
     Ok(true)
 }
 
-/// 普通文件系统的完整收尾实现，供独立进程持有。
+/// 普通文件系统的完整收尾实现。
 pub struct LocalDownloadPostprocessor;
 
 impl DownloadPostprocessor for LocalDownloadPostprocessor {

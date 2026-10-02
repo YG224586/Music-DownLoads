@@ -22,7 +22,7 @@ use hotdownloader_core::download::worker::download_task;
 
 use super::tauri_postprocess::TauriDownloadPostprocessor;
 
-/// 将调度器任务交给共享核心 worker，并组装桌面与 Android 所需的平台端口。
+/// 将调度器任务交给共享核心 worker，并组装 Android 端所需的平台端口。
 pub struct TauriTaskRunner {
     app: AppHandle,
 }
@@ -128,7 +128,7 @@ impl DownloadProgressSink for TauriDownloadProgressSink {
     }
 }
 
-/// 桌面与 Android 的下载设置来源；默认目录沿用当前平台的路径选择逻辑。
+/// Android 端的下载设置来源；默认目录沿用当前平台的路径选择逻辑。
 pub struct TauriDownloadConfigProvider {
     app: AppHandle,
 }
@@ -148,7 +148,7 @@ impl DownloadConfigProvider for TauriDownloadConfigProvider {
     }
 }
 
-/// 桌面端只提供当前 QQ 凭据；平台选择和链接 HTTP 请求统一位于共享核心。
+/// 安卓端只提供当前 QQ 凭据；平台选择和链接 HTTP 请求统一位于共享核心。
 pub struct TauriDownloadLinkProvider {
     provider: PlatformDownloadLinkProvider,
 }

@@ -37,7 +37,7 @@ export default defineConfig({
     // 防止 Vite 清除 Rust 显示的错误
     clearScreen: false,
     server: {
-        // 浏览器开发模式复用独立服务的同源 API；Tauri 开发模式仍走 IPC。
+        // 浏览器开发模式复用同源 mock API；Tauri 开发模式仍走 IPC。
         proxy: {
             '/api': 'http://127.0.0.1:8787',
         },

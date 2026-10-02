@@ -7,7 +7,7 @@ use hotdownloader_core::task::state::{TaskEventSink, TaskRepository};
 const TASK_UPDATED: &str = "task-updated";
 const TASK_REMOVED: &str = "task-removed";
 
-/// 保持现有 Tauri Store 数据格式和事件名称，供桌面及 Android 客户端使用。
+/// 保持现有 Tauri Store 数据格式和事件名称，供安卓客户端使用。
 pub struct TauriTaskIo {
     app: AppHandle,
 }

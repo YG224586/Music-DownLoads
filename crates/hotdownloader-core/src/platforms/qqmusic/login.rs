@@ -33,7 +33,7 @@ pub trait LoginCredentialStore: Send + Sync {
     fn save(&self, settings: &Value) -> Result<(), String>;
 }
 
-/// 独立进程使用的本地 JSON 凭据文件。与下载链接凭据源读取同一份文件。
+/// 本地 JSON 凭据文件。与下载链接凭据源读取同一份文件。
 pub struct FileLoginStore {
     path: PathBuf,
     write_lock: std::sync::Mutex<()>,

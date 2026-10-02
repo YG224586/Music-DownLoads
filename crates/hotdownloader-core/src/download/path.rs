@@ -4,7 +4,7 @@ use super::filename;
 use crate::download::context::SongInfo;
 
 /// 根据任务设置计算最终文件位置，返回 SAF 标志、路径或文件名、SAF 文件夹 URI。
-/// SAF 只在 Android 构建中生效；普通服务端始终使用本地文件系统路径。
+/// SAF 只在 Android 构建中生效；其他宿主始终使用本地文件系统路径。
 pub fn resolve_download_path(
     dir_setting: &str,
     template_setting: &str,

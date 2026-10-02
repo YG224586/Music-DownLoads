@@ -238,7 +238,7 @@ const columns = computed<DataTableColumn<TaskRecord>[]>(() => [
                     ),
                 ]),
             ]
-            // Android 和 Web 无法使用桌面文件管理器，因此直接展示文件路径；无路径的行不渲染占位符。
+            // Android 无法使用桌面文件管理器，因此直接展示文件路径；无路径的行不渲染占位符。
             if (isAndroid.value && row.filePath) {
                 lines.push(
                     h('div', { class: 'song-filepath' }, [

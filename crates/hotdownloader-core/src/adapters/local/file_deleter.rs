@@ -4,7 +4,7 @@ use futures_util::future::BoxFuture;
 
 use crate::download::ports::FileDeleter;
 
-/// 普通文件系统删除实现；Docker 运行时可直接使用。
+/// 普通文件系统删除实现；应用私有目录与公共下载目录均可直接使用。
 pub struct LocalFileDeleter;
 
 impl FileDeleter for LocalFileDeleter {

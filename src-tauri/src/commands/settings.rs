@@ -1,4 +1,4 @@
-//! Tauri 设置命令。与独立服务共用字段验证和冲突判定，存储仍使用现有 data.json。
+//! Tauri 设置命令。字段验证和冲突判定位于共享核心，存储使用现有 data.json。
 
 use hotdownloader_core::settings::patch::{
     apply_patch, snapshot, SettingsPatch, SettingsPatchError, SettingsScope, SettingsSnapshot,
@@ -21,7 +21,7 @@ fn read_stored(raw: &str) -> Result<Value, String> {
     }
 }
 
-/// 冲突包含服务端当前快照，前端才能让用户逐字段选择保留哪一个值。
+/// 冲突包含后端当前快照，前端才能让用户逐字段选择保留哪一个值。
 fn patch_error(error: SettingsPatchError) -> String {
     match error {
         SettingsPatchError::Invalid(message) => message,

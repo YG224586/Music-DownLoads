@@ -1,5 +1,5 @@
-//! QQ 音乐下载凭据端口及独立进程的 JSON 文件实现。
-//! 文件字段沿用桌面设置中的 loginUin/authst/refreshToken 等名称，便于迁移已有登录态。
+//! QQ 音乐下载凭据端口及基于 JSON 文件的实现。
+//! 文件字段沿用客户端历史设置中的 loginUin/authst/refreshToken 等名称，便于迁移已有登录态。
 
 use std::path::{Path, PathBuf};
 
@@ -16,13 +16,13 @@ pub struct QqAuth {
     pub authst: String,
 }
 
-/// 下载任务每次获取链接时读取当前登录态。桌面端可以从 Tauri Store 获取，
-/// 独立进程从本地文件获取；两者都无需让前端保管或传递令牌。
+/// 下载任务每次获取链接时读取当前登录态。安卓端可以从 Tauri Store 获取，
+/// 基于文件的实现从本地文件获取；两者都无需让前端保管或传递令牌。
 pub trait QqCredentialSource: Send + Sync {
     fn current(&self) -> BoxFuture<'_, Result<Option<QqAuth>, String>>;
 }
 
-/// 独立进程的凭据适配器。文件不存在代表匿名访问；格式损坏则明确报错，
+/// 基于文件的凭据适配器。文件不存在代表匿名访问；格式损坏则明确报错，
 /// 避免悄悄把带会员权限的下载改成匿名请求。
 pub struct FileQqCredentialSource {
     path: PathBuf,
@@ -60,7 +60,7 @@ impl FileQqCredentialSource {
             .await
             .map_err(|error| format!("创建 QQ 凭据目录失败: {error}"))?;
 
-        // Linux/Docker 上用同目录临时文件与 rename 原子替换，进程中断时保留上一份完整凭据。
+        // Linux/Android 上用同目录临时文件与 rename 原子替换，进程中断时保留上一份完整凭据。
         let suffix = rand::random::<u64>();
         let name = self
             .path
@@ -219,7 +219,7 @@ impl FileQqCredentialSource {
     }
 }
 
-/// 与桌面端扫码登录使用相同的三种刷新参数；拆成纯函数便于离线验证。
+/// 与客户端扫码登录使用相同的三种刷新参数；拆成纯函数便于离线验证。
 fn build_refresh_param(settings: &Value, old: &QqAuth) -> Result<Value, String> {
     let music_id = old.uin.parse::<u64>().map_err(|_| "uin 必须为数字")?;
     let login_type = settings["loginResponseData"]["loginType"]

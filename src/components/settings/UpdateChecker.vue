@@ -1,5 +1,5 @@
 <template>
-    <!-- 检查更新入口（移动端与桌面端通用） -->
+    <!-- 检查更新入口 -->
     <div v-if="showEntry" class="check-update-entry">
         <n-button
             type="primary"
@@ -11,7 +11,7 @@
         </n-button>
     </div>
 
-    <!-- 更新信息弹窗：桌面端最大宽度 600px，移动端左右留白 16px -->
+    <!-- 更新信息弹窗：最大宽度 600px，窄屏左右留白 16px -->
     <n-modal
         v-if="showModal"
         v-model:show="showUpdateModal"

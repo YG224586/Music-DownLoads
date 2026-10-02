@@ -12,12 +12,6 @@ use std::sync::Arc;
 use storage::store_wrapper;
 use tauri::Manager;
 
-#[cfg(desktop)]
-use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-};
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -68,62 +62,6 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 engine_clone.run_scheduler().await;
             });
-
-            // ========== 系统托盘（仅桌面端） ==========
-            #[cfg(desktop)]
-            {
-                // 提供系统托盘图标，支持显示/隐藏主窗口和退出应用
-                let toggle_item =
-                    MenuItem::with_id(app, "toggle", "显示/隐藏主窗口", true, None::<&str>)?;
-                let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-                let menu = Menu::with_items(
-                    app,
-                    &[
-                        &toggle_item,
-                        &PredefinedMenuItem::separator(app)?,
-                        &quit_item,
-                    ],
-                )?;
-
-                let tray = TrayIconBuilder::new()
-                    .icon(app.default_window_icon().unwrap().clone())
-                    .menu(&menu)
-                    .show_menu_on_left_click(false) // 禁止左键弹菜单，左键改为显示窗口
-                    .on_menu_event(|app, event| match event.id.as_ref() {
-                        "toggle" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                if window.is_visible().unwrap_or(false) {
-                                    window.hide().unwrap();
-                                } else {
-                                    window.show().unwrap();
-                                    window.set_focus().unwrap();
-                                }
-                            }
-                        }
-                        "quit" => {
-                            app.exit(0);
-                        }
-                        _ => {}
-                    })
-                    .on_tray_icon_event(|tray, event| {
-                        if let TrayIconEvent::Click {
-                            button: MouseButton::Left,
-                            button_state: MouseButtonState::Up,
-                            ..
-                        } = event
-                        {
-                            let app = tray.app_handle();
-                            if let Some(window) = app.get_webview_window("main") {
-                                window.show().unwrap();
-                                window.set_focus().unwrap();
-                            }
-                        }
-                    })
-                    .build(app)?;
-
-                // 保存托盘实例，防止被 drop
-                app.manage(tray);
-            }
 
             Ok(())
         })

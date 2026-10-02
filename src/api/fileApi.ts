@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { isTauri } from '@tauri-apps/api/core'
 
-/** 桌面端使用原生目录对话框；取消选择时返回 null。 */
+/** 安卓端使用原生目录对话框；取消选择时返回 null。 */
 export async function chooseDownloadDirectory(): Promise<string | null> {
     if (!isTauri()) {
         // 浏览器无法选择服务器上的路径；服务端目录由部署环境指定。

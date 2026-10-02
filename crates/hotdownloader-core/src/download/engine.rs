@@ -42,7 +42,7 @@ fn panic_payload_message(payload: &(dyn std::any::Any + Send)) -> String {
 }
 
 /// 单个下载任务的执行端口。调度器不关心链接、凭据及文件写入所用的运行时。
-/// Tauri 适配器组装端口后调用共享核心的 download_task；独立服务可提供另一套端口。
+/// Tauri 适配器组装端口后调用共享核心的 download_task。
 pub trait DownloadTaskRunner: Send + Sync {
     fn run(&self, context: TaskContext, controller: TaskController) -> BoxFuture<'static, bool>;
     fn report_error(&self, task_id: &str, message: &str);

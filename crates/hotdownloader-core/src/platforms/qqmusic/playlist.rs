@@ -90,7 +90,7 @@ fn numeric_string(value: &Value) -> Option<String> {
 }
 
 fn qq_cover_url(url: &str) -> String {
-    // QQ 返回的封面常以 HTTP 开头；Web 部署在 HTTPS 下需要 HTTPS 地址。
+    // QQ 返回的封面常以 HTTP 开头；Android 端在 HTTPS 下需要 HTTPS 地址。
     if let Some(path) = url.strip_prefix("http://y.gtimg.cn/") {
         format!("https://y.gtimg.cn/{path}")
     } else {

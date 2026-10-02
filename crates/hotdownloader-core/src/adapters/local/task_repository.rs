@@ -48,7 +48,7 @@ impl TaskRepository for JsonTaskRepository {
                 .and_then(|_| file.sync_all())
                 .map_err(|error| format!("写入任务文件失败: {error}"))?;
 
-            // Docker 目标为 Linux，rename 可原子替换旧文件。Windows 标准库不支持
+            // Linux/Android 上 rename 可原子替换旧文件。Windows 标准库不支持
             // 覆盖现有目标，仅在这个未用于 Tauri 的文件仓库实现中回退为先删除旧文件。
             #[cfg(windows)]
             if self.path.exists() {

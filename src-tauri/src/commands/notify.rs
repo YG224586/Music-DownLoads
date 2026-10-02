@@ -18,7 +18,7 @@ use tauri_plugin_notification::{NotificationExt, PermissionState};
 ///
 /// # 注意
 /// - 通知发送失败不会影响主流程，仅记录错误日志。
-/// - 桌面端点击通知会聚焦主窗口；移动端行为由系统处理。
+/// - Android 端点击通知的行为由系统处理。
 pub fn send_download_complete_notification(app: &AppHandle, song_title: &str, artist: &str) {
     // 构建通知标题和内容
     let title = format!("下载完成：{}", song_title);

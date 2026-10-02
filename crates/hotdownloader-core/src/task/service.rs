@@ -13,7 +13,7 @@ use crate::task::rules::TaskRules;
 use crate::task::state::TaskState;
 
 /// 运行时只提供设置快照和文件系统查询。任务的创建、冲突处理和重试规则留在核心。
-/// SAF 的路径解释由 Tauri 实现；普通服务端只需检查本地文件。
+/// SAF 的路径解释由 Tauri 实现；其他宿主只需检查本地文件。
 pub trait TaskEnvironment: Send + Sync {
     fn task_rules(&self) -> TaskRules;
     fn download_config(&self) -> DownloadConfig;

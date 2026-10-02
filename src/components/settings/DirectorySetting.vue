@@ -80,9 +80,9 @@ onMounted(async () => {
     }
 })
 
-// 桌面端目录选择
+// 目录选择
 async function selectDirectory() {
-    // 仅桌面端调用
+    // 仅原生端调用
     try {
         const selected = await chooseDownloadDirectory()
         if (selected) {

@@ -22,11 +22,11 @@
             <h1 class="app-title">音乐下载吧</h1>
             <!-- 直接使用注入的变量，不再硬编码 -->
             <div class="app-version">版本 {{ version }}</div>
-            <!-- 更新为与 README 一致的跨平台描述 -->
+            <!-- 与 README 保持一致的项目描述 -->
             <p class="app-description">
-                基于共享 Rust 下载核心和 Vue 3 的音乐下载工具，支持 Tauri
-                桌面端、Android 端与 Docker/Web
-                部署，提供搜索、歌单导入、多任务下载、自动降级、音频解密等功能。
+                音乐下载吧是安卓端音乐下载器，基于 Tauri 2 与 Vue 3
+                构建界面、复用 Rust
+                下载核心，提供搜索、歌单导入、多任务下载、自动降级、音频解密等功能。
             </p>
         </header>
 
@@ -191,7 +191,7 @@ function openLicense(item: ComponentInfo) {
     display: flex;
     flex-direction: column;
     gap: var(--md-space-4);
-    /* 长文限制可读宽度，避免桌面端一行过长 */
+    /* 长文限制可读宽度，避免宽屏一行过长 */
     max-width: 800px;
     min-width: 0;
     margin: 0 auto;

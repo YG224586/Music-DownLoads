@@ -13,7 +13,7 @@ export async function getRuntimePlatform(): Promise<string> {
 }
 
 /**
- * 拦截桌面窗口关闭请求。回调返回 true 时由适配层关闭窗口，
+ * 拦截窗口关闭请求。回调返回 true 时由适配层关闭窗口，
  * false 时保持窗口打开；调用方无需接触 Tauri 的 CloseRequestedEvent。
  */
 export async function subscribeCloseRequest(

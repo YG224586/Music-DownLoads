@@ -4,8 +4,7 @@
  *
  * 输出：
  *   - src/data/licenses.ts          前端 TypeScript 模块
- *   - NOTICE / THIRD_PARTY_LICENSES.txt                          桌面端
- *   - crates/hotdownloader-server/NOTICE / THIRD_PARTY_LICENSES.txt  服务端
+ *   - NOTICE / THIRD_PARTY_LICENSES.txt                          应用随包分发（Tauri + 共享核心）
  *
  * 用法：npm run generate:licenses
  *
@@ -28,13 +27,8 @@ const spdx = require('spdx-license-list/full')
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 const srcTauri = path.join(projectRoot, 'src-tauri')
-const serverCrate = path.join(projectRoot, 'crates', 'hotdownloader-server')
 const dataDir = path.join(projectRoot, 'src', 'data')
-const FIRST_PARTY_CRATES = new Set([
-    'hotdownloader',
-    'hotdownloader-core',
-    'hotdownloader-server',
-])
+const FIRST_PARTY_CRATES = new Set(['hotdownloader', 'hotdownloader-core'])
 
 // ---------------------------------------------------------------------------
 // 常量
@@ -402,32 +396,23 @@ function writeThirdPartyLicenses(rust, frontend, texts, outputPath) {
 // ---------------------------------------------------------------------------
 
 async function main() {
-    const desktopRust = collectCargoDeps(srcTauri)
-    const serverRust = collectCargoDeps(serverCrate)
+    const rust = collectCargoDeps(srcTauri)
     const frontend = await collectNpmDeps()
 
     console.log('📝 生成许可证文件...')
-    const desktopTexts = collectLicenseTexts([...desktopRust, ...frontend])
-    const serverTexts = collectLicenseTexts([...serverRust, ...frontend])
+    const texts = collectLicenseTexts([...rust, ...frontend])
 
-    writeLicensesTs(desktopRust, frontend, desktopTexts)
-    writeNotice(desktopRust, frontend, path.join(projectRoot, 'NOTICE'))
+    writeLicensesTs(rust, frontend, texts)
+    writeNotice(rust, frontend, path.join(projectRoot, 'NOTICE'))
     writeThirdPartyLicenses(
-        desktopRust,
+        rust,
         frontend,
-        desktopTexts,
+        texts,
         path.join(projectRoot, 'THIRD_PARTY_LICENSES.txt'),
-    )
-    writeNotice(serverRust, frontend, path.join(serverCrate, 'NOTICE'))
-    writeThirdPartyLicenses(
-        serverRust,
-        frontend,
-        serverTexts,
-        path.join(serverCrate, 'THIRD_PARTY_LICENSES.txt'),
     )
 
     console.log(
-        `\n✅ 完成：桌面端 ${desktopRust.length}、服务端 ${serverRust.length} 个 Rust 组件，前端 ${frontend.length} 个组件。\n`,
+        `\n✅ 完成：Rust ${rust.length} 个组件，前端 ${frontend.length} 个组件。\n`,
     )
 }
 

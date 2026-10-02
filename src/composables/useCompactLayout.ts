@@ -3,7 +3,7 @@ import { onScopeDispose, readonly, ref } from 'vue'
 /**
  * M3 宽度分级中的 compact（< 600dp）。
  * 仅表达“当前窗口放不下持久侧边导航”，因此用媒体查询而不是设备判断：
- * 手机横屏、折叠屏展开、桌面窗口缩放都会自然切换形态。
+ * 手机横屏、折叠屏展开与窗口缩放都会自然切换形态。
  */
 export const COMPACT_LAYOUT_QUERY = '(max-width: 599px)'
 
