@@ -227,7 +227,9 @@ fn has_more(meta: &Value, page: u32, limit: u32) -> bool {
 }
 
 /// 桌面端公共参数（`comm`）。
-fn pc_comm() -> Value {
+///
+/// 内置多音源回退（`download/fallback.rs`）反查歌曲详情时复用同一份匿名 PC 指纹。
+pub(crate) fn pc_comm() -> Value {
     json!({
         "_channelid": "0",
         "_os_version": "6.2.9200-2",

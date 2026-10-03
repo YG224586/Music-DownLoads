@@ -50,6 +50,52 @@ impl PlatformDownloadLinkProvider {
             qq_credentials,
         }
     }
+
+    /// 主平台确定性失败后的内置多音源回退。
+    ///
+    /// 只有「重试也救不回来」的错误才走回退：网络类错误仍交给
+    /// [`fetch_download_link_with_retry`] 重试，保持原有重试语义。
+    /// 回退失败时不改变用户可见的主平台错误（找不到匹配曲目时给更明确的文案）。
+    async fn fallback_after_failure(
+        &self,
+        platform: Platform,
+        song_mid: &str,
+        filename: &str,
+        primary_error: String,
+    ) -> Result<(String, String), String> {
+        use crate::download::fallback::{self, FallbackOutcome};
+
+        if is_retryable_link_error(&primary_error) {
+            return Err(primary_error);
+        }
+
+        log::warn!("歌曲 {song_mid} 主平台取链失败（{primary_error}），尝试内置多音源回退");
+
+        match fallback::fetch_from_other_sources(&self.client, platform, song_mid, filename).await {
+            FallbackOutcome::Linked(link) => {
+                log::info!(
+                    "歌曲 {song_mid} 从 QQ 音乐回退到{}成功，实际音质 {}",
+                    fallback::platform_label(link.source),
+                    link.quality
+                );
+                Ok((link.url, link.key))
+            }
+            FallbackOutcome::Unavailable(reason) => {
+                log::warn!("歌曲 {song_mid} 内置回退失败: {reason}");
+                if matches!(platform, Platform::QqMusic) {
+                    // QQ 的原始错误（如 104003「无法获取下载链接」）对用户没有指导意义，
+                    // 换成「需要登录或曲目受限 + 没找到替代」的说明。
+                    Err(fallback::NO_MATCH_MESSAGE.to_string())
+                } else {
+                    Err(primary_error)
+                }
+            }
+            FallbackOutcome::Transient(reason) => {
+                log::warn!("歌曲 {song_mid} 内置回退遇到临时错误: {reason}");
+                Err(primary_error)
+            }
+        }
+    }
 }
 
 fn link_client() -> Client {
@@ -71,14 +117,34 @@ impl DownloadLinkProvider for PlatformDownloadLinkProvider {
         Box::pin(async move {
             match platform {
                 Platform::QqMusic => {
-                    let credentials = self.qq_credentials.current().await?;
-                    crate::platforms::qqmusic::link::fetch_vkey_link(
-                        &self.client,
-                        song_mid,
-                        filename,
-                        credentials.as_ref(),
-                    )
-                    .await
+                    // 未登录（匿名）时 QQ 只会拒绝付费曲目和 320k/flac 等高音质，
+                    // 这类确定性失败由内置多音源回退接手，不再直接失败。
+                    let primary = match self.qq_credentials.current().await {
+                        Ok(credentials) => {
+                            crate::platforms::qqmusic::link::fetch_vkey_link(
+                                &self.client,
+                                song_mid,
+                                filename,
+                                credentials.as_ref(),
+                            )
+                            .await
+                        }
+                        // 凭据文件损坏同样是确定性失败，回退比直接失败更有用。
+                        Err(error) => Err(error),
+                    };
+
+                    match primary {
+                        Ok(link) => Ok(link),
+                        Err(error) => {
+                            self.fallback_after_failure(
+                                Platform::QqMusic,
+                                song_mid,
+                                filename,
+                                error,
+                            )
+                            .await
+                        }
+                    }
                 }
                 // 酷我当前接口不使用 QQ 登录态，不能因 QQ 凭据文件出错而阻止酷我任务。
                 Platform::Kuwo => {
