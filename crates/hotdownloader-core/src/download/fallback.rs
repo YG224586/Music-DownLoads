@@ -590,7 +590,7 @@ level:h,bitrate:128,format:mp3,size:4.12Mb";
 
     #[test]
     fn qualities_exclude_encrypted_and_respect_format_and_cap() {
-        let qualities: Value = kuwo_parser::build_qualities(FULL_INFO);
+        let qualities = Value::Array(kuwo_parser::build_qualities(FULL_INFO));
         let mp3 = select_qualities(&qualities, &["mp3"], None);
         assert_eq!(
             mp3.iter().map(|q| q.filename.as_str()).collect::<Vec<_>>(),

@@ -1,4 +1,4 @@
-﻿import { h, ref } from 'vue'
+import { h, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDialog, useNotification, NButton } from 'naive-ui'
 import type { Quality, SongInfo, QualityItem, DuplicateAction } from '../types'
@@ -119,7 +119,7 @@ export function useDownloadActions() {
             let quality = forceQuality ?? settingsStore.settings.defaultQuality
             if (quality === 'ask') {
                 try {
-                    // 音源配置可在选择器中限制可选档位；未配置或全被过滤时回退原始列表。
+                    // 用户选择「每次询问」时弹出音质选择器，档位取自该歌曲实际可下载的列表。
                     quality = await askQuality(song.qualities)
                 } catch {
                     return
@@ -153,7 +153,7 @@ export function useDownloadActions() {
                 // 批量操作只询问一次用户偏好的品质；每首歌是否可用由 Rust 逐一判断。
                 const union = new Map<string, QualityItem>()
                 for (const song of songs) {
-                    // 音源配置限制的选择器档位同样作用于批量合并列表。
+                    // 合并所有歌曲的可选档位去重，作为批量下载的统一候选列表。
                     for (const item of song.qualities) {
                         union.set(item.quality, item)
                     }
