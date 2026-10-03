@@ -234,6 +234,11 @@ function buildOverrides(p: MdPalette): GlobalThemeOverrides {
             tableColor: p.surfaceContainerLow,
             tableHeaderColor: p.surfaceContainerHigh,
             inputColor: p.surfaceContainerLowest,
+            /* Naive 的 inputColorDisabled 默认 #fafafc（既非本主题的 surface，
+               也不属于任何 M3 角色），会在任务页「不可选中的行」的 16×16 复选框底上
+               露出一个偏蓝的浅灰方块（实测 rgb(250,250,252)）。M3 的禁用容器
+               语义是 onSurface 12% 叠加，这里取调色板里最接近的 surfaceContainerHighest。 */
+            inputColorDisabled: p.surfaceContainerHighest,
             actionColor: p.surfaceContainer,
             tagColor: p.secondaryContainer,
             avatarColor: p.primaryContainer,

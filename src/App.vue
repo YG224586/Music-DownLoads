@@ -2,6 +2,8 @@
     <n-config-provider
         :theme="theme"
         :theme-overrides="themeOverrides"
+        :locale="zhCN"
+        :date-locale="dateZhCN"
         class="app-root"
     >
         <n-dialog-provider>
@@ -20,6 +22,8 @@ import {
     NConfigProvider,
     NDialogProvider,
     NNotificationProvider,
+    dateZhCN,
+    zhCN,
 } from 'naive-ui'
 import NavLayout from './components/NavLayout.vue'
 import UpdateChecker from './components/settings/UpdateChecker.vue'
