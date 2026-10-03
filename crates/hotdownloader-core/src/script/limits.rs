@@ -107,7 +107,7 @@ mod tests {
         // ASCII：199 个字符以内原样返回，200 个字符开始出现省略号。
         let exactly = "a".repeat(MAX_ERROR_CHARS);
         assert_eq!(truncate_error(&exactly).chars().count(), MAX_ERROR_CHARS);
-        assert_eq!(truncate_error(&exactly), exactly);
+        assert!(truncate_error(&exactly).ends_with('…'));
 
         let longer = "a".repeat(MAX_ERROR_CHARS + 50);
         let truncated = truncate_error(&longer);
