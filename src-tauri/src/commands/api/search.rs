@@ -1,8 +1,13 @@
 //! 搜索命令路由层
+//!
+//! 路由规则：QQ 音乐与酷我音乐提供完整能力；新增的酷狗、网易云、哔哩哔哩、咪咕
+//! 目前只实现歌曲搜索（歌曲搜索的分派见 `search_songs`）。其余能力在后端统一拒绝，
+//! 前端 `app/src/config/platforms.ts` 的能力表负责隐藏入口，两层必须一致。
 
 use hotdownloader_core::platforms::{self, Platform};
 use tauri::{command, AppHandle};
 
+use crate::utils::platform_caps::{unsupported, SCRIPT_UNSUPPORTED};
 use crate::utils::settings::get_artist_separator;
 
 #[command]
@@ -23,7 +28,19 @@ pub async fn search_songs(
         Platform::Kuwo => {
             platforms::kuwo::search::search_songs(&separator, keyword, page, limit).await
         }
-        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
+        Platform::Netease => {
+            platforms::netease::search::search_songs(&separator, keyword, page, limit).await
+        }
+        Platform::Migu => {
+            platforms::migu::search::search_songs(&separator, keyword, page, limit).await
+        }
+        Platform::Bilibili => {
+            platforms::bilibili::search::search_songs(&separator, keyword, page, limit).await
+        }
+        Platform::Kugou => {
+            platforms::kugou::search::search_songs(&separator, keyword, page, limit).await
+        }
+        Platform::Script(_) => Err(SCRIPT_UNSUPPORTED.into()),
     }
 }
 
@@ -37,7 +54,8 @@ pub async fn fetch_cover(platform: String, song_id: u64) -> Result<String, Strin
     match p {
         Platform::QqMusic => Err("QQ 音乐封面已包含在搜索结果中，无需单独获取".into()),
         Platform::Kuwo => platforms::kuwo::cover::fetch_cover(song_id).await,
-        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
+        Platform::Script(_) => Err(SCRIPT_UNSUPPORTED.into()),
+        other => Err(unsupported(other, "封面获取")),
     }
 }
 
@@ -60,7 +78,8 @@ pub async fn search_albums(
         Platform::Kuwo => {
             platforms::kuwo::search::search_albums(&separator, keyword, page, limit).await
         }
-        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
+        Platform::Script(_) => Err(SCRIPT_UNSUPPORTED.into()),
+        other => Err(unsupported(other, "专辑搜索")),
     }
 }
 
@@ -74,7 +93,8 @@ pub async fn fetch_album_songs(
     match platform.parse::<Platform>()? {
         Platform::QqMusic => platforms::qqmusic::album::fetch_album_songs(&separator, id).await,
         Platform::Kuwo => platforms::kuwo::album::fetch_album_songs(&separator, id).await,
-        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
+        Platform::Script(_) => Err(SCRIPT_UNSUPPORTED.into()),
+        other => Err(unsupported(other, "专辑详情")),
     }
 }
 
@@ -89,7 +109,8 @@ pub async fn search_artists(
     match platform.parse::<Platform>()? {
         Platform::QqMusic => platforms::qqmusic::search::search_artists(keyword, page, limit).await,
         Platform::Kuwo => platforms::kuwo::search::search_artists(keyword, page, limit).await,
-        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
+        Platform::Script(_) => Err(SCRIPT_UNSUPPORTED.into()),
+        other => Err(unsupported(other, "歌手搜索")),
     }
 }
 
@@ -110,7 +131,8 @@ pub async fn fetch_artist_songs(
         Platform::Kuwo => {
             platforms::kuwo::artist::fetch_artist_songs(&separator, id, page, limit).await
         }
-        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
+        Platform::Script(_) => Err(SCRIPT_UNSUPPORTED.into()),
+        other => Err(unsupported(other, "歌手歌曲")),
     }
 }
 
@@ -131,7 +153,8 @@ pub async fn fetch_artist_albums(
         Platform::Kuwo => {
             platforms::kuwo::artist::fetch_artist_albums(&separator, id, page, limit).await
         }
-        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
+        Platform::Script(_) => Err(SCRIPT_UNSUPPORTED.into()),
+        other => Err(unsupported(other, "歌手专辑")),
     }
 }
 

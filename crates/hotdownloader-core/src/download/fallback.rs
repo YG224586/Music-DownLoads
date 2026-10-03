@@ -65,14 +65,20 @@ pub(crate) fn platform_label(platform: Platform) -> &'static str {
     match platform {
         Platform::QqMusic => "QQ 音乐",
         Platform::Kuwo => "酷我",
+        Platform::Kugou => "酷狗",
+        Platform::Netease => "网易云",
+        Platform::Bilibili => "哔哩哔哩",
+        Platform::Migu => "咪咕",
         Platform::Script(_) => "自定义音源",
     }
 }
 
 /// 主平台取链失败后的内置回退入口。
 ///
-/// 当前内置的匿名可用音源只有酷我（实测酷狗下载需付费、咪咕直链需签名、
-/// 网易云搜索结果错歌率高），因此只实现「QQ 音乐 → 酷我」这一个方向。
+/// 当前内置的匿名可用明文直链只有酷我（实测酷狗/咪咕/网易云的下载接口都要会员或签名），
+/// 且回退前的歌曲信息反查依赖 QQ 音乐匿名详情接口，因此只实现「QQ 音乐 → 酷我」一个方向。
+/// 其余内置平台（含新增的酷狗/网易云/哔哩哔哩/咪咕）保留主平台的原始错误，
+/// 用户可换平台重搜；跨平台自动改名落地比失败更糟。
 pub(crate) async fn fetch_from_other_sources(
     client: &Client,
     platform: Platform,
@@ -86,6 +92,9 @@ pub(crate) async fn fetch_from_other_sources(
         // 自定义音源脚本本身就是用户指定的来源，内置回退不接手。
         Platform::Script(_) => {
             FallbackOutcome::Unavailable("自定义音源任务不做内置回退".to_string())
+        }
+        other => {
+            FallbackOutcome::Unavailable(format!("{}任务没有可用的回退音源", platform_label(other)))
         }
     }
 }

@@ -6,7 +6,10 @@
                     settingsStore.settings.artistSeparator
                 }}</span>
                 <n-button
-                    v-if="getMusicEntityId(platform, artist.id, artist.mid)"
+                    v-if="
+                        canOpenArtist &&
+                        getMusicEntityId(platform, artist.id, artist.mid)
+                    "
                     text
                     size="small"
                     class="artist-link inline-link"
@@ -23,16 +26,27 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { ArtistReference } from '../../types'
 import { NButton } from 'naive-ui'
 import { useSettingsStore } from '../../stores/settingsStore'
 import { getMusicEntityId } from '../../utils/music'
+import { supportsCapability } from '../../config/platforms'
 
-defineProps<{
+const props = defineProps<{
     platform: string
     artists?: ArtistReference[]
     fallback: string
 }>()
+
+/*
+ * 平台能力门控：酷狗/网易云/哔哩哔哩/咪咕与脚本音源只有歌曲搜索能力，
+ * 歌手名一律退成纯文本，避免点进去只看到「暂不支持」的报错页。
+ * 详情标识校验（getMusicEntityId）继续保留：能力支持但标识无效时同样不可点。
+ */
+const canOpenArtist = computed(() =>
+    supportsCapability(props.platform, 'artist'),
+)
 
 defineEmits<{
     (e: 'click-artist', platform: string, artist: ArtistReference): void

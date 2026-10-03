@@ -36,8 +36,12 @@ pub async fn prepare_assets(
             Platform::Kuwo => {
                 crate::platforms::kuwo::lyrics::get_lyric_by_id(context.song_id).await
             }
-            // 自定义音源脚本没有歌词接口，只影响可选的歌词写入。
-            Platform::Script(_) => Err("自定义音源暂不支持歌词".to_string()),
+            // 自定义音源脚本与新增的内置平台（酷狗/网易云/哔哩哔哩/咪咕）都没有歌词接口，
+            // 这里只影响可选的歌词写入，失败会被下面统一降级为「无歌词」。
+            other => Err(format!(
+                "{}暂不支持歌词",
+                crate::download::fallback::platform_label(other)
+            )),
         };
         match result {
             Ok(lyric) => Some(lyric),

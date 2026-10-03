@@ -37,11 +37,11 @@ Android SAF、系统通知和窗口功能由 Tauri 运行时适配器实现。
 
 ## 平台请求与登录
 
-- `platforms` 包含 QQ 音乐与酷我的搜索、歌手、专辑、歌单、推荐、封面、歌词和解析逻辑。
+- `platforms` 包含六个内置平台：QQ 音乐与酷我音乐（搜索、歌手、专辑、歌单、推荐、封面、歌词）、酷狗音乐、网易云音乐、哔哩哔哩与咪咕音乐（歌曲搜索与下载直链），另加用户自装的脚本音源。
 - 需要歌手分隔符的函数直接接收 `&str`，由 Tauri IPC 入口从设置中提供该参数。
 - `PlatformDownloadLinkProvider` 请求 QQ 音乐与酷我下载链接，通过 `DownloadLinkProvider` 的错误分类处理临时网络故障并有限重试。
 - QQ 下载凭据由 `QqCredentialSource` 提供，安卓端由登录模块从 Tauri Store 读取。
-- `platforms::qqmusic::login` 实现 QQ 扫码、MQTT 会话、手动登录和凭据刷新，通过 `LoginCredentialStore` 接入 Tauri Store。Tauri 下载适配器调用 `download_auth` 校验凭据并尝试刷新；刷新失败时继续使用旧凭据，并由界面提示用户。
+- 应用内登录入口（QQ 扫码与 MQTT 会话）已按用户要求移除；`platforms::qqmusic::login` 现在只保留凭据读写、`get_login_status`、`download_auth`（凭据过期时自动刷新）与 `logout`，通过 `LoginCredentialStore` 接入 Tauri Store。Tauri 下载适配器调用 `download_auth` 校验凭据并尝试刷新；刷新失败时继续使用旧凭据，并由界面提示用户。
 
 ## 运行时接入
 

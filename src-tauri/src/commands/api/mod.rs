@@ -1,4 +1,4 @@
-pub mod login;
+pub mod account;
 pub mod lyrics;
 pub mod playlist;
 pub mod script_source;

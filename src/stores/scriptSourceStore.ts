@@ -1,13 +1,13 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import * as scriptSourceApi from '../api/scriptSourceApi'
+import { PLATFORMS } from '../config/platforms'
 import type { ScriptSourceItem, SearchResponse } from '../types'
 
-/** 平台 id → 展示名：内置音源，以及 "script:<id>" 之外的未知形态。 */
-const BUILTIN_LABELS: Record<string, string> = {
-    qqmusic: 'QQ 音乐',
-    kuwo: '酷我音乐',
-}
+/** 平台 id → 完整名称：内置音源来自 config/platforms.ts，未知形态原样返回。 */
+const BUILTIN_LABELS: Record<string, string> = Object.fromEntries(
+    PLATFORMS.map((item) => [item.key, item.name]),
+)
 
 function messageOf(error: unknown): string {
     return error instanceof Error ? error.message : String(error)

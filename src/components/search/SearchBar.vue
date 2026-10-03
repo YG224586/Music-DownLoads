@@ -133,10 +133,11 @@ const currentPlatformLabel = computed(() => {
     return found ? found.label : props.platform
 })
 
-// 下拉选项格式：Naive UI 需要 { label, key } 结构
+// 下拉选项格式：Naive UI 需要 { label, key } 结构。
+// 菜单项显示平台正式名（酷狗音乐、哔哩哔哩…），触发器仍用短 label 省窄屏宽度。
 const platformDropdownOptions = computed(() => {
     return props.platformOptions.map((p) => ({
-        label: p.label,
+        label: p.name,
         key: p.key,
     }))
 })

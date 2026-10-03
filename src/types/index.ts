@@ -12,6 +12,13 @@ export const ALL_QUALITY_ORDER: string[] = [
     'ape',
     'flac',
     'hires',
+    // 各平台自有的无损/空间音频档位：酷狗 atmos/clear、网易云 sky/jyeffect/jymaster。
+    // 依次为空间音频、高清、母带级，整体排在 QQ 音乐臻品系列之前（后者是当前最高档）。
+    '沉浸环绕声',
+    '全景声',
+    '高清臻音',
+    '超清母带',
+    '蝰蛇母带',
     '臻品全景声',
     '臻品全景声 5.1',
     '臻品全景声 7.1.4',

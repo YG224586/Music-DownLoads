@@ -1,6 +1,4 @@
-//! QQ 登录的 Tauri 存储适配器。扫码协议、会话状态和刷新策略位于共享核心。
-
-use std::sync::Arc;
+//! QQ 凭据的 Tauri 存储适配器。读取、校验与刷新策略位于共享核心。
 
 use hotdownloader_core::platforms::qqmusic::login::{
     self as qq_login, LoginCredentialStore, ResolvedDownloadAuth,
@@ -72,42 +70,14 @@ pub(crate) async fn download_auth(app: &AppHandle) -> ResolvedDownloadAuth {
     qq_login::download_auth(&TauriLoginStore::new(app)).await
 }
 
-pub(crate) async fn create_qr_login(app: AppHandle) -> Result<String, String> {
-    // 后台 MQTT 会话持有存储接口；窗口关闭不会终止核心中的会话任务。
-    qq_login::create_qr_login(Arc::new(TauriLoginStore { app })).await
+/// 只读的登录状态查询；不会写入或清除任何凭据。
+pub(crate) async fn get_login_status(app: &AppHandle) -> Result<String, String> {
+    qq_login::get_login_status(&TauriLoginStore::new(app)).await
 }
 
-pub(crate) async fn check_qr_login(qrcode_id: String) -> Result<String, String> {
-    qq_login::check_qr_login(qrcode_id).await
-}
-
-pub(crate) async fn login_with_uin_authst(
-    app: AppHandle,
-    uin: String,
-    authst: String,
-    refresh_token: Option<String>,
-    refresh_key: Option<String>,
-    access_token: Option<String>,
-    openid: Option<String>,
-) -> Result<String, String> {
-    qq_login::login_with_uin_authst(
-        &TauriLoginStore { app },
-        uin,
-        authst,
-        refresh_token,
-        refresh_key,
-        access_token,
-        openid,
-    )
-    .await
-}
-
-pub(crate) async fn logout(app: AppHandle) -> Result<(), String> {
-    qq_login::logout(&TauriLoginStore { app }).await
-}
-
-pub(crate) async fn get_login_status(app: AppHandle) -> Result<String, String> {
-    qq_login::get_login_status(&TauriLoginStore { app }).await
+/// 清除本地保存的登录凭据（保留其余设置）。登录入口已移除，这是唯一的账号写操作。
+pub(crate) async fn logout(app: &AppHandle) -> Result<(), String> {
+    qq_login::logout(&TauriLoginStore::new(app)).await
 }
 
 pub(crate) async fn fetch_created_playlists(app: &AppHandle) -> Result<String, String> {

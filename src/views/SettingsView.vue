@@ -34,7 +34,7 @@
         <section class="settings-group">
             <h2 class="group-title">账号设置</h2>
             <ul class="settings-list">
-                <LoginSetting />
+                <AccountSetting />
             </ul>
         </section>
 
@@ -112,7 +112,7 @@ import JumpToTaskSetting from '../components/settings/JumpToTaskSetting.vue'
 import ClearHistoryButton from '../components/settings/ClearHistoryButton.vue'
 import WriteMetadataSetting from '../components/settings/WriteMetadataSetting.vue'
 import DownloadLrcSetting from '../components/settings/DownloadLrcSetting.vue'
-import LoginSetting from '../components/settings/LoginSetting.vue'
+import AccountSetting from '../components/settings/AccountSetting.vue'
 import BuiltinSourceSetting from '../components/settings/BuiltinSourceSetting.vue'
 import CustomSourceSetting from '../components/settings/CustomSourceSetting.vue'
 import DuplicateStrategySetting from '../components/settings/DuplicateStrategySetting.vue'

@@ -177,6 +177,39 @@ impl DownloadLinkProvider for PlatformDownloadLinkProvider {
                 )
                 .await
                 .map(|(url, key)| DownloadLink::new(url, key)),
+                // 网易云：匿名只拿得到 128k/320k 明文 mp3（无损会被静默降级，
+                // 因此 qualities 里不提供 flac/hires），付费曲返回试听片段会被拒绝。
+                Platform::Netease => crate::platforms::netease::link::get_download_link(
+                    &self.client,
+                    song_mid,
+                    filename,
+                )
+                .await
+                .map(|(url, key)| DownloadLink::new(url, key)),
+                // 咪咕：匿名只声明 128kmp3（toneFlag 被忽略，实测所有档位同一条明文 mp3）。
+                Platform::Migu => crate::platforms::migu::link::get_download_link(
+                    &self.client,
+                    song_mid,
+                    filename,
+                )
+                .await
+                .map(|(url, key)| DownloadLink::new(url, key)),
+                // 哔哩哔哩：mid 就是 bvid，容器固定 m4a/AAC（192kbps 音轨），不加密。
+                Platform::Bilibili => crate::platforms::bilibili::link::get_download_link(
+                    &self.client,
+                    song_mid,
+                    filename,
+                )
+                .await
+                .map(|(url, key)| DownloadLink::new(url, key)),
+                // 酷狗：mid 里编码了三个档位的 hash（复合编码见 kugou/parser.rs）。
+                Platform::Kugou => crate::platforms::kugou::link::get_download_link(
+                    &self.client,
+                    song_mid,
+                    filename,
+                )
+                .await
+                .map(|(url, key)| DownloadLink::new(url, key)),
                 // 自定义音源：调用脚本的 getUrl。错误文案已按重试语义分级
                 // （网络类保持 `网络错误: …` 前缀交给上层重试，确定性错误带 `音源脚本错误：` 前缀）。
                 Platform::Script(id) => {

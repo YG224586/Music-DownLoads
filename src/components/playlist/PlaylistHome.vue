@@ -5,7 +5,7 @@
             <SearchBar
                 v-model:keyword="importInput"
                 v-model:platform="currentPlatform"
-                :platform-options="PLATFORMS"
+                :platform-options="importPlatforms"
                 placeholder="请输入歌单链接或 ID"
                 button-text="导入歌单"
                 @search="handleImport"
@@ -30,10 +30,13 @@
                 </n-button>
             </template>
             <div v-else-if="!loggedIn" class="signin-block">
-                <p class="signin-text">登录 QQ 音乐后即可查看自己创建的歌单</p>
-                <n-button type="primary" @click="router.push('/settings')"
-                    >前往登录</n-button
-                >
+                <!--
+                    登录入口已随扫码登录一起移除（见 task-34）：跳设置页只会白跑一趟，
+                    因此这里只说明现状与可行范围，不再提供任何「前往登录」动作。
+                -->
+                <p class="signin-text">
+                    本版本已移除应用内登录，未登录时仅支持导入公开歌单
+                </p>
             </div>
             <PlaylistSearchResult
                 v-else
@@ -48,8 +51,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { NAlert, NButton, NSpin } from 'naive-ui'
 import SearchBar from '../search/SearchBar.vue'
 import PlaylistSearchResult from '../search/PlaylistSearchResult.vue'
@@ -63,7 +66,12 @@ const emit = defineEmits<{
 }>()
 
 const route = useRoute()
-const router = useRouter()
+
+// 歌单导入只有 QQ 音乐与酷我音乐实现了后端解析，其余平台在能力表里为 false；
+// 直接把它们从选择器里去掉，避免用户选完才收到「暂不支持」的报错。
+const importPlatforms = computed(() =>
+    PLATFORMS.filter((item) => item.capabilities.playlist),
+)
 
 const currentPlatform = ref(DEFAULT_PLATFORM)
 const importInput = ref('')

@@ -25,6 +25,7 @@
                         :key="option.value"
                         :value="option.value"
                         :disabled="isSearchTypeDisabled(option.value)"
+                        :title="searchTypeHint(option.value)"
                         class="type-segment"
                     >
                         <span class="segment-content">
@@ -64,7 +65,9 @@
                 @remove="onHistoryRemove"
                 @clear="historyStore.clearHistory"
             />
+            <!-- 热搜：平台无 suggest 能力（新增四个内置平台与脚本音源）时不渲染也不请求 -->
             <HotKeywords
+                v-if="canSuggest"
                 :keywords="hotKeywords"
                 :loading="hotLoading"
                 @select="onHotClick"
@@ -99,7 +102,7 @@
         </template>
 
         <!-- 输入中：搜索建议 -->
-        <template v-else-if="pageMode === 'suggestions'">
+        <template v-else-if="pageMode === 'suggestions' && canSuggest">
             <SearchSuggestions
                 :data="suggestions"
                 @select="onSuggestionSelect"
@@ -265,7 +268,12 @@ import type {
     PlaylistSearchItem,
     SongInfo,
 } from '../types'
-import { PLATFORMS, DEFAULT_PLATFORM } from '../config/platforms'
+import {
+    PLATFORMS,
+    DEFAULT_PLATFORM,
+    SONG_SEARCH_CAPS,
+    supportsCapability,
+} from '../config/platforms'
 import type { PlatformOption } from '../config/platforms'
 import { useMusicNavigation } from '../composables/useMusicNavigation'
 import { useScriptSourceStore } from '../stores/scriptSourceStore'
@@ -279,12 +287,15 @@ const currentPlatform = ref(DEFAULT_PLATFORM)
 
 const scriptSourceStore = useScriptSourceStore()
 
-// 内置音源固定（QQ音乐 / 酷我音乐），自定义脚本音源在设置页安装后追加到选择器
+// 内置音源固定（见 config/platforms.ts），自定义脚本音源在设置页安装后追加到选择器；
+// 脚本音源与新增的内置平台一样只有歌曲搜索能力，能力表用同一份。
 const platformOptions = computed<PlatformOption[]>(() => [
     ...PLATFORMS,
     ...scriptSourceStore.enabledSources.map((item) => ({
         key: scriptSourceStore.platformOf(item.id),
         label: item.name,
+        name: item.name,
+        capabilities: SONG_SEARCH_CAPS,
     })),
 ])
 watch(
@@ -311,9 +322,23 @@ const currentSourceLabel = computed(
     () =>
         scriptSourceStore.platformLabel(currentPlatform.value) || '自定义音源',
 )
-// 脚本音源只提供歌曲搜索（契约 §3/§7），其余搜索类型不可用
+// 热搜与搜索建议共用 suggest 能力：为 false 时既不请求内置接口也不渲染对应区域
+// （后端对这些平台只会回「暂不支持热门搜索/搜索建议」，前端先一步隐藏）。
+const canSuggest = computed(() =>
+    supportsCapability(currentPlatform.value, 'suggest'),
+)
+// 平台能力门控：脚本音源与新增的酷狗/网易云/哔哩哔哩/咪咕只提供歌曲搜索，
+// 其余搜索类型不可用（后端同样会拒绝，见 app/src-tauri/src/utils/platform_caps.rs）。
 function isSearchTypeDisabled(type: SearchType) {
-    return isScriptPlatform.value && type !== 'song'
+    if (type === 'song') return false
+    return !supportsCapability(currentPlatform.value, type)
+}
+
+// 置灰分段的悬停（桌面）与长按（触屏）说明：直接讲清「为什么不给点」。
+function searchTypeHint(type: SearchType): string | undefined {
+    if (!isSearchTypeDisabled(type)) return undefined
+    const label = SEARCH_TYPES.find((item) => item.value === type)?.label ?? ''
+    return `该平台暂不支持${label}浏览`
 }
 
 // 搜索类型
@@ -432,8 +457,9 @@ function cancelSuggestions() {
 function onKeywordInput(newVal: string) {
     if (newVal === keyword.value) return
     keyword.value = newVal
-    // 脚本音源没有搜索建议接口（契约 §3），输入时保留当前结果，不切换到建议页。
-    if (isScriptPlatform.value) return
+    // 无 suggest 能力的平台（新增四个内置平台与脚本音源）没有搜索建议接口，
+    // 输入时保留当前结果，不切换到建议页。
+    if (!canSuggest.value) return
     cancelSuggestions()
     resetSearches()
     const term = newVal.trim()
@@ -485,9 +511,10 @@ function resetSearches() {
 
 // 获取热搜
 async function fetchHotKeywords() {
-    // 脚本音源没有热搜接口，避免用 "script:<id>" 请求内置接口。
-    if (isScriptPlatform.value) {
+    // 无 suggest 能力的平台不请求内置热搜接口（也不要用 "script:<id>" 去请求）。
+    if (!canSuggest.value) {
         hotKeywords.value = []
+        hotLoading.value = false
         return
     }
     hotLoading.value = true
@@ -510,8 +537,9 @@ watch(
     currentPlatform,
     () => {
         cancelSuggestions()
-        // 脚本音源只支持歌曲搜索，切换过去时回到歌曲分段。
-        if (isScriptPlatform.value) searchType.value = 'song'
+        // 当前分段若在新平台被禁用（新平台与脚本音源只有歌曲搜索），自动回落「歌曲」，
+        // 否则界面会停在一个置灰却仍选中的分段上。
+        if (isSearchTypeDisabled(searchType.value)) searchType.value = 'song'
         fetchHotKeywords()
         suggestions.value = {
             song: [],
@@ -520,6 +548,10 @@ watch(
             mv: [],
         }
         resetSearches()
+        // 切到无 suggest 能力的平台时，正在展示的建议页会失去数据源，退回空闲页避免留白。
+        if (pageMode.value === 'suggestions' && !canSuggest.value) {
+            pageMode.value = 'idle'
+        }
         if (pageMode.value === 'results') void handleSearch()
     },
     { flush: 'sync' },

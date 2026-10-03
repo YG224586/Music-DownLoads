@@ -67,15 +67,7 @@ fn quality_rank(quality: &str) -> Option<u32> {
 
 /// 脚本歌曲 id → 前端需要的数字 id（能解析就用原值，否则用 FNV-1a 稳定哈希）。
 pub fn song_numeric_id(song_id: &str) -> u64 {
-    if let Ok(value) = song_id.trim().parse::<u64>() {
-        return value;
-    }
-    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-    for byte in song_id.as_bytes() {
-        hash ^= u64::from(*byte);
-        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
-    }
-    hash
+    crate::task::contract::song_id_to_u64(song_id)
 }
 
 /// 脚本音质的可下载品质列表（`size` 未知，交给下载链路按响应头校正）。

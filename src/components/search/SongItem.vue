@@ -49,7 +49,7 @@
                 <template v-if="song.album">
                     <span class="meta-separator" aria-hidden="true">·</span>
                     <n-button
-                        v-if="albumId"
+                        v-if="canOpenAlbum && albumId"
                         text
                         size="small"
                         class="album-link"
@@ -106,6 +106,7 @@ import { ALL_QUALITY_ORDER } from '../../types'
 import { fetchCover } from '../../api/musicApi'
 import ArtistNames from './ArtistNames.vue'
 import { getMusicEntityId } from '../../utils/music'
+import { supportsCapability } from '../../config/platforms'
 import { useScriptSourceStore } from '../../stores/scriptSourceStore'
 
 const props = defineProps<{
@@ -126,6 +127,14 @@ const albumId = computed(() =>
         props.song.albumId,
         props.song.albumMid,
     ),
+)
+
+/*
+ * 平台能力门控：只有 QQ 音乐与酷我音乐支持专辑详情，
+ * 其余平台（酷狗/网易云/哔哩哔哩/咪咕与脚本音源）专辑名退成纯文本。
+ */
+const canOpenAlbum = computed(() =>
+    supportsCapability(props.song.platform, 'album'),
 )
 
 // 自定义脚本音源：结果条目上标注来源音源名；内置音源保持原样。
@@ -163,8 +172,9 @@ async function loadCoverIfNeeded() {
         coverUrl.value = props.song.coverUrl
         return
     }
-    // 酷我场景下按需加载
-    if (!props.song.id) return
+    // 只有酷我的搜索接口不返回封面 URL；其它平台（网易云等）封面缺失时请求
+    // 酷我接口既拿不到图，又会因字符串 ID 与 u64 形参不匹配而白跑一次 IPC。
+    if (props.song.platform !== 'kuwo' || !props.song.id) return
     coverLoading.value = true
     // 捕获本次请求对应的歌曲 id：await 期间列表项可能已被复用（song prop 改变）
     const requestedId = props.song.id

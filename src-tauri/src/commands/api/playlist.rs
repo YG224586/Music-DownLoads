@@ -3,6 +3,7 @@
 use hotdownloader_core::platforms::{self, Platform};
 use tauri::{command, AppHandle};
 
+use crate::utils::platform_caps::{unsupported, SCRIPT_UNSUPPORTED};
 use crate::utils::settings::get_artist_separator;
 
 #[command]
@@ -19,7 +20,8 @@ pub async fn fetch_playlist_songs(
             platforms::qqmusic::playlist::fetch_playlist_songs(&separator, input).await
         }
         Platform::Kuwo => platforms::kuwo::playlist::fetch_playlist_songs(&separator, input).await,
-        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
+        Platform::Script(_) => Err(SCRIPT_UNSUPPORTED.into()),
+        other => Err(unsupported(other, "歌单导入")),
     }
 }
 
@@ -40,7 +42,8 @@ pub async fn search_playlists(
             platforms::qqmusic::playlist::search_playlists(keyword, page, limit).await
         }
         Platform::Kuwo => platforms::kuwo::playlist::search_playlists(keyword, page, limit).await,
-        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
+        Platform::Script(_) => Err(SCRIPT_UNSUPPORTED.into()),
+        other => Err(unsupported(other, "歌单搜索")),
     }
 }
 

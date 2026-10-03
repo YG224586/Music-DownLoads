@@ -230,92 +230,9 @@ export function fetchCover(platform: string, songId: number): Promise<string> {
     })
 }
 
-// ==================== 登录相关 API ====================
-
-// 登录二维码返回
-export interface QrLoginResult {
-    qrcode_id: string
-    qr_base64: string
-}
-
-// 登录轮询结果
-export interface LoginCheckResult {
-    status:
-        'waiting' | 'scanned' | 'confirmed' | 'expired' | 'canceled' | 'error'
-    credentials?: LoginCredentials
-    message?: string
-}
-
-// 登录凭据
-export interface LoginCredentials {
-    uin: string
-    authst: string
-    refreshToken: string
-    refreshKey: string
-    accessToken: string
-    openid: string
-}
-
-// 获取登录二维码
-export async function createQrLogin(platform: string): Promise<QrLoginResult> {
-    if (!native) {
-        return webRequest('/api/login/qr', { method: 'POST' })
-    }
-    const json = await invoke<string>('create_qr_login', { platform })
-    return JSON.parse(json) as QrLoginResult
-}
-
-// 轮询二维码登录状态
-export async function checkQrLogin(
-    platform: string,
-    qrcodeId: string,
-): Promise<LoginCheckResult> {
-    if (!native) {
-        return webRequest(`/api/login/qr/${encodeURIComponent(qrcodeId)}`)
-    }
-    const json = await invoke<string>('check_qr_login', {
-        platform,
-        qrcodeId,
-    })
-    return JSON.parse(json) as LoginCheckResult
-}
-
-// 使用 uin + authst 手动登录，可选字段用于刷新登录
-export async function loginWithUinAuthst(
-    platform: string,
-    uin: string,
-    authst: string,
-    refreshToken: string = '',
-    refreshKey: string = '',
-    accessToken: string = '',
-    openid: string = '',
-): Promise<LoginCredentials> {
-    if (!native) {
-        return webRequest('/api/login/manual', {
-            method: 'POST',
-            body: JSON.stringify({
-                uin,
-                authst,
-                refreshToken,
-                refreshKey,
-                accessToken,
-                openid,
-            }),
-        })
-    }
-    const json = await invoke<string>('login_with_uin_authst', {
-        platform,
-        credentials: {
-            uin,
-            authst,
-            refreshToken,
-            refreshKey,
-            accessToken,
-            openid,
-        },
-    })
-    return JSON.parse(json) as LoginCredentials
-}
+// ==================== 账号相关 API ====================
+// 二维码登录与手动登录入口已按用户要求移除（m09887）；这里只保留只读状态查询与退出登录，
+// 供设置页「账号设置」展示状态、歌单页判断是否展示「我的歌单」。
 
 // 退出登录
 export async function logout(platform: string): Promise<void> {

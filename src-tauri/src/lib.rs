@@ -108,11 +108,8 @@ pub fn run() {
             commands::api::script_source::remove_script_source,
             commands::api::script_source::test_script_source,
             commands::api::script_source::search_script_source,
-            commands::api::login::create_qr_login,
-            commands::api::login::check_qr_login,
-            commands::api::login::login_with_uin_authst,
-            commands::api::login::logout,
-            commands::api::login::get_login_status,
+            commands::api::account::get_login_status,
+            commands::api::account::logout,
             commands::notify::request_notification_permission,
             commands::notify::check_notification_permission,
         ])

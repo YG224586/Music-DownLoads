@@ -1,0 +1,20 @@
+//! 酷狗音乐平台：搜索与直链获取。
+//!
+//! 探测证据见 `_dev/probe/kugou-probe.mjs`、`_dev/probe/kugou-probe.log`、
+//! `_dev/probe/kugou-probe-hq.log`。
+//!
+//! 实测可用的三个端点：
+//! - 搜索：`http://mobilecdn.kugou.com/api/v3/search/song`（只有 http 域名可用，
+//!   https 变体分别报 `ENOTFOUND` / `ERR_TLS_CERT_ALTNAME_INVALID`；Android 已开启明文流量）。
+//! - 128k mp3：`https://m.kugou.com/app/i/getSongInfo.php?cmd=playInfo`（无需签名，
+//!   但接口无视请求的档位，只会给 128k）。
+//! - 320k mp3 / 无损 flac：`https://trackercdn.kugou.com/i/v2/`（需要
+//!   `key = md5(小写 hash + "kgcloudv2")` 签名，见 [`sign`]）。
+//!
+//! 未实测通的档位（hires / 全景声 / 蝰蛇母带）不上架：搜索响应里没有对应 hash 字段，
+//! 拿不到直链时宁可不展示，避免误导用户。
+
+pub mod link;
+pub mod parser;
+pub mod search;
+pub mod sign;
