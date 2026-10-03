@@ -78,15 +78,26 @@ const tabs = computed(() => [
 </script>
 
 <style scoped>
+/* 7 个筛选项在 390dp 下无法一次排开：改为单行横向滚动（M3 scrollable tabs 模式），
+   不再换行占掉两行高度，筛选行始终只有一行 48dp。 */
 .task-tabs-compact {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: var(--md-space-2);
     min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.task-tabs-compact::-webkit-scrollbar {
+    display: none;
 }
 
 /* M3 过滤 chip：描边未选中 / secondaryContainer 选中，命中区域 48dp。 */
 .task-filter-chip {
+    flex: 0 0 auto;
     min-height: var(--md-target-min);
     padding: 0 var(--md-space-4);
     border: 1px solid var(--md-outline-variant);
@@ -112,5 +123,10 @@ const tabs = computed(() => [
     background-color: var(--md-secondary-container);
     border-color: transparent;
     color: var(--md-on-secondary-container);
+}
+
+/* 横向滚动容器会裁掉外扩的焦点环，改为内描边以保证可见 */
+.task-tabs-compact .task-filter-chip:focus-visible {
+    outline-offset: -3px;
 }
 </style>

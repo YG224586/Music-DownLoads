@@ -4,7 +4,7 @@
 
 <script lang="ts">
 import { defineComponent, h, type PropType } from 'vue'
-import { NCheckbox, NProgress, NSpace, NEllipsis } from 'naive-ui'
+import { NCheckbox, NProgress, NEllipsis } from 'naive-ui'
 import type { TaskRecord } from '../../types'
 import { formatSpeed } from '../../utils/format'
 import { renderActions } from './TaskRowActions'
@@ -195,8 +195,11 @@ export default defineComponent({
             const disabled = task.status === 'downloading'
             const qualityChip = renderQualityChip(task)
 
+            // 操作按钮：无可用操作（处理中）时不渲染空容器
+            const nodes = actionNodes(task)
+
             const children: any[] = [
-                // 头部：复选框 + 歌曲信息 + 状态 chip
+                // 头部：复选框 + 歌曲信息 + 操作（操作并入标题行，一屏能看到更多任务）
                 h('div', { class: 'task-row-head' }, [
                     h(NCheckbox, {
                         checked,
@@ -228,13 +231,18 @@ export default defineComponent({
                             ].filter((node) => node !== null),
                         ),
                     ]),
-                    renderStatusChip(task),
+                    nodes.length > 0
+                        ? h('div', { class: 'task-row-actions' }, nodes)
+                        : null,
                 ]),
 
-                // 终止状态展示明确原因；其余状态展示进度。
-                task.status === 'error' || task.status === 'interrupted'
-                    ? renderStatusMessage(task)
-                    : renderProgress(task),
+                // 状态行：状态 chip + 进度或失败原因同行；状态不只靠颜色，且带数值文字。
+                h('div', { class: 'task-row-status' }, [
+                    renderStatusChip(task),
+                    task.status === 'error' || task.status === 'interrupted'
+                        ? renderStatusMessage(task)
+                        : renderProgress(task),
+                ]),
             ]
 
             // 仅安卓/Web 运行时显示文件路径；没有路径的行不渲染占位符
@@ -253,20 +261,6 @@ export default defineComponent({
                                 tooltip: false,
                             },
                             () => task.filePath,
-                        ),
-                    ]),
-                )
-            }
-
-            // 操作按钮：无可用操作（处理中）时不渲染空容器
-            const nodes = actionNodes(task)
-            if (nodes.length > 0) {
-                children.push(
-                    h('div', { class: 'task-row-actions' }, [
-                        h(
-                            NSpace,
-                            { justify: 'end', wrap: true, size: 8 },
-                            () => nodes,
                         ),
                     ]),
                 )
@@ -325,7 +319,8 @@ export default defineComponent({
     flex-direction: column;
     gap: var(--md-space-2);
     min-width: 0;
-    padding: var(--md-space-3) var(--md-space-4);
+    /* 行内 4dp 节奏：纵向收紧到 8dp，一屏可容纳 4 行以上任务 */
+    padding: var(--md-space-2) var(--md-space-4);
     border-left: 3px solid transparent;
     transition: background-color var(--md-duration-short)
         var(--md-easing-standard);
@@ -343,14 +338,13 @@ export default defineComponent({
 
 .task-row-head {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--md-space-2);
     min-width: 0;
 }
 
 .task-row-head :deep(.n-checkbox) {
     flex-shrink: 0;
-    margin-top: 2px;
     /* 勾选是行内唯一的纯图标型控件，命中区补足到 48x48 */
     justify-content: center;
     min-width: var(--md-target-min);
@@ -498,11 +492,32 @@ export default defineComponent({
     color: var(--md-on-surface-variant);
 }
 
+/* ---------- 状态行 ---------- */
+/* 状态 chip 与进度/原因同行：状态表达只有一处，且不只靠颜色。 */
+.task-row-status {
+    display: flex;
+    align-items: center;
+    gap: var(--md-space-2);
+    min-width: 0;
+}
+
+.task-row-status .task-row-progress {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-row-status .task-row-message {
+    flex: 1;
+    min-width: 0;
+}
+
 /* ---------- 操作 ---------- */
+/* 操作并入标题行右侧：不再单独占一行，行高由 3 行降到 2 行。 */
 .task-row-actions {
     display: flex;
-    justify-content: flex-end;
-    padding-top: var(--md-space-1);
+    align-items: center;
+    flex-shrink: 0;
+    gap: var(--md-space-1);
 }
 
 /* 触控目标：行内按钮不小于 48dp，且给 2 字标签留出按钮宽度（避免被压成圆形）。 */
@@ -511,6 +526,13 @@ export default defineComponent({
     min-width: 72px;
     padding-left: var(--md-space-4);
     padding-right: var(--md-space-4);
+}
+
+/* 「更多」菜单触发器是纯图标圆形按钮：保持 48x48，不被上面的最小宽度/内边距撑开 */
+.task-row-actions :deep(.n-button[aria-haspopup='menu']) {
+    min-width: var(--md-target-min);
+    padding-left: 0;
+    padding-right: 0;
 }
 
 /* ---------- 空态 ---------- */
@@ -537,14 +559,15 @@ export default defineComponent({
     color: var(--md-on-surface-variant);
 }
 
-@media (max-width: 599px) {
-    .task-row-head {
-        /* 状态 chip 在窄屏换到第二行，避免挤压标题 */
+/* 极窄屏兜底：状态行允许换行，进度/原因占满整行，避免被挤成不可读的窄条 */
+@media (max-width: 359px) {
+    .task-row-status {
         flex-wrap: wrap;
     }
 
-    .task-row-head .task-chip {
-        order: 3;
+    .task-row-status .task-row-progress,
+    .task-row-status .task-row-message {
+        flex: 1 1 100%;
     }
 }
 </style>

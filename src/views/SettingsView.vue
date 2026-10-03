@@ -39,15 +39,9 @@
         </section>
 
         <section class="settings-group">
-            <h2 class="group-title">音乐源配置</h2>
-            <ul class="settings-list">
-                <SourceConfigSetting />
-            </ul>
-        </section>
-
-        <section class="settings-group">
             <h2 class="group-title">基本设置</h2>
             <ul class="settings-list">
+                <BuiltinSourceSetting />
                 <QualitySetting />
                 <DowngradeSetting />
                 <ClearHistoryButton />
@@ -112,7 +106,7 @@ import ClearHistoryButton from '../components/settings/ClearHistoryButton.vue'
 import WriteMetadataSetting from '../components/settings/WriteMetadataSetting.vue'
 import DownloadLrcSetting from '../components/settings/DownloadLrcSetting.vue'
 import LoginSetting from '../components/settings/LoginSetting.vue'
-import SourceConfigSetting from '../components/settings/SourceConfigSetting.vue'
+import BuiltinSourceSetting from '../components/settings/BuiltinSourceSetting.vue'
 import DuplicateStrategySetting from '../components/settings/DuplicateStrategySetting.vue'
 import NotifySetting from '../components/settings/NotifySetting.vue'
 import UpdateChecker from '../components/settings/UpdateChecker.vue'
@@ -185,13 +179,14 @@ function goAbout() {
     min-width: 0;
 }
 
+/* 分组标题：title-small + 重字重 + on-surface-variant（不用主色，避免与操作色抢视觉权重） */
 .group-title {
     margin: 0 0 var(--md-space-2);
     padding: 0 var(--md-space-4);
-    color: var(--md-primary);
-    font-size: var(--md-label-large);
-    line-height: var(--md-label-large-line);
-    font-weight: var(--md-weight-medium);
+    color: var(--md-on-surface-variant);
+    font-size: var(--md-title-small);
+    line-height: var(--md-title-small-line);
+    font-weight: var(--md-weight-bold);
 }
 
 .settings-list {

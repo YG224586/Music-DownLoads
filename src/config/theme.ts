@@ -34,6 +34,7 @@ interface MdPalette {
     successContainer: string
     warning: string
     warningContainer: string
+    onWarningContainer: string
     surface: string
     onSurface: string
     surfaceVariant: string
@@ -81,6 +82,7 @@ const light: MdPalette = {
     successContainer: '#a5f2c8',
     warning: '#7a5900',
     warningContainer: '#ffdea6',
+    onWarningContainer: '#261900',
     surface: '#f5fbf7',
     onSurface: '#171d1a',
     surfaceVariant: '#dbe5dd',
@@ -130,6 +132,7 @@ const dark: MdPalette = {
     successContainer: '#00522f',
     warning: '#f5c06a',
     warningContainer: '#5c4600',
+    onWarningContainer: '#ffdea6',
     surface: '#0f1512',
     onSurface: '#dee4df',
     surfaceVariant: '#404943',
@@ -254,6 +257,18 @@ function buildOverrides(p: MdPalette): GlobalThemeOverrides {
             borderRadiusLarge: '999px',
             fontWeight: '500',
             fontWeightStrong: '500',
+
+            /* 注意：这里刻意不覆盖 warning 系列。
+               Naive 的 Button 把 colorWarning 一色两用：既当「填充底」，
+               又当 secondary 变体的底色（changeColor 取 alpha 0.16）与文字色。
+               所以一旦把 colorWarning 改成浅色容器色 #ffdea6，
+               type="warning" secondary（任务页「更多清除操作」里的清除按钮）就会变成
+               浅琥珀底 + 浅琥珀字，实测对比度仅 1.19:1，不可读。
+               因此保持 Naive 行为（沿用 common.warningColor 深橄榄 #7a5900）：
+               文字/描边/secondary 变体都拿到可读的深橄榄；
+               应用里也不存在填充态 warning 按钮——主操作一律用 primary 填充。
+               若将来确有填充态 warning 需求，请用 --md-warning-container 底 +
+               --md-on-warning-container 字显式指定 color，不要改这里的 colorWarning。 */
         },
 
         Input: {
@@ -317,7 +332,7 @@ function buildOverrides(p: MdPalette): GlobalThemeOverrides {
             colorSuccess: p.successContainer,
             textColorSuccess: p.onPrimaryContainer,
             colorWarning: p.warningContainer,
-            textColorWarning: p.onSurface,
+            textColorWarning: p.onWarningContainer,
             colorError: p.errorContainer,
             textColorError: p.onErrorContainer,
         },

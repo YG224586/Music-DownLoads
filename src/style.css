@@ -112,20 +112,25 @@ body {
     --md-shadow: #000000;
     --md-surface-tint: var(--md-primary);
 
-    /* 状态层不透明度（hover / focus / pressed） */
+    /* 状态层不透明度（hover / focus / pressed）
+       ⚠️ 这些值是「数字」（alpha 0–1），不是颜色。必须参与 color-mix 才合法：
+       background-color: color-mix(in srgb, currentColor calc(var(--md-state-hover) * 100%), transparent);
+       若直接写 background-color: var(--md-state-hover)，整条声明会被浏览器丢弃，
+       表现为 hover 静默失效（AboutView 曾踩过 3 处）。 */
     --md-state-hover: 0.08;
     --md-state-focus: 0.1;
     --md-state-pressed: 0.1;
     --md-state-drag: 0.16;
 
-    /* 形状（M3 Expressive：大圆角策略——lg 16→28dp、xl 28→full 全圆角，
-       卡片 / 弹窗 / 浮层整体更圆润；xs/sm/md 维持原值，保证输入框、
-       小控件与焦点环观感稳定，避免小元素被过度裁切） */
+    /* 形状（M3 Expressive：大圆角策略——lg 16→28dp，卡片 / 列表块更圆润。
+       xl 仍是 M3 规范的 28dp 一档（对话框、模态卡片、大容器），
+       **不是**全圆角：药丸形只能用 --md-shape-full 999px。
+       xs/sm/md 维持原值，保证输入框、小控件与焦点环观感稳定） */
     --md-shape-xs: 4px;
     --md-shape-sm: 8px;
     --md-shape-md: 12px;
     --md-shape-lg: 28px;
-    --md-shape-xl: 999px;
+    --md-shape-xl: 28px;
     --md-shape-full: 999px;
 
     /* 高度（M3 elevation level 1-3） */

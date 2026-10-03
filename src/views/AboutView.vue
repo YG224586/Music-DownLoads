@@ -1,7 +1,7 @@
 <template>
     <div class="about-view">
         <!-- 提供明确的返回导航入口 -->
-        <n-button class="back-button" secondary @click="goBack">
+        <n-button class="back-button" quaternary @click="goBack">
             <template #icon>
                 <svg
                     class="back-icon"
@@ -192,7 +192,7 @@ function openLicense(item: ComponentInfo) {
     flex-direction: column;
     gap: var(--md-space-4);
     /* 长文限制可读宽度，避免宽屏一行过长 */
-    max-width: 800px;
+    max-width: min(var(--md-content-max-width), 100%);
     min-width: 0;
     margin: 0 auto;
     padding: 0;
@@ -208,10 +208,8 @@ function openLicense(item: ComponentInfo) {
 }
 
 .about-header {
-    padding: var(--md-space-5) var(--md-space-4);
-    border-radius: var(--md-shape-lg);
-    background-color: var(--md-surface-container-low);
-    text-align: center;
+    padding: var(--md-space-5) 0 var(--md-space-2);
+    text-align: left;
 }
 
 .app-title {
@@ -230,7 +228,7 @@ function openLicense(item: ComponentInfo) {
 }
 
 .app-description {
-    margin: 0 auto;
+    margin: 0;
     max-width: 56ch;
     color: var(--md-on-surface-variant);
     font-size: var(--md-body-medium);
@@ -239,8 +237,6 @@ function openLicense(item: ComponentInfo) {
 
 .about-section {
     padding: var(--md-space-4) var(--md-space-4) var(--md-space-2);
-    border-radius: var(--md-shape-lg);
-    background-color: var(--md-surface-container-low);
 }
 
 .section-title {
@@ -286,7 +282,11 @@ function openLicense(item: ComponentInfo) {
 
 .link-row:hover,
 .link-row:focus-visible {
-    background-color: var(--md-state-hover);
+    background-color: color-mix(
+        in srgb,
+        currentColor calc(var(--md-state-hover) * 100%),
+        transparent
+    );
     text-decoration: underline;
 }
 
@@ -319,7 +319,11 @@ function openLicense(item: ComponentInfo) {
 
 .license-link:hover,
 .license-link:focus-visible {
-    background-color: var(--md-state-hover);
+    background-color: color-mix(
+        in srgb,
+        currentColor calc(var(--md-state-hover) * 100%),
+        transparent
+    );
     text-decoration: underline;
 }
 
@@ -351,7 +355,11 @@ function openLicense(item: ComponentInfo) {
 
 .component-item:hover,
 .component-item:focus-visible {
-    background-color: var(--md-state-hover);
+    background-color: color-mix(
+        in srgb,
+        currentColor calc(var(--md-state-hover) * 100%),
+        transparent
+    );
 }
 
 .component-name {
@@ -379,7 +387,7 @@ function openLicense(item: ComponentInfo) {
 }
 
 :global(.license-modal) {
-    border-radius: var(--md-shape-xl);
+    border-radius: var(--md-shape-lg);
 }
 
 /* Naive 卡片内置的关闭按钮只有 18dp；放大到 48dp 命中区并保留圆形状态层 */

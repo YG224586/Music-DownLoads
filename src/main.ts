@@ -1,10 +1,9 @@
-import { createApp, watch } from 'vue'
+﻿import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
 import naive from 'naive-ui'
 import App from './App.vue'
 import router from './router'
 import { useSettingsStore } from './stores/settingsStore'
-import { useSourceConfigStore } from './stores/sourceConfigStore'
 import { useHistoryStore } from './stores/historyStore'
 import { useTaskStore } from './stores/taskStore'
 import { initializeNativeSafeArea, isNativeRuntime } from './api/runtimeApi'
@@ -31,14 +30,12 @@ async function init() {
     const settingsStore = useSettingsStore()
     const historyStore = useHistoryStore()
     const taskStore = useTaskStore()
-    const sourceConfigStore = useSourceConfigStore()
 
     // 先建立任务订阅，再读取快照；读取期间的事件由 store 排队回放。
     try {
         await Promise.all([
             settingsStore.loadSettings(),
             historyStore.loadHistory(),
-            sourceConfigStore.load(),
         ])
     } catch (e) {
         console.error('加载持久化数据失败，使用默认值:', e)

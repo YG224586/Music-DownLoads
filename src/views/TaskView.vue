@@ -546,14 +546,19 @@ async function handleClearAll() {
     color: var(--md-warning);
 }
 
-/* 紧凑布局：主操作整行，清除动作整行堆叠，触控高度由全局 48px 规则保证 */
+/* 紧凑布局：主操作整行；清除动作默认收起，由「更多清除操作」文字按钮展开。
+   触控高度由全局 48px 规则保证。 */
 @media (max-width: 767px) {
+    /* 手机端不再用卡片包住工具栏：区域里往往只有一个文字按钮，
+       卡片会让它看起来像一个空的大圆角盒子（原缺陷⑤）。 */
     .task-toolbar {
         align-items: stretch;
+        padding: 0;
+        background: transparent;
+        border-color: transparent;
     }
 
     .task-toolbar-primary,
-    .task-toolbar-disclosure,
     .task-toolbar-clear {
         flex: 1 1 100%;
     }
@@ -562,9 +567,7 @@ async function handleClearAll() {
         flex-direction: column;
     }
 
-    .task-toolbar-clear > :deep(.n-button),
-    .task-toolbar-primary,
-    .task-toolbar-disclosure {
+    .task-toolbar-clear > :deep(.n-button) {
         width: 100%;
     }
 
@@ -572,8 +575,9 @@ async function handleClearAll() {
         flex: 1 1 100%;
     }
 
+    /* 渐进披露的展开控件：保持文字按钮尺寸，不再拉成整行大盒子 */
     .task-toolbar-disclosure {
-        justify-content: flex-start;
+        align-self: flex-start;
     }
 }
 </style>

@@ -68,6 +68,33 @@
                 :loading="hotLoading"
                 @select="onHotClick"
             />
+            <!-- 空白引导：吸收空闲状态的剩余高度，避免页面下半部分大片留白 -->
+            <div class="idle-guide">
+                <svg
+                    class="idle-guide-icon"
+                    viewBox="0 0 24 24"
+                    width="48"
+                    height="48"
+                    aria-hidden="true"
+                >
+                    <circle
+                        cx="11"
+                        cy="11"
+                        r="7"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    />
+                    <path
+                        d="m16.2 16.2 4.3 4.3"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                    />
+                </svg>
+                <p class="idle-guide-text">输入关键词开始搜索</p>
+            </div>
         </template>
 
         <!-- 输入中：搜索建议 -->
@@ -238,7 +265,6 @@ import type {
 } from '../types'
 import { PLATFORMS, DEFAULT_PLATFORM } from '../config/platforms'
 import { useMusicNavigation } from '../composables/useMusicNavigation'
-import { useSourceConfigStore } from '../stores/sourceConfigStore'
 
 const router = useRouter()
 const route = useRoute()
@@ -247,11 +273,8 @@ const { openArtist, openAlbum, openRelatedArtist, openSongAlbum } =
 const keyword = ref('')
 const currentPlatform = ref(DEFAULT_PLATFORM)
 
-// 音源配置驱动的平台选择器：仅展示已启用的平台；store 内部兜底（全停用时回退全部）
-const sourceConfigStore = useSourceConfigStore()
-const platformOptions = computed(() =>
-    PLATFORMS.filter((p) => sourceConfigStore.enabledPlatforms.includes(p.key)),
-)
+// 内置音源固定（QQ音乐 / 酷我音乐），不再由用户配置
+const platformOptions = computed(() => PLATFORMS)
 watch(
     platformOptions,
     (options) => {
@@ -598,6 +621,26 @@ function onBatchDownload() {
     min-width: 0;
 }
 
+/*
+ * 选中态用填充表达（M3 segmented button），不叠加下划线：
+ * Naive 默认把选中段的下边框涂成主色，这里改回中性描边，
+ * 只保留 secondary-container 实底填充 + on-secondary-container 文字。
+ * Naive 的 --n-* 变量是内联样式，类选择器覆盖不动，必须写真实 CSS 属性。
+ */
+.type-switch :deep(.n-radio-button--checked) {
+    background-color: var(--md-secondary-container);
+    border-color: var(--md-outline-variant);
+    box-shadow: none;
+}
+
+.type-switch :deep(.n-radio-button--checked .n-radio__label) {
+    color: var(--md-on-secondary-container);
+}
+
+.type-switch :deep(.n-radio-button--checked .n-radio-button__state-border) {
+    box-shadow: none;
+}
+
 .segment-content {
     display: inline-flex;
     align-items: center;
@@ -630,6 +673,49 @@ function onBatchDownload() {
     align-items: center;
     gap: var(--md-space-3);
     padding: var(--md-space-10) 0;
+}
+
+/* 空闲引导：撑满剩余高度并居中，消除下半屏留白。 */
+.idle-guide {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--md-space-3);
+    min-height: var(--md-space-10);
+    padding: var(--md-space-6) var(--md-space-4) var(--md-space-10);
+    text-align: center;
+}
+
+.idle-guide-icon {
+    width: var(--md-space-10);
+    height: var(--md-space-10);
+    color: var(--md-outline);
+}
+
+.idle-guide-text {
+    margin: 0;
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+    color: var(--md-on-surface-variant);
+}
+
+/*
+ * 矮屏（如 320×568）：热搜已经占满可视高度，没有可吸收的剩余空间，
+ * 而 .search-view 的 min-height: 100% 会把被底部导航遮住的那段也算进来，
+ * 若继续 flex-grow，引导语就会被导航条压住。这里改为只占内容高度。
+ */
+@media (max-height: 640px) {
+    .idle-guide {
+        flex: 0 0 auto;
+        gap: var(--md-space-2);
+        padding: var(--md-space-2) var(--md-space-4) 0;
+    }
+
+    .idle-guide-icon {
+        display: none;
+    }
 }
 
 .search-error {

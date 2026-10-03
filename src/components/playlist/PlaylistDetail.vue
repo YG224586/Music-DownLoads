@@ -152,7 +152,6 @@ const BACK_ICON =
     padding: var(--md-space-4);
     min-width: 0;
     background-color: var(--md-surface-container-low);
-    border: 1px solid var(--md-outline-variant);
     border-radius: var(--md-shape-lg);
 }
 

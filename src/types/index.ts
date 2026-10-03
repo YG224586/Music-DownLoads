@@ -1,4 +1,4 @@
-// 所有品质标签，按从低到高排序
+﻿// 所有品质标签，按从低到高排序
 export const ALL_QUALITY_ORDER: string[] = [
     '48kaac',
     '96kaac',
@@ -380,21 +380,4 @@ export interface ArtistSongsResponse extends SearchResponse {
 export interface ArtistAlbumsResponse extends AlbumSearchResponse {
     total: number
     name?: string
-}
-
-/** 音源配置里的单个音源（QingMusic music.json 条目映射后的结果）。 */
-export interface SourceMapping {
-    id: string
-    name: string
-    enabled: boolean
-    /** 映射到的内置平台 key（qqmusic/kuwo）；null 表示暂不支持。 */
-    platform: string | null
-    /** 允许的音质列表（空数组表示不限制）。 */
-    levels: string[]
-    searchApi: string
-}
-export interface SourceConfigState {
-    url: string | null
-    imported: boolean
-    sources: SourceMapping[]
 }

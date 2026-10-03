@@ -1,4 +1,4 @@
-<template>
+﻿<template>
     <li class="setting-item is-stacked login-item">
         <!-- 未登录状态 -->
         <template v-if="!isLoggedIn">
@@ -257,6 +257,9 @@ onMounted(async () => {
         loginUin.value = status.uin
     } catch (error) {
         console.error('获取登录状态失败:', error)
+    }
+    if (!isLoggedIn.value) {
+        void refreshQr()
     }
 })
 

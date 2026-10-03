@@ -1,7 +1,7 @@
 <template>
     <div class="playlist-home">
         <section class="playlist-section">
-            <h2>导入歌单</h2>
+            <h2 class="section-title">导入歌单</h2>
             <SearchBar
                 v-model:keyword="importInput"
                 v-model:platform="currentPlatform"
@@ -13,24 +13,27 @@
         </section>
 
         <section class="playlist-section">
-            <h2>我的 QQ 音乐歌单</h2>
-            <div v-if="myLoading" class="loading-wrapper">
+            <h2 class="section-title">我的 QQ 音乐歌单</h2>
+            <div v-if="myLoading" class="state-wrapper">
                 <n-spin size="medium" />
             </div>
-            <n-alert v-else-if="myError" type="error" title="获取我的歌单失败">
-                {{ myError }}
-                <n-button @click="refreshMyPlaylists">重试</n-button>
-            </n-alert>
-            <div v-else-if="!loggedIn" class="empty-wrapper">
-                <n-empty description="登录 QQ 音乐后即可查看自己创建的歌单">
-                    <template #extra>
-                        <n-button
-                            type="primary"
-                            @click="router.push('/settings')"
-                            >前往登录</n-button
-                        >
-                    </template>
-                </n-empty>
+            <template v-else-if="myError">
+                <n-alert type="error" title="获取我的歌单失败">{{
+                    myError
+                }}</n-alert>
+                <n-button
+                    class="retry-button"
+                    secondary
+                    @click="refreshMyPlaylists"
+                >
+                    重试
+                </n-button>
+            </template>
+            <div v-else-if="!loggedIn" class="signin-block">
+                <p class="signin-text">登录 QQ 音乐后即可查看自己创建的歌单</p>
+                <n-button type="primary" @click="router.push('/settings')"
+                    >前往登录</n-button
+                >
             </div>
             <PlaylistSearchResult
                 v-else
@@ -47,7 +50,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NAlert, NButton, NEmpty, NSpin } from 'naive-ui'
+import { NAlert, NButton, NSpin } from 'naive-ui'
 import SearchBar from '../search/SearchBar.vue'
 import PlaylistSearchResult from '../search/PlaylistSearchResult.vue'
 import * as musicApi from '../../api/musicApi'
@@ -59,19 +62,23 @@ const emit = defineEmits<{
     (e: 'open-my', item: PlaylistSearchItem): void
 }>()
 
-const router = useRouter()
 const route = useRoute()
+const router = useRouter()
+
 const currentPlatform = ref(DEFAULT_PLATFORM)
 const importInput = ref('')
 const loggedIn = ref(false)
 const myPlaylists = ref<PlaylistSearchItem[]>([])
 const myLoading = ref(false)
 const myError = ref('')
+
+// 请求序号：只接受最后一次请求的结果，避免快速切换时旧响应覆盖新状态。
 let requestId = 0
 
 function handleImport() {
     const input = importInput.value.trim()
-    if (input) emit('import', currentPlatform.value, input)
+    if (!input) return
+    emit('import', currentPlatform.value, input)
 }
 
 async function refreshMyPlaylists() {
@@ -79,30 +86,22 @@ async function refreshMyPlaylists() {
     const currentRequest = ++requestId
     myLoading.value = true
     myError.value = ''
-
     try {
         const status = await musicApi.getLoginStatus('qqmusic')
         if (currentRequest !== requestId) return
-
         loggedIn.value = status.logged_in
         if (!status.logged_in) {
             myPlaylists.value = []
             return
         }
-
         const result = await musicApi.fetchCreatedPlaylists()
-        if (currentRequest === requestId) {
-            myPlaylists.value = result.playlists
-        }
+        if (currentRequest !== requestId) return
+        myPlaylists.value = result.playlists
     } catch (error) {
-        if (currentRequest === requestId) {
-            myError.value =
-                error instanceof Error ? error.message : String(error)
-        }
+        if (currentRequest !== requestId) return
+        myError.value = error instanceof Error ? error.message : String(error)
     } finally {
-        if (currentRequest === requestId) {
-            myLoading.value = false
-        }
+        if (currentRequest === requestId) myLoading.value = false
     }
 }
 
@@ -114,9 +113,8 @@ onMounted(() => {
 watch(
     () => route.path,
     (path, previousPath) => {
-        if (path === '/playlist' && previousPath !== '/playlist') {
+        if (path === '/playlist' && previousPath !== '/playlist')
             void refreshMyPlaylists()
-        }
     },
 )
 
@@ -126,11 +124,11 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 入口页：两个分区各自是一块 surface container，纵向按 4dp 节奏排布 */
+/* 入口页：分区直接排在页面表面上，纵向按 4dp 节奏排布。 */
 .playlist-home {
     display: flex;
     flex-direction: column;
-    gap: var(--md-space-4);
+    gap: var(--md-space-6);
     min-width: 0;
 }
 
@@ -139,13 +137,9 @@ onUnmounted(() => {
     flex-direction: column;
     gap: var(--md-space-3);
     min-width: 0;
-    padding: var(--md-space-4);
-    background: var(--md-surface-container-low);
-    border: 1px solid var(--md-outline-variant);
-    border-radius: var(--md-shape-lg);
 }
 
-.playlist-section h2 {
+.section-title {
     margin: 0;
     font-size: var(--md-title-medium);
     line-height: var(--md-title-medium-line);
@@ -154,19 +148,38 @@ onUnmounted(() => {
     overflow-wrap: anywhere;
 }
 
-/* SearchBar 自带下边距；入口页使用父容器的 gap 控制间距。 */
-.playlist-home :deep(.search-bar) {
-    margin-bottom: 0;
+/* 未登录提示：紧凑的一块 tonal 表面，不留大片空白。 */
+.signin-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--md-space-3);
+    padding: var(--md-space-5) var(--md-space-4);
+    background-color: var(--md-surface-container-low);
+    border-radius: var(--md-shape-md);
 }
 
-.loading-wrapper,
-.empty-wrapper {
+.signin-text {
+    margin: 0;
+    color: var(--md-on-surface-variant);
+    font-size: var(--md-body-medium);
+    line-height: var(--md-body-medium-line);
+}
+
+.state-wrapper {
     display: flex;
     justify-content: center;
     padding: var(--md-space-8) 0;
 }
 
-/* 错误提示里的重试按钮与正文分行，避免在窄屏上与文字挤在一行 */
+.retry-button {
+    align-self: flex-start;
+}
+
+.playlist-home :deep(.search-bar) {
+    margin-bottom: 0;
+}
+
 .playlist-home :deep(.n-alert) {
     border-radius: var(--md-shape-md);
 }

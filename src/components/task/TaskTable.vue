@@ -363,6 +363,13 @@ void props
     padding-right: var(--md-space-4);
 }
 
+/* 「更多」菜单触发器是纯图标圆形按钮：保持 48x48，不被上面的最小宽度/内边距撑开 */
+.task-table :deep(.task-table-actions .n-button[aria-haspopup='menu']) {
+    min-width: var(--md-target-min);
+    padding-left: 0;
+    padding-right: 0;
+}
+
 .task-table :deep(.task-progress-row) {
     display: flex;
     align-items: center;
