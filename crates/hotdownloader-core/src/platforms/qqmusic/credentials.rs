@@ -16,6 +16,109 @@ pub struct QqAuth {
     pub authst: String,
 }
 
+/// 用户在「设置 → 平台账号」里粘贴的 QQ 音乐网页版 Cookie。
+///
+/// QQ 音乐匿名取链通道已被平台关闭（见 [`crate::platforms::credentials`] 的实测记录），
+/// 因此只有 `uin` + 登录密钥两件套齐全才拿得到直链。整条 Cookie 只在内存里解析一次，
+/// 不落盘、不进日志。
+// 与 [`QqAuth`] 同理不派生 Debug，避免错误路径意外打印登录密钥。
+#[derive(Clone, PartialEq, Eq)]
+pub struct QqCookie {
+    uin: String,
+    authst: String,
+}
+
+/// 登录密钥的候选键名，按优先级排列（新版网页键优先，旧键兜底）。
+const AUTHST_KEYS: [&str; 4] = ["qqmusic_key", "qm_keyst", "qqmusic_key_2", "qq_music_key"];
+
+impl QqCookie {
+    /// 从整条 Cookie 解析出 `uin` 与登录密钥。
+    ///
+    /// 错误文案只提字段名与（截断后的）`uin` 取值，**不回显 Cookie 原文**，避免令牌进日志。
+    pub fn parse(raw: &str) -> Result<Self, String> {
+        let pairs = cookie_pairs(raw);
+
+        // 网页版通常给 uin；微信登录态只带 wxuin，纯数字直接可用。
+        let raw_uin = find_value(&pairs, &["uin"])
+            .or_else(|| find_value(&pairs, &["wxuin"]))
+            .ok_or_else(|| {
+                "Cookie 里缺少 uin=...（QQ 音乐网页版 Cookie 里的 uin 字段）".to_string()
+            })?;
+        let uin = normalize_uin(raw_uin)?;
+        let authst = find_value(&pairs, &AUTHST_KEYS).ok_or_else(|| {
+            "Cookie 里缺少 qqmusic_key=... 或 qm_keyst=...（QQ 音乐网页版 Cookie 里的登录密钥）"
+                .to_string()
+        })?;
+
+        Ok(Self {
+            uin,
+            authst: authst.to_string(),
+        })
+    }
+
+    /// 取链接口认的数字 `uin`（已剥掉 `o`/`O` 前缀与前导零）。
+    pub fn uin(&self) -> &str {
+        &self.uin
+    }
+
+    /// 登录密钥（`qqmusic_key` / `qm_keyst` 等）。
+    pub fn authst(&self) -> &str {
+        &self.authst
+    }
+
+    /// 转成取链接口需要的凭据。
+    pub fn into_auth(self) -> QqAuth {
+        QqAuth {
+            uin: self.uin,
+            authst: self.authst,
+        }
+    }
+}
+
+/// 按 `;` 切分 Cookie：键名转小写去两端空白，忽略没有 `=` 或值为空的片段。
+fn cookie_pairs(raw: &str) -> Vec<(String, String)> {
+    let mut pairs = Vec::new();
+    for pair in raw.split(';') {
+        let Some((key, value)) = pair.split_once('=') else {
+            continue;
+        };
+        let key = key.trim().to_ascii_lowercase();
+        let value = value.trim();
+        if key.is_empty() || value.is_empty() {
+            continue;
+        }
+        pairs.push((key, value.to_string()));
+    }
+    pairs
+}
+
+/// 按 `names` 的优先级（而不是 Cookie 里的先后顺序）取第一个出现的值。
+fn find_value<'a>(pairs: &'a [(String, String)], names: &[&str]) -> Option<&'a str> {
+    names.iter().find_map(|name| {
+        pairs
+            .iter()
+            .find(|(key, _)| key.as_str() == *name)
+            .map(|(_, value)| value.as_str())
+    })
+}
+
+/// 网页版给的 `uin` 形如 `o0123456789`（前缀 `o` + 前导零），而取链接口只认纯数字。
+fn normalize_uin(raw: &str) -> Result<String, String> {
+    let digits = raw
+        .strip_prefix(['o', 'O'])
+        .unwrap_or(raw)
+        .trim_start_matches('0');
+    if digits.is_empty() || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(format!("uin 不是纯数字：{}", truncate(raw, 32)));
+    }
+    Ok(digits.to_string())
+}
+
+/// 错误文案里最多带 32 个字符，避免把超长取值或整条 Cookie 写进日志。
+fn truncate(text: &str, limit: usize) -> String {
+    text.chars().take(limit).collect()
+}
+
 /// 下载任务每次获取链接时读取当前登录态。安卓端可以从 Tauri Store 获取，
 /// 基于文件的实现从本地文件获取；两者都无需让前端保管或传递令牌。
 pub trait QqCredentialSource: Send + Sync {
@@ -355,5 +458,108 @@ mod tests {
         let default_type = build_refresh_param(&settings, &auth).unwrap();
         assert_eq!(default_type["musicid"], 12345);
         assert_eq!(default_type["str_musicid"], "12345");
+    }
+}
+
+/// `QqCookie` 的解析规则与错误文案。
+///
+/// 只覆盖解析层：合法 Cookie 一旦解析成功，取链会真的发网络请求
+/// （`qqmusic::link::fetch_vkey_link` 没有前置参数校验），那种路径留给联网验证。
+#[cfg(test)]
+mod cookie_tests {
+    use super::QqCookie;
+
+    #[test]
+    fn standard_web_cookie_is_parsed() {
+        let raw =
+            "pgv_pvid=1234; uin=o0123456789; qqmusic_key=KEY123; qm_keyst=OLD; qqmusic_key_2=K2";
+        let cookie = QqCookie::parse(raw).unwrap();
+        assert_eq!(cookie.uin(), "123456789");
+        // 优先级：qqmusic_key > qm_keyst > qqmusic_key_2 > qq_music_key
+        assert_eq!(cookie.authst(), "KEY123");
+    }
+
+    #[test]
+    fn prefix_and_leading_zeros_are_stripped() {
+        let cookie = QqCookie::parse("uin=o000007654321; qqmusic_key=k").unwrap();
+        assert_eq!(cookie.uin(), "7654321");
+
+        let cookie = QqCookie::parse("uin=O00042; qqmusic_key=k").unwrap();
+        assert_eq!(cookie.uin(), "42");
+    }
+
+    #[test]
+    fn wxuin_is_used_when_uin_is_absent() {
+        let cookie = QqCookie::parse("wxuin=987654321; qqmusic_key=k").unwrap();
+        assert_eq!(cookie.uin(), "987654321");
+
+        // 两者都在时优先 uin。
+        let cookie = QqCookie::parse("wxuin=111; uin=o222; qqmusic_key=k").unwrap();
+        assert_eq!(cookie.uin(), "222");
+    }
+
+    #[test]
+    fn legacy_and_alternate_authst_keys_are_accepted() {
+        let cases = [
+            ("uin=o42; qm_keyst=legacy", "legacy"),
+            ("uin=o42; qqmusic_key_2=k2", "k2"),
+            ("uin=o42; qq_music_key=k3", "k3"),
+        ];
+        for (raw, expected) in cases {
+            let cookie = QqCookie::parse(raw).unwrap();
+            assert_eq!(cookie.authst(), expected, "{raw}");
+        }
+
+        // 新版键压过旧键，即使旧键在 Cookie 里排在前面。
+        let cookie = QqCookie::parse("uin=o42; qm_keyst=old; qqmusic_key=new").unwrap();
+        assert_eq!(cookie.authst(), "new");
+    }
+
+    #[test]
+    fn key_names_tolerate_case_and_spacing() {
+        let cookie = QqCookie::parse("  UIN =  o0042 ;  QQMusic_Key =  k  ").unwrap();
+        assert_eq!(cookie.uin(), "42");
+        assert_eq!(cookie.authst(), "k");
+    }
+
+    #[test]
+    fn missing_key_is_reported_without_echoing_the_cookie() {
+        let raw = "uin=o0123456789; pgv_pvid=SECRETPVID";
+        let error = QqCookie::parse(raw).err().expect("缺少登录密钥应当失败");
+        assert!(error.contains("qqmusic_key"), "{error}");
+        assert!(!error.contains("SECRETPVID"), "{error}");
+    }
+
+    #[test]
+    fn missing_uin_is_reported_without_echoing_the_cookie() {
+        let raw = "qqmusic_key=SECRETKEY; pgv_pvid=1";
+        let error = QqCookie::parse(raw).err().expect("缺少 uin 应当失败");
+        assert!(error.contains("uin"), "{error}");
+        assert!(!error.contains("SECRETKEY"), "{error}");
+    }
+
+    #[test]
+    fn non_numeric_uin_is_reported_truncated() {
+        let error = QqCookie::parse("uin=oabcXYZ; qqmusic_key=k")
+            .err()
+            .expect("uin 非数字应当失败");
+        assert_eq!(error, "uin 不是纯数字：oabcXYZ");
+
+        let long = "x".repeat(40);
+        let error = QqCookie::parse(&format!("uin={long}; qqmusic_key=k"))
+            .err()
+            .expect("uin 非数字应当失败");
+        let shown: String = long.chars().take(32).collect();
+        assert!(error.contains(&shown), "{error}");
+        assert!(!error.contains(&long), "{error}");
+    }
+
+    #[test]
+    fn into_auth_carries_the_normalized_uin() {
+        let auth = QqCookie::parse("uin=o00042; qqmusic_key=k")
+            .unwrap()
+            .into_auth();
+        assert_eq!(auth.uin, "42");
+        assert_eq!(auth.authst, "k");
     }
 }

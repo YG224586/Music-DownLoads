@@ -84,6 +84,50 @@ export type TaskStatus =
     | 'processing'
     | 'interrupted'
 
+/**
+ * 需要账号凭据的内置音源（键名与 Rust 侧 `PlatformCookies`、存储字段
+ * `platformCookies` 完全一致，改动必须两端同步）。
+ *
+ * 这四个音源都必须自带登录态：直链由各平台自己的服务端按账号权益签发，匿名请求拿不到。
+ * QQ 音乐最彻底——平台已关闭匿名取链（`vkey.GetVkeyServer.CgiGetVkey` 全变体
+ * `result=104003`、`purl` 为空），不填 Cookie 时 QQ 曲目直接报「需要 QQ 音乐账号」。
+ * 数组顺序即设置页顺序：QQ 排最前。
+ */
+export const PLATFORM_COOKIE_KEYS = ['qq', 'kugou', 'netease', 'migu'] as const
+
+export type PlatformCookieKey = (typeof PLATFORM_COOKIE_KEYS)[number]
+
+/** 四个音源的 Cookie 映射；空串表示未配置（按该音源匿名能力降级，不换源）。 */
+export type PlatformCookies = Record<PlatformCookieKey, string>
+
+/** 未配置任何账号时的映射；各音源按自身匿名能力降级。 */
+export const EMPTY_PLATFORM_COOKIES: PlatformCookies = {
+    qq: '',
+    kugou: '',
+    netease: '',
+    migu: '',
+}
+
+/**
+ * 把持久化值修复成键固定的字符串映射。
+ *
+ * 设置快照来自旧版本（没有该字段）、其他窗口或手工编辑的文件，可能是 null、
+ * 数组、缺键、未知键或非字符串。这里只保留四个已知键的字符串值，其余按
+ * 「未配置」处理，避免把脏数据提交给下载核心。
+ */
+export function normalizePlatformCookies(value: unknown): PlatformCookies {
+    const normalized: PlatformCookies = { ...EMPTY_PLATFORM_COOKIES }
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+        return normalized
+    }
+    const source = value as Record<string, unknown>
+    for (const key of PLATFORM_COOKIE_KEYS) {
+        const raw = source[key]
+        if (typeof raw === 'string') normalized[key] = raw
+    }
+    return normalized
+}
+
 export interface Settings {
     defaultQuality: Quality
     autoDowngrade: boolean
@@ -111,6 +155,13 @@ export interface Settings {
     duplicateStrategy?: 'ask' | 'overwrite' | 'rename' | 'cancel'
     // 下载完成后是否发送系统通知
     notifyOnComplete: boolean
+    /**
+     * 各音源账号 Cookie（键固定为 kugou / netease / migu）。
+     *
+     * 只在本机设置里保存，不进入任务记录、不写日志；下载某平台曲目时只使用该平台
+     * 自己的凭据，缺凭据时按该平台匿名能力降级，不换到其它音源。
+     */
+    platformCookies: PlatformCookies
 }
 
 /** 歌曲可用的单个品质项 */
@@ -316,6 +367,8 @@ export const DEFAULT_SETTINGS: Settings = {
     openid: '',
     duplicateStrategy: 'ask',
     notifyOnComplete: false,
+    // 必须克隆默认映射：组件按平台整体替换时不能改写全局常量。
+    platformCookies: { ...EMPTY_PLATFORM_COOKIES },
 }
 
 // GitHub 最新 release 信息

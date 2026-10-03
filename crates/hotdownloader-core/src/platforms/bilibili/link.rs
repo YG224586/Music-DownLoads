@@ -1,12 +1,32 @@
 //! 哔哩哔哩取直链：`view`(bvid→cid) → `playurl`(fnval=16) → DASH 音轨。
 
-use super::{fetch_buvid_cookie, http_get_json_with};
+use super::{fetch_buvid_cookie, http_get_json_with, BILI_UA};
+
+/// 下载音轨时必须附加到媒体请求上的请求头（浏览器 UA + 视频页 Referer）。
+///
+/// DASH 音轨由第三方 PCDN 分发，只认这两个头的组合。实测（bvid `BV1BZbSzZEGT`，
+/// 2026-10-04，探测脚本 `_dev/unlock-probe/bili-ua-matrix.mjs`）：
+/// - 应用下载默认头（`HotDownloader/1.0` + `Referer: https://y.qq.com`）→ 403（text/html）
+/// - 仅浏览器 UA、无 Referer → 403
+/// - 浏览器 UA + `https://www.bilibili.com/video/{bvid}` → 206（video/mp4，偏移 4 起 `ftyp`）
+///
+/// 传输层对自带 Referer 的链接不再补默认 Referer（`download/transfer.rs::needs_default_referer`），
+/// 所以这里必须两个头都给。
+pub fn media_headers(bvid: &str) -> Vec<(String, String)> {
+    vec![
+        ("User-Agent".to_string(), BILI_UA.to_string()),
+        (
+            "Referer".to_string(),
+            format!("https://www.bilibili.com/video/{}", bvid.trim()),
+        ),
+    ]
+}
 
 /// 取下载直链：`song_mid` = bvid。
 ///
 /// 链路：`view`(bvid → cid，防占位数据校验) → `playurl(fnval=16)` →
 /// `dash.audio` 选 id=30280（192kbps AAC）→ `baseUrl` 即直链。
-/// B 站 DASH 音轨不加密，key 恒为空串。
+/// B 站 DASH 音轨不加密，key 恒为空串；请求头由 [`media_headers`] 提供。
 pub async fn get_download_link(
     client: &reqwest::Client,
     song_mid: &str,
@@ -60,4 +80,38 @@ pub async fn get_download_link(
         .as_str()
         .ok_or("解析响应失败: 音轨缺少 baseUrl")?;
     Ok((base_url.to_string(), String::new()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::media_headers;
+
+    /// 传输层只补默认 Referer、不补 UA（`download/transfer.rs`），
+    /// 所以取链层必须把两个头都带上，否则第三方 PCDN 回 403。
+    #[test]
+    fn media_headers_carry_browser_ua_and_video_referer() {
+        let headers = media_headers("BV1BZbSzZEGT");
+        assert_eq!(headers.len(), 2);
+
+        let names: Vec<&str> = headers.iter().map(|(name, _)| name.as_str()).collect();
+        assert_eq!(names, ["User-Agent", "Referer"]);
+
+        let ua = &headers[0].1;
+        assert!(ua.starts_with("Mozilla/5.0"), "{ua}");
+        assert!(ua.contains("Chrome/"), "{ua}");
+
+        assert_eq!(
+            headers[1].1,
+            "https://www.bilibili.com/video/BV1BZbSzZEGT".to_string()
+        );
+    }
+
+    #[test]
+    fn media_headers_trim_the_video_id() {
+        let headers = media_headers("  BV1BZbSzZEGT\n");
+        assert_eq!(
+            headers[1].1,
+            "https://www.bilibili.com/video/BV1BZbSzZEGT".to_string()
+        );
+    }
 }

@@ -6,7 +6,9 @@ use rand::Rng;
 mod platform;
 pub use platform::{Platform, ScriptId};
 
+pub mod account_state;
 pub mod bilibili;
+pub mod credentials;
 pub mod kugou;
 pub mod kuwo;
 pub mod lyric;

@@ -31,6 +31,8 @@ data/
 
 # Test files
 tests/
+# 例外：Rust 核心的真网络集成测试必须入库（`#[ignore]`，按环境变量决定跑哪些音源）
+!crates/hotdownloader-core/tests/
 
 # Docs
 docs/

@@ -3,6 +3,7 @@ use hotdownloader_core::download::config::{DownloadConfig, DownloadConfigProvide
 use hotdownloader_core::download::link::{
     DownloadLink, DownloadLinkProvider, PlatformDownloadLinkProvider,
 };
+use hotdownloader_core::platforms::credentials::{PlatformCookies, PlatformCredentialSource};
 use hotdownloader_core::platforms::qqmusic::credentials::{QqAuth, QqCredentialSource};
 use hotdownloader_core::platforms::Platform;
 use std::sync::Arc;
@@ -161,10 +162,42 @@ struct TauriQqCredentialSource {
 
 impl TauriDownloadLinkProvider {
     pub fn new(app: AppHandle) -> Self {
-        let credentials = Arc::new(TauriQqCredentialSource { app });
+        let qq_credentials = Arc::new(TauriQqCredentialSource { app: app.clone() });
+        let platform_credentials = Arc::new(TauriPlatformCredentialSource { app });
         Self {
-            provider: PlatformDownloadLinkProvider::new(credentials),
+            provider: PlatformDownloadLinkProvider::new(qq_credentials, platform_credentials),
         }
+    }
+}
+
+/// 各平台账号 Cookie 的来源：与 [`TauriDownloadConfigProvider`] 读同一份 `settings` JSON。
+///
+/// 账号设置坏掉时按匿名（全 `None`）继续下载；Cookie 只作为取链输入，
+/// 不写日志、不进任务记录与进度事件（日志里只有「已配置/未配置」的布尔）。
+struct TauriPlatformCredentialSource {
+    app: AppHandle,
+}
+
+impl PlatformCredentialSource for TauriPlatformCredentialSource {
+    fn cookies(&self) -> BoxFuture<'_, Result<PlatformCookies, String>> {
+        Box::pin(async move {
+            let settings_json = match store_wrapper::load_string(&self.app, "settings") {
+                Ok(json) => json,
+                Err(error) => {
+                    log::warn!("读取设置失败，平台账号按未配置继续下载: {error}");
+                    return Ok(PlatformCookies::default());
+                }
+            };
+            let cookies = crate::commands::settings::platform_cookies_from_settings(&settings_json);
+            log::debug!(
+                "平台账号凭据: QQ={} 酷狗={} 网易云={} 咪咕={}",
+                cookies.qq().is_some(),
+                cookies.kugou().is_some(),
+                cookies.netease().is_some(),
+                cookies.migu().is_some()
+            );
+            Ok(cookies)
+        })
     }
 }
 

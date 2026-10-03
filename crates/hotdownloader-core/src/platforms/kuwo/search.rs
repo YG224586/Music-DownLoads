@@ -72,14 +72,6 @@ pub async fn search_songs(
     serde_json::to_string(&result).map_err(|e| format!("序列化结果失败: {}", e))
 }
 
-/// 内置多音源回退（`download/fallback.rs`）使用的原始搜索入口。
-///
-/// 与 [`search_songs`] 共用请求与参数，但直接返回酷我原始响应，
-/// 便于回退逻辑读取 `N_MINFO`（品质列表）与声明文件大小做严格匹配。
-pub(crate) async fn search_raw(keyword: &str, limit: u32) -> Result<Value, String> {
-    search_request(keyword.to_string(), 1, limit, "music").await
-}
-
 /// 共用平台搜索请求，搜索类型决定响应列表字段。
 async fn search_request(
     keyword: String,

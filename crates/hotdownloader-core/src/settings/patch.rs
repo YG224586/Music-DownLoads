@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 const REVISION_KEY: &str = "_settingsRevision";
+/// 单个平台 Cookie 的字节上限：超出说明提交的不是 Cookie，直接拒绝比落盘后再诊断省事。
+const MAX_COOKIE_BYTES: usize = 8192;
 const CREDENTIAL_KEYS: &[&str] = &[
     "loginUin",
     "authst",
@@ -153,6 +155,17 @@ fn validate_field(
         "jumpToTask" | "notifyOnComplete" if matches!(scope, SettingsScope::Tauri) => {
             value.is_boolean()
         }
+        // 平台账号 Cookie（QQ 音乐 / 酷狗 / 网易云 / 咪咕）：与原生端 set_platform_cookies
+        // 命令同形状。只校验形状，值不落日志；网页版与原生端共用同一份存储。
+        "platformCookies" => value.as_object().is_some_and(|map| {
+            map.iter().all(|(key, item)| {
+                matches!(key.as_str(), "qq" | "kugou" | "netease" | "migu")
+                    && (item.is_null()
+                        || item
+                            .as_str()
+                            .is_some_and(|text| text.len() <= MAX_COOKIE_BYTES))
+            })
+        }),
         "downloadDir" | "safFolderUri" | "safFolderName"
             if matches!(scope, SettingsScope::Tauri) =>
         {
@@ -229,6 +242,64 @@ mod tests {
                 apply_patch(
                     &current,
                     patch(field, json!("value"), Value::Null),
+                    SettingsScope::Web,
+                ),
+                Err(SettingsPatchError::Invalid(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn platform_cookies_accept_four_named_string_keys() {
+        let current = json!({});
+        for scope in [SettingsScope::Tauri, SettingsScope::Web] {
+            let applied = apply_patch(
+                &current,
+                patch(
+                    "platformCookies",
+                    json!({
+                        "qq": "uin=o0123456789; qqmusic_key=k",
+                        "kugou": "kg_mid=abc; token=t",
+                        "netease": null,
+                        "migu": "migu=1"
+                    }),
+                    Value::Null,
+                ),
+                scope,
+            )
+            .unwrap();
+            assert_eq!(
+                applied.snapshot.settings["platformCookies"]["qq"],
+                "uin=o0123456789; qqmusic_key=k"
+            );
+            assert_eq!(
+                applied.snapshot.settings["platformCookies"]["kugou"],
+                "kg_mid=abc; token=t"
+            );
+            assert_eq!(
+                applied.snapshot.settings["platformCookies"]["migu"],
+                "migu=1"
+            );
+            // 快照不能剔除该字段：网页版靠它读回当前值。
+            assert!(applied.snapshot.settings["platformCookies"]["netease"].is_null());
+        }
+    }
+
+    #[test]
+    fn platform_cookies_reject_unknown_keys_and_bad_shapes() {
+        let current = json!({});
+        for invalid in [
+            json!({"qqmusic": "uin=1"}), // 未知键（四音源只用 qq 键名）
+            json!({"kugou": 7}),         // 非字符串
+            json!({"qq": 7}),            // qq 非字符串
+            json!("token=t"),            // 非对象
+            json!({"kugou": "x".repeat(MAX_COOKIE_BYTES + 1)}), // 超长
+            json!({"qq": "x".repeat(MAX_COOKIE_BYTES + 1)}), // qq 超长
+        ] {
+            assert!(matches!(
+                apply_patch(
+                    &current,
+                    patch("platformCookies", invalid, Value::Null),
                     SettingsScope::Web,
                 ),
                 Err(SettingsPatchError::Invalid(_))

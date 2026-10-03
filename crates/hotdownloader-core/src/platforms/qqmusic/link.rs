@@ -34,7 +34,8 @@ fn get_guid() -> String {
 /// # 参数
 /// - `song_mid`: 歌曲的唯一标识（mid）。
 /// - `filename`: 品质文件名（例如 `M800001abc.mp3`），决定下载的具体文件。
-/// - `credentials`: 可选登录态，匿名访问时传 `None`。
+/// - `credentials`: 可选登录态，匿名访问时传 `None`；登录态本身只影响
+///   `result=104003` 这一档拒绝码的提示文案（匿名时请用户去填账号，已登录时说明权益不足）。
 ///
 /// # 返回
 /// - `Ok((String, String))`：元组 `(完整下载链接, 解密密钥)`。
@@ -90,11 +91,18 @@ pub async fn fetch_vkey_link(
         .map_err(|e| format!("读取响应失败: {}", e))?;
     let data: Value = serde_json::from_str(&text).map_err(|e| format!("解析响应失败: {}", e))?;
 
-    parse_vkey_response(&data, filename)
+    parse_vkey_response(&data, filename, credentials.is_some())
 }
 
 /// 单独解析响应，便于验证 CDN 选择、拒绝错误和明文/加密格式的密钥边界。
-fn parse_vkey_response(data: &Value, filename: &str) -> Result<(String, String), String> {
+///
+/// `logged_in` 只用于选择 `result=104003` 的文案：匿名时让用户去
+/// 「设置 → 平台账号」填 QQ 音乐 Cookie，已登录时说明当前账号没有该曲权益。
+fn parse_vkey_response(
+    data: &Value,
+    filename: &str,
+    logged_in: bool,
+) -> Result<(String, String), String> {
     // 提取 vkey.GetVkeyServer.CgiGetVkey 子响应
     let vkey_resp = &data["vkey.GetVkeyServer.CgiGetVkey"];
     if vkey_resp["code"].as_i64().unwrap_or(-1) != 0 {
@@ -115,7 +123,7 @@ fn parse_vkey_response(data: &Value, filename: &str) -> Result<(String, String),
     let result_code = item["result"].as_i64().unwrap_or(0);
     if purl.is_empty() || result_code != 0 {
         let err_msg = match result_code {
-            104003 => "无法获取下载链接".to_string(),
+            104003 => result_104003_message(logged_in),
             104004 => "该歌曲已下架或禁止下载".to_string(),
             _ => format!(
                 "获取下载链接失败，错误码: {}，详情: {:?}",
@@ -149,6 +157,16 @@ fn parse_vkey_response(data: &Value, filename: &str) -> Result<(String, String),
     }
 }
 
+/// `result=104003` 是平台对「匿名请求」与「账号无该曲权益」共用的一档拒绝码。
+/// 两种情形用户接下来要做的事完全不同，因此按登录态给两档可执行文案。
+fn result_104003_message(logged_in: bool) -> String {
+    if logged_in {
+        "QQ 音乐：当前 QQ 音乐账号没有该曲目的下载权限（付费/VIP 曲目），请确认账号已开通权益且 Cookie 未过期".to_string()
+    } else {
+        "QQ 音乐：该歌曲需要登录 QQ 音乐账号，匿名请求被平台拒绝（result=104003），请在「设置 → 平台账号」填入 QQ 音乐 Cookie 后重试".to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -167,11 +185,11 @@ mod tests {
             }
         });
         assert_eq!(
-            parse_vkey_response(&response, "song.mp3").unwrap(),
+            parse_vkey_response(&response, "song.mp3", false).unwrap(),
             ("https://cdn.example/audio".into(), String::new())
         );
         assert_eq!(
-            parse_vkey_response(&response, "song.mflac").unwrap(),
+            parse_vkey_response(&response, "song.mflac", false).unwrap(),
             ("https://cdn.example/audio".into(), "secret".into())
         );
     }
@@ -186,9 +204,46 @@ mod tests {
                 }
             }
         });
+        // 104004（已下架/禁止下载）与登录态无关，两种情形文案一致。
         assert_eq!(
-            parse_vkey_response(&response, "song.mp3").unwrap_err(),
+            parse_vkey_response(&response, "song.mp3", false).unwrap_err(),
             "该歌曲已下架或禁止下载"
         );
+        assert_eq!(
+            parse_vkey_response(&response, "song.mp3", true).unwrap_err(),
+            "该歌曲已下架或禁止下载"
+        );
+    }
+
+    #[test]
+    fn anonymous_104003_tells_the_user_where_to_fill_the_account() {
+        let response = json!({
+            "vkey.GetVkeyServer.CgiGetVkey": {
+                "code": 0,
+                "data": {
+                    "midurlinfo": [{ "purl": "", "result": 104003 }]
+                }
+            }
+        });
+        let error = parse_vkey_response(&response, "song.mp3", false).unwrap_err();
+        assert!(error.contains("设置 → 平台账号"), "{error}");
+        assert!(error.contains("QQ 音乐"), "{error}");
+        assert!(error.contains("104003"), "{error}");
+        assert!(!error.contains("其它音源"), "{error}");
+    }
+
+    #[test]
+    fn logged_in_104003_reports_missing_entitlement() {
+        let response = json!({
+            "vkey.GetVkeyServer.CgiGetVkey": {
+                "code": 0,
+                "data": {
+                    "midurlinfo": [{ "purl": "", "result": 104003 }]
+                }
+            }
+        });
+        let error = parse_vkey_response(&response, "song.mp3", true).unwrap_err();
+        assert!(error.contains("没有该曲目的下载权限"), "{error}");
+        assert!(!error.contains("设置 → 平台账号"), "{error}");
     }
 }

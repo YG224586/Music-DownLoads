@@ -10,6 +10,11 @@
 //!   所以先用调用方 client 跟一次重定向确认真实容器，再交给下载层是安全的；
 //! - reqwest 0.12 没有「按请求关闭重定向」的 API，只能沿用调用方 client 的策略，
 //!   因此这里同时兼容「已跟随重定向拿到 200」与「拿到 302 + Location」两种情况。
+//!
+//! 账号态：VIP 独占曲目匿名一律回 `{"code":"200000","info":"暂不提供试听地址"}`；
+//! 配置了咪咕账号后，同一个请求会带上该账号自己的 Cookie，由咪咕按账号权益决定是否
+//! 签发直链。仍然回同一句拒绝时，按「是否配置账号」给出两种确定性文案，且只报咪咕自己
+//! 的结论——本模块不会去调用任何别的平台。
 
 use std::path::Path;
 
@@ -28,6 +33,20 @@ const KNOWN_TONES: [&str; 6] = ["LQ", "PQ", "HQ", "SQ", "ZQ", "Z3D"];
 /// 咪咕支持的音频容器（契约 §3 要求扩展名即真实容器）。
 const KNOWN_EXTENSIONS: [&str; 5] = ["mp3", "flac", "m4a", "ogg", "aac"];
 
+/// 320k mp3 档位名：与 `PQ` 同容器，只能靠直链路径里的码率目录区分。
+const HQ_TONE: &str = "HQ";
+
+/// 匿名实测到的码率标记（`MP3_128_16_Stero`）：请求 HQ 却拿到不高于它的码率即为档位说谎。
+const ANONYMOUS_MARKER_KBPS: u32 = 192;
+
+/// 未配置账号时的确定性失败文案。
+pub const PAID_RESTRICTED_MESSAGE: &str =
+    "咪咕音乐：该歌曲为付费/VIP 曲目，需要咪咕会员账号，请在「设置 → 平台账号」填入咪咕 Cookie 后重试";
+
+/// 已配置账号却没有该曲目权益时的确定性失败文案。
+pub const ACCOUNT_NO_PERMISSION_MESSAGE: &str =
+    "咪咕音乐：当前咪咕账号没有该曲目的下载权限（付费/会员曲目），请确认账号已开通权益且 Cookie 未过期";
+
 /// 获取下载直链，返回 `(直链, 解密密钥)`。
 ///
 /// 咪咕直链是明文音频（mp3），因此第二个返回值恒为空串。
@@ -36,16 +55,25 @@ const KNOWN_EXTENSIONS: [&str; 5] = ["mp3", "flac", "m4a", "ogg", "aac"];
 /// - `client`：调用方复用的 HTTP 客户端。
 /// - `song_mid`：`{copyrightId}|{contentId}`，由 [`super::parser::parse_song`] 生成。
 /// - `filename`：`{toneFlag}.{扩展名}`，由 [`super::parser::quality_filename`] 生成。
+/// - `cookie`：本机保存的咪咕账号 Cookie；`None` / 空白串 = 按匿名能力取链。
 pub async fn get_download_link(
     client: &Client,
     song_mid: &str,
     filename: &str,
+    cookie: Option<&str>,
 ) -> Result<(String, String), String> {
     let (copyright_id, content_id) = parse_song_mid(song_mid)?;
     let (tone_flag, requested_extension) = parse_quality_filename(filename)?;
     let url = listen_url(&tone_flag, &copyright_id, &content_id)?;
+    let cookie = cookie.map(str::trim).filter(|value| !value.is_empty());
 
-    let response = super::app_request(client.get(url))
+    // 配置了账号：把咪咕自己的 Cookie 一并交给 listenSong.do，由咪咕按账号权益签发直链。
+    let mut request = super::app_request(client.get(url));
+    if let Some(raw_cookie) = cookie {
+        request = request.header(reqwest::header::COOKIE, raw_cookie);
+    }
+
+    let response = request
         .send()
         .await
         .map_err(|e| format!("网络错误: {}", e))?;
@@ -59,7 +87,7 @@ pub async fn get_download_link(
             .get(LOCATION)
             .and_then(|value| value.to_str().ok())
             .ok_or_else(|| format!("咪咕未返回直链（HTTP {}）", status.as_u16()))?;
-        return finalize(location, None, &requested_extension);
+        return finalize(location, None, &tone_flag, &requested_extension);
     }
 
     if !status.is_success() {
@@ -87,17 +115,27 @@ pub async fn get_download_link(
             .get("info")
             .and_then(Value::as_str)
             .unwrap_or("未知错误");
-        return Err(describe_error(info));
+        return Err(describe_error(info, cookie.is_some()));
     }
 
     let direct_url = response.url().as_str().to_string();
-    finalize(&direct_url, content_type.as_deref(), &requested_extension)
+    finalize(
+        &direct_url,
+        content_type.as_deref(),
+        &tone_flag,
+        &requested_extension,
+    )
 }
 
 /// 校验直链可用且容器与请求音质一致，返回 `(直链, 解密密钥)`。
+///
+/// 除容器外还要挡住「档位说谎」：320k（HQ）与 128k（PQ）同为 mp3，容器一致，
+/// 所以额外读咪咕写进直链路径的码率目录（`MP3_128_16_Stero` / `MP3_320_16_Stero`），
+/// 发现实际码率低于请求时就报错，绝不把 128k 的字节标成 320k 交付。
 fn finalize(
     direct_url: &str,
     content_type: Option<&str>,
+    requested_tone: &str,
     requested_extension: &str,
 ) -> Result<(String, String), String> {
     if !direct_url.starts_with("http") {
@@ -114,8 +152,41 @@ fn finalize(
         }
     }
 
+    if requested_tone == HQ_TONE {
+        if let Some(kbps) = url_bitrate_kbps(direct_url) {
+            if kbps <= ANONYMOUS_MARKER_KBPS {
+                return Err(format!(
+                    "咪咕返回的是 {}kbps 音频，不是请求的 320k——该账号当前没有 320k 音质权益（换个档位或开通权益后重试）",
+                    kbps
+                ));
+            }
+        }
+    }
+
     // 咪咕直链是明文音频，没有加密容器，密钥恒为空。
     Ok((direct_url.to_string(), String::new()))
+}
+
+/// 从直链路径里读咪咕自报的码率（目录名形如 `MP3_128_16_Stero`）。
+///
+/// 只在容器名（mp3/flac/m4a/aac/ogg）后紧跟纯数字时取值；命名不符合预期就返回 `None`，
+/// 由调用方按「无法判定」处理，避免拿不到标记时误报。
+fn url_bitrate_kbps(url: &str) -> Option<u32> {
+    let path = Url::parse(url).ok()?.path().to_string();
+    for segment in path.split('/') {
+        let mut parts = segment.split('_');
+        let container = parts.next().unwrap_or("");
+        if !KNOWN_EXTENSIONS
+            .iter()
+            .any(|known| container.eq_ignore_ascii_case(known))
+        {
+            continue;
+        }
+        if let Some(kbps) = parts.next().and_then(|value| value.parse::<u32>().ok()) {
+            return Some(kbps);
+        }
+    }
+    None
 }
 
 /// 从直链路径里取扩展名。
@@ -146,15 +217,25 @@ fn content_type_extension(content_type: Option<&str>) -> Option<String> {
 ///
 /// 实测（`_dev/probe/migu-probe-e2.log`）：VIP 独占曲返回「暂不提供试听地址」，
 /// 伪造/已下线曲目返回「歌曲下线暂不支持播放，敬请期待」。
-fn describe_error(info: &str) -> String {
+///
+/// `has_account` 决定「会员曲目」那一句指向哪个下一步动作：没配账号时让用户去设置页填，
+/// 配了账号则提示查权益与 Cookie 有效期——同一句服务端拒绝，两种情况的可执行结论不同。
+fn describe_error(info: &str, has_account: bool) -> String {
     match info {
-        "暂不提供试听地址" => {
-            "咪咕：该曲目暂不提供试听地址（可能需要咪咕会员）".to_string()
-        }
+        "暂不提供试听地址" => restricted_message(has_account),
         "歌曲下线暂不支持播放，敬请期待" => {
             "咪咕：该曲目已下线，暂不支持播放".to_string()
         }
         other => format!("咪咕取链失败: {}", other),
+    }
+}
+
+/// 账号权益类失败文案：按「是否配置了账号」二分。
+fn restricted_message(has_account: bool) -> String {
+    if has_account {
+        ACCOUNT_NO_PERMISSION_MESSAGE.to_string()
+    } else {
+        PAID_RESTRICTED_MESSAGE.to_string()
     }
 }
 
@@ -208,6 +289,9 @@ mod tests {
         let (copyright_id, content_id) = parse_song_mid("60054704101|600913000007163534").unwrap();
         assert_eq!(copyright_id, "60054704101");
         assert_eq!(content_id, "600913000007163534");
+        // 非法 mid 必须在构造请求 / 读 Cookie 之前失败，文案保持既有措辞
+        let error = parse_song_mid("invalid-mid").unwrap_err();
+        assert!(error.contains("无效的咪咕歌曲标识"), "{error}");
         assert!(parse_song_mid("600913000007163534").is_err());
         assert!(parse_song_mid("|600913000007163534").is_err());
         assert!(parse_song_mid("60054704101|").is_err());
@@ -276,23 +360,61 @@ mod tests {
     fn direct_link_container_must_match_requested_quality() {
         let url =
             "https://freetyst.nf.migu.cn/public/x/MP3_128_16_Stero/60054704101123747.mp3?Key=abc";
-        assert!(finalize(url, Some("audio/mpeg"), "mp3").is_ok());
-        let error = finalize(url, Some("audio/mpeg"), "flac").unwrap_err();
+        assert!(finalize(url, Some("audio/mpeg"), "PQ", "mp3").is_ok());
+        let error = finalize(url, Some("audio/mpeg"), "SQ", "flac").unwrap_err();
         assert!(error.contains("mp3") && error.contains("flac"));
-        assert!(finalize("not-a-url", None, "mp3").is_err());
+        assert!(finalize("not-a-url", None, "PQ", "mp3").is_err());
     }
 
     #[test]
     fn container_falls_back_to_content_type() {
         let url = "https://freetyst.nf.migu.cn/public/x/stream?Key=abc";
-        assert!(finalize(url, Some("audio/mpeg"), "mp3").is_ok());
-        assert!(finalize(url, Some("audio/flac"), "mp3").is_err());
+        assert!(finalize(url, Some("audio/mpeg"), "PQ", "mp3").is_ok());
+        assert!(finalize(url, Some("audio/flac"), "SQ", "mp3").is_err());
+    }
+
+    #[test]
+    fn requested_320k_rejects_a_128kbps_direct_link() {
+        // 账号没有 320k 权益时，咪咕会忽略 toneFlag 直接给 128k 目录的同一个 mp3：
+        // 容器校验放行，但码率目录说明这是 128k，必须报错而不是当成 HQ 交付。
+        let anonymous_url =
+            "https://freetyst.nf.migu.cn/public/x/MP3_128_16_Stero/60054704101123747.mp3?Key=abc";
+        let error = finalize(anonymous_url, Some("audio/mpeg"), "HQ", "mp3").unwrap_err();
+        assert!(error.contains("128") && error.contains("320k"), "{error}");
+
+        // 真正的 320k 直链放行。
+        let hq_url =
+            "https://freetyst.nf.migu.cn/public/x/MP3_320_16_Stero/60054704101123747.mp3?Key=abc";
+        assert!(finalize(hq_url, Some("audio/mpeg"), "HQ", "mp3").is_ok());
+
+        // 路径里读不出码率标记时不误报（无法判定就交给后续流程，不当成档位说谎）。
+        let unmarked = "https://freetyst.nf.migu.cn/public/x/stream?Key=abc";
+        assert!(finalize(unmarked, Some("audio/mpeg"), "HQ", "mp3").is_ok());
+
+        // 128k 档位请求不受这条规则影响。
+        assert!(finalize(anonymous_url, Some("audio/mpeg"), "PQ", "mp3").is_ok());
     }
 
     #[test]
     fn known_denials_are_explained_in_chinese() {
-        assert!(describe_error("暂不提供试听地址").contains("会员"));
-        assert!(describe_error("歌曲下线暂不支持播放，敬请期待").contains("下线"));
-        assert!(describe_error("别的错误").contains("别的错误"));
+        // 会员曲目：两种状态各有各的下一步动作
+        let anonymous = describe_error("暂不提供试听地址", false);
+        assert_eq!(anonymous, PAID_RESTRICTED_MESSAGE);
+        assert!(
+            anonymous.contains("设置 → 平台账号") && anonymous.contains("咪咕"),
+            "{anonymous}"
+        );
+
+        let configured = describe_error("暂不提供试听地址", true);
+        assert_eq!(configured, ACCOUNT_NO_PERMISSION_MESSAGE);
+        assert!(
+            configured.contains("权益") && configured.contains("未过期"),
+            "{configured}"
+        );
+        assert_ne!(anonymous, configured);
+
+        // 其它拒绝与既有措辞保持不变
+        assert!(describe_error("歌曲下线暂不支持播放，敬请期待", false).contains("下线"));
+        assert!(describe_error("别的错误", true).contains("别的错误"));
     }
 }

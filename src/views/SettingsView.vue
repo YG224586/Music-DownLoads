@@ -38,6 +38,14 @@
             </ul>
         </section>
 
+        <!-- 各音源自己的账号：只解锁该平台的付费曲目，不换源 -->
+        <section class="settings-group">
+            <h2 class="group-title">平台账号</h2>
+            <ul class="settings-list">
+                <PlatformAccountSetting />
+            </ul>
+        </section>
+
         <section class="settings-group">
             <h2 class="group-title">基本设置</h2>
             <ul class="settings-list">
@@ -113,6 +121,7 @@ import ClearHistoryButton from '../components/settings/ClearHistoryButton.vue'
 import WriteMetadataSetting from '../components/settings/WriteMetadataSetting.vue'
 import DownloadLrcSetting from '../components/settings/DownloadLrcSetting.vue'
 import AccountSetting from '../components/settings/AccountSetting.vue'
+import PlatformAccountSetting from '../components/settings/PlatformAccountSetting.vue'
 import BuiltinSourceSetting from '../components/settings/BuiltinSourceSetting.vue'
 import CustomSourceSetting from '../components/settings/CustomSourceSetting.vue'
 import DuplicateStrategySetting from '../components/settings/DuplicateStrategySetting.vue'

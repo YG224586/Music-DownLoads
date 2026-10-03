@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "音乐下载",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "identifier": "com.musicdownloads.app",
   "build": {
     "frontendDist": "../dist",

@@ -29,6 +29,8 @@ pub fn run() {
         .plugin(tauri_plugin_safe_area_insets_css_edge::init()) // 注册安全区域插件
         .setup(|app| {
             store_wrapper::initialize(app.handle())?;
+            // 平台账号（酷狗/网易云/咪咕）是否已配置决定各音源声明哪些音质档位，启动时同步一次。
+            commands::settings::restore_platform_accounts(app.handle());
             // 自定义音源脚本（正文 + 启用状态）随设置一起恢复，失败只记录日志不影响启动。
             commands::api::script_source::restore_sources(app.handle());
             // 下载器启动前先恢复持久化任务；后续下载事件才能更新权威任务状态。
@@ -70,6 +72,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::settings::get_settings_snapshot,
             commands::settings::patch_settings,
+            commands::settings::get_platform_cookies,
+            commands::settings::set_platform_cookies,
             commands::history::load_history,
             commands::history::save_history,
             commands::tasks::load_tasks,

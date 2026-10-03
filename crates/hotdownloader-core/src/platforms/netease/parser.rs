@@ -7,32 +7,39 @@
 //! 音质档位按「宁缺勿假」原则给出：匿名态实测只有 128k 与 320k mp3 能拿到**完整**
 //! 曲目（`br=128000` → `lMusic` 大小，`br=320000` → `hMusic` 大小）；请求无损
 //! （`br=999000`）时接口**静默降级**为 320k（返回 `br=320000`、`level=exhigh`），
-//! 所以不列出 `flac`/`hires`。付费曲目（`fee=1`/`4`）匿名只给试听片段，不列出任何档位，
-//! 由 `link.rs` 返回确定性的中文错误。
+//! 所以匿名不列出 `flac`。**已配置账号**时追加 `2000.flac`：登录态走
+//! `enhance/player/url/v1` 的 `level=lossless`，账号有权益才有 flac，拿不到时
+//! `link.rs` 给「查权益/查有效期」的确定性中文文案，不会把 320k 当无损交付。
+//!
+//! 档位**不再按 `fee` 分叉**：付费曲目（`fee=1`/`4`）匿名时也声明标准两档，
+//! 这样用户点下载能拿到 `link.rs` 的可执行提示（需要在「设置 → 平台账号」填 Cookie），
+//! 而不是空档位导致的「所选音质不可用」。
 
 use serde_json::{json, Value};
 
-/// 网易云 `fee` 语义：`0` 免费、`8` 低音质免费（标准音质可免费听）；
-/// `1` 会员曲目、`4` 数字专辑，匿名只能试听。
-fn allows_anonymous_download(fee: Option<i64>) -> bool {
-    match fee {
-        Some(value) => matches!(value, 0 | 8),
-        // 字段缺失时按可下载处理，真正的可用性由 link.rs 校验直链兜底。
-        None => true,
-    }
-}
+use crate::platforms::{account_state, Platform};
 
 /// 构造 `qualities` 数组：元素形状与酷我一致（`{quality, size, filename}`），
 /// `filename` 为 `{bitrate}.{format}`，`link.rs` 从扩展名取容器、从主干取码率。
-pub fn build_qualities(free: bool) -> Vec<Value> {
-    if !free {
-        return Vec::new();
-    }
+pub fn build_qualities() -> Vec<Value> {
+    build_qualities_for(account_state::platform_account_configured(
+        Platform::Netease,
+    ))
+}
 
-    vec![
+/// 档位构造的纯函数版本（账号态由参数给定），供单元测试与调用方显式指定。
+pub fn build_qualities_for(account: bool) -> Vec<Value> {
+    let mut qualities = vec![
         json!({ "quality": "128kmp3", "size": 0, "filename": "128.mp3" }),
         json!({ "quality": "320kmp3", "size": 0, "filename": "320.mp3" }),
-    ]
+    ];
+
+    if account {
+        // 无损：只有登录态能拿到，匿名请求会被静默降级，所以仅在配置账号后声明。
+        qualities.push(json!({ "quality": "flac", "size": 0, "filename": "2000.flac" }));
+    }
+
+    qualities
 }
 
 fn entity_id(value: Option<&Value>) -> String {
@@ -94,8 +101,6 @@ pub fn parse_song(song: &Value, separator: &str) -> Value {
         .map(|millis| millis / 1000)
         .unwrap_or(0);
 
-    let free = allows_anonymous_download(song.get("fee").and_then(Value::as_i64));
-
     json!({
         // 网易云搜索返回的 id 是数字字符串，归一化成任务契约定义的 u64。
         "id": crate::task::contract::song_id_to_u64(&mid),
@@ -109,13 +114,13 @@ pub fn parse_song(song: &Value, separator: &str) -> Value {
         "duration": duration,
         "coverUrl": "",
         "mediaMid": mid,
-        "qualities": build_qualities(free),
+        "qualities": build_qualities(),
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::parse_song;
+    use super::{build_qualities_for, parse_song};
     use serde_json::json;
 
     #[test]
@@ -146,10 +151,30 @@ mod tests {
     }
 
     #[test]
-    fn paid_song_lists_no_quality() {
+    fn paid_song_still_lists_standard_qualities() {
+        // 匿名态下付费曲目也声明标准两档：点下载后由 link.rs 给出
+        // 「需要网易云会员账号，请在设置 → 平台账号填入 Cookie」的可执行提示，
+        // 而不是空档位导致的「所选音质不可用」。
         let song = json!({ "id": 1945894789u64, "name": "晴天 (钢琴版)", "fee": 1 });
         let parsed = parse_song(&song, "、");
 
-        assert_eq!(parsed["qualities"].as_array().map(Vec::len), Some(0));
+        let qualities = parsed["qualities"].as_array().unwrap();
+        assert_eq!(qualities.len(), 2);
+        assert_eq!(qualities[0]["filename"], "128.mp3");
+        assert_eq!(qualities[1]["filename"], "320.mp3");
+    }
+
+    #[test]
+    fn configured_account_adds_the_lossless_tier() {
+        // 匿名：不给 flac（请求无损会被静默降级成 320k）。
+        let anonymous = build_qualities_for(false);
+        assert_eq!(anonymous.len(), 2);
+
+        // 账号态：追加 2000.flac，对应 link.rs 的 level=lossless。
+        let configured = build_qualities_for(true);
+        assert_eq!(configured.len(), 3);
+        assert_eq!(configured[2]["quality"], "flac");
+        assert_eq!(configured[2]["filename"], "2000.flac");
+        assert_eq!(configured[2]["size"], 0);
     }
 }

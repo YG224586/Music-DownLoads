@@ -6,11 +6,15 @@
 //!
 //! 音质方面：匿名请求下咪咕会忽略 `toneFlag`，实测（两首曲目 × 5 个档位，
 //! `_dev/probe/migu-probe-e2.log`…`e5.log`）PQ/HQ/SQ/ZQ/LQ 拿到的都是同一个
-//! `MP3_128_16_Stero/*.mp3`，所以本模块只声明 `128kmp3` 一档（宁缺勿假）。
+//! `MP3_128_16_Stero/*.mp3`，所以匿名只声明 `128kmp3` 一档（宁缺勿假：声明 HQ
+//! 会拿到「文件名说 HQ、字节其实是 128k」的假货）。**已配置账号**时追加
+//! `320kmp3`（`HQ`）与 `flac`（`SQ`），由账号权益决定能否签发；拿不到时
+//! `link.rs` 给「查权益/查有效期」的确定性中文文案。
 
+use crate::platforms::{account_state, Platform};
 use serde_json::{json, Value};
 
-/// 对外声明的唯一音质，取值来自冻结音质词表（契约 §5）。
+/// 对外声明的标准音质，取值来自冻结音质词表（契约 §5）。
 pub const QUALITY: &str = "128kmp3";
 
 /// 取链使用的咪咕档位名，对应标准音质。
@@ -18,6 +22,9 @@ pub const TONE_FLAG: &str = "PQ";
 
 /// 标准音质的真实容器。
 pub const EXTENSION: &str = "mp3";
+
+/// 只有配置了账号才声明的两档：`(契约音质, 咪咕档位, 默认容器)`。
+const ACCOUNT_TIERS: [(&str, &str, &str); 2] = [("320kmp3", "HQ", "mp3"), ("flac", "SQ", "flac")];
 
 /// 取字符串字段；空字符串与缺失都视为「没有」。
 fn text(value: &Value, key: &str) -> Option<String> {
@@ -89,37 +96,66 @@ pub fn quality_filename(tone_flag: &str, extension: &str) -> String {
     format!("{}.{}", tone_flag, extension)
 }
 
-/// 咪咕声明的大小（PQ 档的 `androidSize`，其次 `size`），拿不到填 0。
-fn standard_size(item: &Value) -> u64 {
+/// 某个档位在这首歌里的声明信息：`(大小, 容器)`。
+///
+/// 优先 `newRateFormats`，其次 `rateFormats`；同一档位有多条记录时取第一条非零大小
+/// 与非空容器。记录缺失时大小为 0、容器为 `None`（由调用方给默认容器）。
+fn format_declaration(item: &Value, format_type: &str) -> (u64, Option<String>) {
+    let mut size = 0;
+    let mut extension = None;
     for key in ["newRateFormats", "rateFormats"] {
         let Some(formats) = item.get(key).and_then(Value::as_array) else {
             continue;
         };
         for format in formats {
-            if text(format, "formatType").as_deref() != Some(TONE_FLAG) {
+            if text(format, "formatType").as_deref() != Some(format_type) {
                 continue;
             }
-            let size = number(format.get("androidSize").unwrap_or(&Value::Null));
-            let size = if size > 0 {
-                size
-            } else {
-                number(format.get("size").unwrap_or(&Value::Null))
-            };
-            if size > 0 {
-                return size;
+            if size == 0 {
+                let android = number(format.get("androidSize").unwrap_or(&Value::Null));
+                size = if android > 0 {
+                    android
+                } else {
+                    number(format.get("size").unwrap_or(&Value::Null))
+                };
+            }
+            if extension.is_none() {
+                extension = text(format, "androidFileType").or_else(|| text(format, "fileType"));
             }
         }
     }
-    0
+    (size, extension)
 }
 
-/// 构造音质数组：咪咕匿名只能拿到 128kbps mp3，所以只有这一项。
+/// 构造一个音质项：`filename` 编码该档位的 `{toneFlag}.{容器}`（见 [`quality_filename`]）。
+fn quality_item(item: &Value, quality: &str, tone_flag: &str, default_extension: &str) -> Value {
+    let (size, declared) = format_declaration(item, tone_flag);
+    json!({
+        "quality": quality,
+        "size": size,
+        "filename": quality_filename(tone_flag, declared.as_deref().unwrap_or(default_extension))
+    })
+}
+
+/// 构造音质数组：匿名只有 `128kmp3` 一档（见模块文档），配置账号后追加 320k 与无损。
 pub fn build_qualities(item: &Value) -> Vec<Value> {
-    vec![json!({
-        "quality": QUALITY,
-        "size": standard_size(item),
-        "filename": quality_filename(TONE_FLAG, EXTENSION)
-    })]
+    build_qualities_for(
+        item,
+        account_state::platform_account_configured(Platform::Migu),
+    )
+}
+
+/// 档位构造的纯函数版本（账号态由参数给定），供单元测试与调用方显式指定。
+pub fn build_qualities_for(item: &Value, account: bool) -> Vec<Value> {
+    let mut qualities = vec![quality_item(item, QUALITY, TONE_FLAG, EXTENSION)];
+
+    if account {
+        for (quality, tone_flag, default_extension) in ACCOUNT_TIERS {
+            qualities.push(quality_item(item, quality, tone_flag, default_extension));
+        }
+    }
+
+    qualities
 }
 
 /// 把一首原始歌曲解析为契约 §2 规定的对象；缺少 `contentId` 时无法取链，返回 `None`。
@@ -224,6 +260,23 @@ mod tests {
             build_qualities(&json!({ "contentId": "1" }))[0]["size"].as_u64(),
             Some(0)
         );
+    }
+
+    #[test]
+    fn configured_account_adds_high_and_lossless_tiers() {
+        let item = sample_song();
+
+        // 匿名：只有 PQ 一档（咪咕匿名忽略 toneFlag，声明更多就是假档位）。
+        assert_eq!(build_qualities_for(&item, false).len(), 1);
+
+        // 账号态：追加 HQ.mp3（320k）与 SQ.flac（无损，容器取记录里的 androidFileType）。
+        let qualities = build_qualities_for(&item, true);
+        assert_eq!(qualities.len(), 3);
+        assert_eq!(qualities[1]["quality"], "320kmp3");
+        assert_eq!(qualities[1]["filename"], "HQ.mp3");
+        assert_eq!(qualities[2]["quality"], "flac");
+        assert_eq!(qualities[2]["filename"], "SQ.flac");
+        assert_eq!(qualities[2]["size"].as_u64(), Some(30477128));
     }
 
     #[test]
