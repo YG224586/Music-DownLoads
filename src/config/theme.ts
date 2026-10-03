@@ -378,6 +378,15 @@ function buildOverrides(p: MdPalette): GlobalThemeOverrides {
             iconColor: p.onSurfaceVariant,
         },
 
+        // M3 复选框：容器 18dp、圆角 2dp（圆形轮廓是 radio 的语义）。
+        // Naive 的 Checkbox 主题直接引用 common.borderRadiusSmall，而本文件为了
+        // M3 Expressive 把 common.borderRadiusSmall 上调到了 12px —— 16×16 的方框
+        // 配 12px 圆角会被渲染成近圆形（实测 390×844 下 16×16 / radius 12px），
+        // 与 M3 的方形复选框不符，故在此单独覆盖回 2dp。
+        Checkbox: {
+            borderRadius: '2px',
+        },
+
         // M3 菜单：4dp 圆角 + surface-container 底 + 48dp 行高。
         // Naive 的 Dropdown 圆角取自 common.borderRadius（当前 16px），
         // 会把平台选择等菜单画成 16px 大圆角卡片，与 M3 menu 不符。
