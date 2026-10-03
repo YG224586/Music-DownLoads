@@ -49,6 +49,13 @@
         </section>
 
         <section class="settings-group">
+            <h2 class="group-title">自定义音源</h2>
+            <ul class="settings-list">
+                <CustomSourceSetting />
+            </ul>
+        </section>
+
+        <section class="settings-group">
             <h2 class="group-title">下载设置</h2>
             <ul class="settings-list">
                 <DirectorySetting />
@@ -107,6 +114,7 @@ import WriteMetadataSetting from '../components/settings/WriteMetadataSetting.vu
 import DownloadLrcSetting from '../components/settings/DownloadLrcSetting.vue'
 import LoginSetting from '../components/settings/LoginSetting.vue'
 import BuiltinSourceSetting from '../components/settings/BuiltinSourceSetting.vue'
+import CustomSourceSetting from '../components/settings/CustomSourceSetting.vue'
 import DuplicateStrategySetting from '../components/settings/DuplicateStrategySetting.vue'
 import NotifySetting from '../components/settings/NotifySetting.vue'
 import UpdateChecker from '../components/settings/UpdateChecker.vue'

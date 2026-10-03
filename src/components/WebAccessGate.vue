@@ -181,6 +181,22 @@ async function submit() {
     border-radius: var(--md-shape-lg);
     background-color: var(--md-surface-container-lowest);
     box-shadow: var(--md-elevation-1);
+    /* M3 Expressive 入场：淡入 + 轻微上浮，走 emphasized-decelerate 曲线。
+       fill 用 both，动画结束后停在终态（transform: none），不产生持续布局影响；
+       prefers-reduced-motion 全局块会把时长压到 0.01ms。 */
+    animation: access-card-enter var(--md-duration-medium)
+        var(--md-easing-emphasized-decelerate) both;
+}
+
+@keyframes access-card-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
 }
 
 .access-card :deep(.n-card-header__main) {

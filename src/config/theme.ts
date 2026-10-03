@@ -32,6 +32,7 @@ interface MdPalette {
     errorPressed: string
     success: string
     successContainer: string
+    onSuccessContainer: string
     warning: string
     warningContainer: string
     onWarningContainer: string
@@ -80,6 +81,7 @@ const light: MdPalette = {
     errorPressed: '#8c1010',
     success: '#1e6b45',
     successContainer: '#a5f2c8',
+    onSuccessContainer: '#002114',
     warning: '#7a5900',
     warningContainer: '#ffdea6',
     onWarningContainer: '#261900',
@@ -130,6 +132,7 @@ const dark: MdPalette = {
     errorPressed: '#e79a93',
     success: '#8ad6ab',
     successContainer: '#00522f',
+    onSuccessContainer: '#7bf8c4',
     warning: '#f5c06a',
     warningContainer: '#5c4600',
     onWarningContainer: '#ffdea6',
@@ -330,7 +333,7 @@ function buildOverrides(p: MdPalette): GlobalThemeOverrides {
             textColorPrimary: p.onPrimaryContainer,
             borderPrimary: '1px solid transparent',
             colorSuccess: p.successContainer,
-            textColorSuccess: p.onPrimaryContainer,
+            textColorSuccess: p.onSuccessContainer,
             colorWarning: p.warningContainer,
             textColorWarning: p.onWarningContainer,
             colorError: p.errorContainer,

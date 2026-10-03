@@ -62,6 +62,10 @@
                 </template>
             </div>
             <div class="quality-tags">
+                <!-- 自定义脚本音源的结果标注来源，内置音源不显示，避免噪音 -->
+                <span v-if="sourceLabel" class="source-tag">{{
+                    sourceLabel
+                }}</span>
                 <n-tag
                     v-for="q in sortedQualities.slice(0, 4)"
                     :key="q.quality"
@@ -102,6 +106,7 @@ import { ALL_QUALITY_ORDER } from '../../types'
 import { fetchCover } from '../../api/musicApi'
 import ArtistNames from './ArtistNames.vue'
 import { getMusicEntityId } from '../../utils/music'
+import { useScriptSourceStore } from '../../stores/scriptSourceStore'
 
 const props = defineProps<{
     song: SongInfo
@@ -122,6 +127,16 @@ const albumId = computed(() =>
         props.song.albumMid,
     ),
 )
+
+// 自定义脚本音源：结果条目上标注来源音源名；内置音源保持原样。
+const scriptSourceStore = useScriptSourceStore()
+const sourceLabel = computed(() => {
+    const platform = props.song.platform
+    if (!platform.startsWith('script:')) return ''
+    // 音源被删除时 platformLabel 会原样返回 "script:<id>"，不能把它暴露给用户。
+    const label = scriptSourceStore.platformLabel(platform)
+    return label === platform ? '自定义音源' : label
+})
 
 // 按品质从高到低排序
 const sortedQualities = computed(() => {
@@ -348,6 +363,20 @@ watch(
     color: var(--md-on-surface-variant);
     font-size: var(--md-label-medium);
     line-height: var(--md-label-medium-line);
+}
+
+/* 来源音源标签：与音质标签同高，用填充色区分「来自自定义音源」 */
+.source-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 var(--md-space-2);
+    border-radius: var(--md-shape-full);
+    background-color: var(--md-secondary-container);
+    color: var(--md-on-secondary-container);
+    font-size: var(--md-label-medium);
+    line-height: var(--md-label-medium-line);
+    white-space: nowrap;
 }
 
 .quality-tag.n-tag :deep(.n-tag__content) {

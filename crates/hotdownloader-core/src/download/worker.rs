@@ -65,9 +65,10 @@ pub async fn download_task(
     // 3. 初始化已下载偏移量
     let mut downloaded = ctx.downloaded_offset;
 
-    // 4. 链接与解密密钥（每次循环可能重新获取）
+    // 4. 链接与解密密钥（每次循环可能重新获取）；自定义请求头与链接同生命周期
     let mut url = String::new();
     let mut key = String::new();
+    let mut link_headers: Vec<(String, String)> = Vec::new();
 
     // 5. 文件句柄（使用 BufWriter 提升写入性能）
     let mut file: Option<BufWriter<File>> = None;
@@ -104,9 +105,11 @@ pub async fn download_task(
             )
             .await
             {
-                Ok((new_url, new_key)) => {
-                    url = new_url;
-                    key = new_key;
+                Ok(link) => {
+                    url = link.url;
+                    key = link.key;
+                    // 音源脚本可能要求防盗链请求头；只在本次链接有效期内用于媒体请求。
+                    link_headers = link.headers;
                     log::info!("任务 {} 获取到新下载链接", ctx.task_id);
                 }
                 Err(e) => {
@@ -151,14 +154,15 @@ pub async fn download_task(
         }
 
         // 请求重试、Range 头及响应校验均由核心处理；这里执行需要文件适配器的动作。
-        let response = match request_download_response(&url, downloaded, &ctx.task_id).await {
-            Ok(response) => response,
-            Err(error) => {
-                log::error!("任务 {} 最终下载请求失败: {}", ctx.task_id, error);
-                progress_sink.error(&ctx.task_id, &format!("下载请求失败: {}", error));
-                break 'download;
-            }
-        };
+        let response =
+            match request_download_response(&url, downloaded, &ctx.task_id, &link_headers).await {
+                Ok(response) => response,
+                Err(error) => {
+                    log::error!("任务 {} 最终下载请求失败: {}", ctx.task_id, error);
+                    progress_sink.error(&ctx.task_id, &format!("下载请求失败: {}", error));
+                    break 'download;
+                }
+            };
 
         let total = match classify_http_response(&response, downloaded, ctx.file_size) {
             ResponseAction::RestartFromBeginning { total } => {
@@ -334,7 +338,7 @@ mod tests {
     use crate::download::config::DownloadConfig;
     use crate::download::context::{SongInfo, TaskContext};
     use crate::download::engine::TaskController;
-    use crate::download::link::DownloadLinkProvider;
+    use crate::download::link::{DownloadLink, DownloadLinkProvider};
     use crate::download::ports::{
         DownloadProgressSink, DownloadWorkerPorts, NoopDownloadPostprocessor,
     };
@@ -348,7 +352,7 @@ mod tests {
             _platform: Platform,
             _song_mid: &'a str,
             _filename: &'a str,
-        ) -> BoxFuture<'a, Result<(String, String), String>> {
+        ) -> BoxFuture<'a, Result<DownloadLink, String>> {
             Box::pin(async { Err("平台拒绝".to_string()) })
         }
     }

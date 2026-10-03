@@ -19,6 +19,7 @@ pub async fn fetch_playlist_songs(
             platforms::qqmusic::playlist::fetch_playlist_songs(&separator, input).await
         }
         Platform::Kuwo => platforms::kuwo::playlist::fetch_playlist_songs(&separator, input).await,
+        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
     }
 }
 
@@ -39,6 +40,7 @@ pub async fn search_playlists(
             platforms::qqmusic::playlist::search_playlists(keyword, page, limit).await
         }
         Platform::Kuwo => platforms::kuwo::playlist::search_playlists(keyword, page, limit).await,
+        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
     }
 }
 

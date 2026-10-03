@@ -65,6 +65,7 @@ pub(crate) fn platform_label(platform: Platform) -> &'static str {
     match platform {
         Platform::QqMusic => "QQ 音乐",
         Platform::Kuwo => "酷我",
+        Platform::Script(_) => "自定义音源",
     }
 }
 
@@ -82,6 +83,10 @@ pub(crate) async fn fetch_from_other_sources(
         Platform::QqMusic => fallback_to_kuwo(client, song_mid, filename).await,
         // 酷我自身没有可替代的内置音源，保留主平台错误。
         Platform::Kuwo => FallbackOutcome::Unavailable("酷我任务没有可用的回退音源".to_string()),
+        // 自定义音源脚本本身就是用户指定的来源，内置回退不接手。
+        Platform::Script(_) => {
+            FallbackOutcome::Unavailable("自定义音源任务不做内置回退".to_string())
+        }
     }
 }
 

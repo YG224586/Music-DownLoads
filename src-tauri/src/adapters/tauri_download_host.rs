@@ -1,6 +1,8 @@
 use futures_util::future::BoxFuture;
 use hotdownloader_core::download::config::{DownloadConfig, DownloadConfigProvider};
-use hotdownloader_core::download::link::{DownloadLinkProvider, PlatformDownloadLinkProvider};
+use hotdownloader_core::download::link::{
+    DownloadLink, DownloadLinkProvider, PlatformDownloadLinkProvider,
+};
 use hotdownloader_core::platforms::qqmusic::credentials::{QqAuth, QqCredentialSource};
 use hotdownloader_core::platforms::Platform;
 use std::sync::Arc;
@@ -189,7 +191,7 @@ impl DownloadLinkProvider for TauriDownloadLinkProvider {
         platform: Platform,
         song_mid: &'a str,
         filename: &'a str,
-    ) -> BoxFuture<'a, Result<(String, String), String>> {
+    ) -> BoxFuture<'a, Result<DownloadLink, String>> {
         self.provider.fetch(platform, song_mid, filename)
     }
 }

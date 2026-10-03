@@ -535,7 +535,7 @@ function handleDestinationClick(key: string) {
 .destination:focus-visible {
     outline: 3px solid var(--md-primary);
     outline-offset: -3px;
-    border-radius: var(--md-shape-lg);
+    border-radius: var(--md-shape-full);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -25,6 +25,7 @@ pub async fn create_qr_login(app: AppHandle, platform: String) -> Result<String,
     match p {
         Platform::QqMusic => crate::platforms::qqmusic::login::create_qr_login(app).await,
         Platform::Kuwo => Err(UNSUPPORTED_LOGIN.into()),
+        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
     }
 }
 
@@ -34,6 +35,7 @@ pub async fn check_qr_login(platform: String, qrcode_id: String) -> Result<Strin
     match p {
         Platform::QqMusic => crate::platforms::qqmusic::login::check_qr_login(qrcode_id).await,
         Platform::Kuwo => Err(UNSUPPORTED_LOGIN.into()),
+        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
     }
 }
 
@@ -58,6 +60,7 @@ pub async fn login_with_uin_authst(
             .await
         }
         Platform::Kuwo => Err(UNSUPPORTED_LOGIN.into()),
+        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
     }
 }
 
@@ -67,6 +70,7 @@ pub async fn logout(app: AppHandle, platform: String) -> Result<(), String> {
     match p {
         Platform::QqMusic => crate::platforms::qqmusic::login::logout(app).await,
         Platform::Kuwo => Err(UNSUPPORTED_LOGIN.into()),
+        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
     }
 }
 
@@ -76,6 +80,7 @@ pub async fn get_login_status(app: AppHandle, platform: String) -> Result<String
     match p {
         Platform::QqMusic => crate::platforms::qqmusic::login::get_login_status(app).await,
         Platform::Kuwo => Err(UNSUPPORTED_LOGIN.into()),
+        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
     }
 }
 

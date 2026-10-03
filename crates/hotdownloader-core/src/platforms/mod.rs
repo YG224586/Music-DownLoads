@@ -4,7 +4,7 @@ use once_cell::sync::Lazy;
 use rand::Rng;
 
 mod platform;
-pub use platform::Platform;
+pub use platform::{Platform, ScriptId};
 
 pub mod kuwo;
 pub mod lyric;

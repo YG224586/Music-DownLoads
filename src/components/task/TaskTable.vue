@@ -43,6 +43,7 @@ import type { TaskAction, TaskActionExtra } from './TaskRowActions'
 import MobileTaskList from './MobileTaskList.vue'
 import { useNarrowLayout } from '../../composables/useNarrowLayout'
 import { getRuntimePlatform } from '../../api/runtimeApi'
+import { useTaskSourceLabel } from './useTaskSourceLabel'
 
 // 使用 ref 存储 Android 状态，替代原先的同步 UA 判断
 // 原生平台信息由 API 层提供，在 onMounted 中异步获取并更新。
@@ -50,6 +51,9 @@ const isAndroid = ref(false)
 
 // 响应式检测移动端：与导航共用断点，监听由 composable 随组件释放
 const isMobile = useNarrowLayout()
+
+// 音源来源标签：script:<id> → 音源名（找不到时兜底「已删除的音源」），绝不暴露内部 id
+const { sourceLabel } = useTaskSourceLabel()
 
 onMounted(async () => {
     // 异步获取当前平台，设置 isAndroid
@@ -149,6 +153,75 @@ function renderStatusChip(row: TaskRecord) {
     ])
 }
 
+// 进度列宽 140px，错误原因在单元格内约 11 字/行，2 行 ≈ 22 字；超出即需要展开。
+const TABLE_MESSAGE_CLAMP_THRESHOLD = 24
+
+// 逐行记录错误原因是否展开（整个单元格既是显示区也是点击/回车目标）
+const expandedMessages = ref<Record<string, boolean>>({})
+
+function toggleMessage(taskId: string) {
+    // 整对象替换，保证渲染函数读到的是新引用
+    const next = { ...expandedMessages.value }
+    if (next[taskId]) {
+        delete next[taskId]
+    } else {
+        next[taskId] = true
+    }
+    expandedMessages.value = next
+}
+
+/**
+ * 渲染错误原因：默认折叠为 2 行，整个单元格可点击/回车展开。
+ * 不用 NEllipsis：它只响应鼠标点击，键盘用户无法展开（2.44 无 expanded 属性）。
+ */
+function renderErrorMessage(row: TaskRecord) {
+    const message = row.errorMsg || ''
+    if (!message) return ''
+    const expandable = message.length > TABLE_MESSAGE_CLAMP_THRESHOLD
+    const expanded = expandable && !!expandedMessages.value[row.id]
+    const toggle = () => toggleMessage(row.id)
+    return h(
+        'div',
+        {
+            class: [
+                'task-cell-message',
+                expandable ? 'is-expandable' : '',
+                expanded ? 'is-expanded' : '',
+            ],
+            role: expandable ? 'button' : 'status',
+            tabindex: expandable ? 0 : undefined,
+            'aria-expanded': expandable ? expanded : undefined,
+            'aria-live': 'polite',
+            title: expandable ? message : undefined,
+            onClick: expandable ? toggle : undefined,
+            onKeydown: expandable
+                ? (event: KeyboardEvent) => {
+                      if (
+                          event.key === 'Enter' ||
+                          event.key === ' ' ||
+                          event.key === 'Spacebar'
+                      ) {
+                          event.preventDefault()
+                          toggle()
+                      }
+                  }
+                : undefined,
+        },
+        [
+            h(
+                'span',
+                {
+                    class: [
+                        'task-cell-message-text',
+                        expandable && !expanded ? 'is-clamped' : '',
+                    ],
+                },
+                message,
+            ),
+        ],
+    )
+}
+
 /**
  * 渲染进度列：进度条旁边始终有百分比文字，进度不只用颜色/长度表达。
  */
@@ -166,9 +239,10 @@ function renderProgress(row: TaskRecord) {
         return '上次运行中断，等待恢复'
     }
 
-    // 错误状态显示错误信息
+    // 错误状态：失败原因可能很长（音源脚本错误等），折叠成 2 行并可点击/键盘展开。
+    // line-clamp 从尾部截断，开头的「音源脚本错误：」前缀始终可见。
     if (row.status === 'error') {
-        return row.errorMsg || ''
+        return renderErrorMessage(row)
     }
 
     // 等待中
@@ -238,6 +312,14 @@ const columns = computed<DataTableColumn<TaskRecord>[]>(() => [
                     ),
                 ]),
             ]
+            // 音源来源：自定义脚本音源显示脚本名，内置音源显示平台名；空 platform 不渲染。
+            // 不新增列，避免 900px 下重新出现横向滚动（列宽预算已接近 scroll-x=780）。
+            const sourceText = sourceLabel(row.platform)
+            if (sourceText) {
+                lines.push(
+                    h('div', { class: 'song-source' }, `音源 ${sourceText}`),
+                )
+            }
             // Android 无法使用桌面文件管理器，因此直接展示文件路径；无路径的行不渲染占位符。
             if (isAndroid.value && row.filePath) {
                 lines.push(
@@ -447,6 +529,39 @@ void props
     font-size: var(--md-body-small);
     line-height: var(--md-body-small-line);
     color: var(--md-on-surface-variant);
+}
+
+/* 音源来源（脚本音源显示脚本名，内置音源显示平台名）：单行省略，不撑高行 */
+.task-table :deep(.song-source) {
+    min-width: 0;
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
+    color: var(--md-on-surface-variant);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 错误原因：默认 2 行折叠，整个单元格可点击/回车展开（键盘可达，不用 NEllipsis） */
+.task-table :deep(.task-cell-message) {
+    min-width: 0;
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
+    color: var(--md-on-surface);
+    overflow-wrap: anywhere;
+}
+
+.task-table :deep(.task-cell-message.is-expandable) {
+    cursor: pointer;
+}
+
+.task-table :deep(.task-cell-message-text.is-clamped) {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ---------- chip（与紧凑列表同一套语义色） ---------- */

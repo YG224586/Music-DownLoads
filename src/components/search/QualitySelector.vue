@@ -14,7 +14,10 @@
             >
                 <span class="quality-text">
                     <span class="quality-name">{{ q.quality }}</span>
-                    <span class="quality-size">{{ formatSize(q.size) }}</span>
+                    <!-- 体积未知时（脚本音源通常不提供）不显示，避免出现「0.00 MB」 -->
+                    <span v-if="q.size > 0" class="quality-size">
+                        {{ formatSize(q.size) }}
+                    </span>
                 </span>
             </n-radio>
         </n-radio-group>

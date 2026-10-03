@@ -1,4 +1,4 @@
-﻿import { createApp, watch } from 'vue'
+import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
 import naive from 'naive-ui'
 import App from './App.vue'
@@ -6,6 +6,7 @@ import router from './router'
 import { useSettingsStore } from './stores/settingsStore'
 import { useHistoryStore } from './stores/historyStore'
 import { useTaskStore } from './stores/taskStore'
+import { useScriptSourceStore } from './stores/scriptSourceStore'
 import { initializeNativeSafeArea, isNativeRuntime } from './api/runtimeApi'
 import { authorizeWeb, webSession } from './api/webClient'
 import './style.css'
@@ -30,12 +31,15 @@ async function init() {
     const settingsStore = useSettingsStore()
     const historyStore = useHistoryStore()
     const taskStore = useTaskStore()
+    const scriptSourceStore = useScriptSourceStore()
 
     // 先建立任务订阅，再读取快照；读取期间的事件由 store 排队回放。
     try {
         await Promise.all([
             settingsStore.loadSettings(),
             historyStore.loadHistory(),
+            // 自定义音源加载失败不应阻塞启动，store 内部已记录错误。
+            scriptSourceStore.load().catch(() => {}),
         ])
     } catch (e) {
         console.error('加载持久化数据失败，使用默认值:', e)

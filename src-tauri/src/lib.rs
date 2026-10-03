@@ -29,6 +29,8 @@ pub fn run() {
         .plugin(tauri_plugin_safe_area_insets_css_edge::init()) // 注册安全区域插件
         .setup(|app| {
             store_wrapper::initialize(app.handle())?;
+            // 自定义音源脚本（正文 + 启用状态）随设置一起恢复，失败只记录日志不影响启动。
+            commands::api::script_source::restore_sources(app.handle());
             // 下载器启动前先恢复持久化任务；后续下载事件才能更新权威任务状态。
             let task_io = Arc::new(adapters::tauri_task_io::TauriTaskIo::new(
                 app.handle().clone(),
@@ -100,9 +102,12 @@ pub fn run() {
             commands::api::playlist::fetch_created_playlist_songs,
             commands::api::update::check_update,
             commands::api::lyrics::get_lyric_by_id,
-            commands::api::source_config::get_source_config,
-            commands::api::source_config::import_source_config,
-            commands::api::source_config::set_source_enabled,
+            commands::api::script_source::list_script_sources,
+            commands::api::script_source::install_script_source,
+            commands::api::script_source::set_script_source_enabled,
+            commands::api::script_source::remove_script_source,
+            commands::api::script_source::test_script_source,
+            commands::api::script_source::search_script_source,
             commands::api::login::create_qr_login,
             commands::api::login::check_qr_login,
             commands::api::login::login_with_uin_authst,

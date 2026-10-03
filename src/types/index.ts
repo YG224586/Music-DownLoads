@@ -1,4 +1,4 @@
-﻿// 所有品质标签，按从低到高排序
+// 所有品质标签，按从低到高排序
 export const ALL_QUALITY_ORDER: string[] = [
     '48kaac',
     '96kaac',
@@ -380,4 +380,22 @@ export interface ArtistSongsResponse extends SearchResponse {
 export interface ArtistAlbumsResponse extends AlbumSearchResponse {
     total: number
     name?: string
+}
+
+/**
+ * 自定义音源（脚本音源）安装后的元信息。
+ * 契约见 _dev/script-spec/API.md §7；脚本正文只在 Rust 侧持久化，不会返回给前端。
+ */
+export interface ScriptSourceItem {
+    id: number
+    name: string
+    description: string | null
+    qualities: string[]
+    enabled: boolean
+    installedAt: string
+    scriptLength: number
+}
+
+export interface ScriptSourceState {
+    sources: ScriptSourceItem[]
 }

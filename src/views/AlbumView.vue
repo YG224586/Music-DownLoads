@@ -208,7 +208,8 @@ function downloadSelected() {
     margin: 0 0 var(--md-space-2);
     font-size: var(--md-headline-small);
     line-height: var(--md-headline-small-line);
-    font-weight: var(--md-weight-medium);
+    /* M3 Expressive：headline 系列统一走 emphasis 字重（700），与技术页标题一致。 */
+    font-weight: var(--md-headline-weight);
     color: var(--md-on-surface);
 }
 

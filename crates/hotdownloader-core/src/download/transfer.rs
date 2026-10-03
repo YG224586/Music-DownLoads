@@ -5,11 +5,84 @@ use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 use futures_util::StreamExt;
-use reqwest::header::{CONTENT_LENGTH, CONTENT_RANGE, RANGE};
+use reqwest::header::{HeaderName, HeaderValue, CONTENT_LENGTH, CONTENT_RANGE, RANGE};
 
 use crate::download::decryption::{self, DecryptContext};
 use crate::download::engine::TaskController;
 use crate::download::ports::DownloadProgressSink;
+
+/// 自定义请求头的条数上限（来自不可信的音源脚本）。
+pub const MAX_CUSTOM_HEADERS: usize = 16;
+/// 自定义请求头「名称 + 取值」总字节数上限。
+pub const MAX_CUSTOM_HEADER_BYTES: usize = 4096;
+
+/// 禁止脚本覆盖的请求头：传输层或客户端自己管理这些语义。
+/// 覆盖 `Range` 会破坏断点续传，覆盖 `Host`/`Content-Length`/`Connection`/
+/// `Transfer-Encoding` 会破坏请求本身。
+fn is_forbidden_header(name: &str) -> bool {
+    matches!(
+        name.to_ascii_lowercase().as_str(),
+        "host" | "content-length" | "connection" | "transfer-encoding" | "range"
+    )
+}
+
+/// 把不可信脚本给出的请求头收敛成可安全附加到单次媒体请求上的集合。
+///
+/// 规则（超限一律丢弃并告警，**只记名称不记取值**，取值可能含 Cookie）：
+/// - 最多 [`MAX_CUSTOM_HEADERS`] 条，「名称 + 取值」总字节数最多 [`MAX_CUSTOM_HEADER_BYTES`]，
+///   达到上限后其余请求头全部丢弃；
+/// - 命中 [`is_forbidden_header`] 或取值含 CR/LF 的请求头丢弃（防请求头注入/续传被破坏）；
+/// - 名称必须是合法 HTTP token、取值必须是合法字段值（含控制字符即丢弃）。
+///
+/// 这些请求头只作用于这一条下载请求，不会写入全局客户端，也不会持久化。
+pub fn sanitize_custom_headers(
+    headers: &[(String, String)],
+    task_id: &str,
+) -> Vec<(HeaderName, HeaderValue)> {
+    let mut accepted: Vec<(HeaderName, HeaderValue)> = Vec::new();
+    let mut bytes = 0usize;
+    let mut dropped = 0usize;
+
+    for (name, value) in headers {
+        if accepted.len() >= MAX_CUSTOM_HEADERS
+            || bytes + name.len() + value.len() > MAX_CUSTOM_HEADER_BYTES
+        {
+            dropped += 1;
+            continue;
+        }
+        if is_forbidden_header(name) || value.contains(['\r', '\n']) {
+            log::warn!("任务 {task_id} 丢弃自定义请求头 {name}：禁止覆盖该请求头或取值含换行");
+            dropped += 1;
+            continue;
+        }
+        let parsed = HeaderName::from_bytes(name.as_bytes())
+            .ok()
+            .zip(HeaderValue::from_str(value).ok());
+        let Some((parsed_name, parsed_value)) = parsed else {
+            log::warn!("任务 {task_id} 丢弃自定义请求头 {name}：名称或取值不是合法 HTTP 字段");
+            dropped += 1;
+            continue;
+        };
+        bytes += name.len() + value.len();
+        accepted.push((parsed_name, parsed_value));
+    }
+
+    if dropped > 0 {
+        log::warn!(
+            "任务 {task_id} 共丢弃 {dropped} 条自定义请求头（上限 {MAX_CUSTOM_HEADERS} 条 / {MAX_CUSTOM_HEADER_BYTES} 字节，禁止覆盖 host/content-length/connection/transfer-encoding/range）"
+        );
+    }
+
+    accepted
+}
+
+/// 对比内置默认 `Referer` 与脚本自带请求头的取舍：脚本自带时以脚本为准，
+/// 避免同一个请求头出现两次（部分 CDN 会因此拒绝请求）。
+fn needs_default_referer(headers: &[(HeaderName, HeaderValue)]) -> bool {
+    !headers
+        .iter()
+        .any(|(name, _)| name.as_str().eq_ignore_ascii_case("referer"))
+}
 
 /// 下载专用客户端不设置总超时，大文件只限制连接和单次读取等待时间。
 static DOWNLOAD_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
@@ -27,16 +100,28 @@ fn download_client() -> &'static reqwest::Client {
 
 /// 使用当前已写入字节数请求 HTTP Range；临时请求错误最多尝试三次。
 /// 返回原始响应，以便文件适配器处理普通路径或 Android SAF 文件。
+///
+/// `headers` 是取链阶段带来的**不可信**自定义请求头（目前来自音源脚本）：
+/// 先经 [`sanitize_custom_headers`] 收敛，再只附加到这一条媒体请求上；
+/// 传入空切片时请求与改动前逐字节一致。
 pub async fn request_download_response(
     url: &str,
     downloaded: u64,
     task_id: &str,
+    headers: &[(String, String)],
 ) -> Result<reqwest::Response, reqwest::Error> {
+    // 校验只做一次：结果在重试之间保持不变。
+    let custom_headers = sanitize_custom_headers(headers, task_id);
     let mut attempt = 0;
     loop {
-        let mut request = download_client()
-            .get(url)
-            .header("Referer", "https://y.qq.com");
+        let mut request = download_client().get(url);
+        // 平台默认 Referer 保持原行为；脚本自带 Referer 时以脚本为准，避免出现重复请求头。
+        if needs_default_referer(&custom_headers) {
+            request = request.header("Referer", "https://y.qq.com");
+        }
+        for (name, value) in &custom_headers {
+            request = request.header(name.clone(), value.clone());
+        }
         if downloaded > 0 {
             request = request.header(RANGE, format!("bytes={downloaded}-"));
         }
@@ -290,8 +375,18 @@ pub fn classify_response(
 mod tests {
     use std::sync::Mutex;
 
-    use super::{classify_response, retry_or_fail, ResponseAction, StreamOutcome};
+    use super::{
+        classify_response, needs_default_referer, retry_or_fail, sanitize_custom_headers,
+        ResponseAction, StreamOutcome, MAX_CUSTOM_HEADERS, MAX_CUSTOM_HEADER_BYTES,
+    };
     use crate::download::ports::DownloadProgressSink;
+
+    fn pairs(values: &[(&str, &str)]) -> Vec<(String, String)> {
+        values
+            .iter()
+            .map(|(name, value)| (name.to_string(), value.to_string()))
+            .collect()
+    }
 
     #[derive(Default)]
     struct RecordingProgressSink {
@@ -364,5 +459,90 @@ mod tests {
         );
         assert_eq!(retries, 2);
         assert_eq!(sink.errors.lock().unwrap().as_slice(), ["断流"]);
+    }
+
+    #[test]
+    fn empty_custom_headers_keep_the_default_request_shape() {
+        let accepted = sanitize_custom_headers(&[], "task");
+        assert!(accepted.is_empty());
+        // 没有任何自定义头时仍然附加内置 Referer，与改动前一致。
+        assert!(needs_default_referer(&accepted));
+    }
+
+    #[test]
+    fn custom_headers_are_capped_at_sixteen() {
+        let headers: Vec<(String, String)> = (0..20)
+            .map(|index| (format!("x-test-{index}"), "1".to_string()))
+            .collect();
+        let accepted = sanitize_custom_headers(&headers, "task");
+
+        assert_eq!(accepted.len(), MAX_CUSTOM_HEADERS);
+        assert_eq!(accepted[0].0.as_str(), "x-test-0");
+        assert_eq!(
+            accepted[MAX_CUSTOM_HEADERS - 1].0.as_str(),
+            "x-test-15",
+            "超出的请求头必须按顺序被截断"
+        );
+    }
+
+    #[test]
+    fn headers_beyond_the_byte_budget_are_dropped() {
+        let oversized = "a".repeat(MAX_CUSTOM_HEADER_BYTES);
+        let headers = pairs(&[("referer", "https://y.qq.com"), ("cookie", &oversized)]);
+        let accepted = sanitize_custom_headers(&headers, "task");
+
+        assert_eq!(accepted.len(), 1, "单条超字节上限的请求头必须整条丢弃");
+        assert_eq!(accepted[0].0.as_str(), "referer");
+
+        // 累计字节数同样受限：第二条连同其后的请求头一起被丢弃。
+        let big = "b".repeat(MAX_CUSTOM_HEADER_BYTES / 2);
+        let headers = vec![
+            ("referer".to_string(), "https://y.qq.com".to_string()),
+            ("cookie".to_string(), big),
+            ("x-extra".to_string(), "1".to_string()),
+        ];
+        let accepted = sanitize_custom_headers(&headers, "task");
+        let names: Vec<&str> = accepted.iter().map(|(name, _)| name.as_str()).collect();
+        assert_eq!(names, ["referer"]);
+    }
+
+    #[test]
+    fn forbidden_and_injected_headers_are_dropped() {
+        let headers = pairs(&[
+            ("Host", "evil.test"),
+            ("range", "bytes=0-1"),
+            ("CONTENT-LENGTH", "10"),
+            ("Connection", "keep-alive"),
+            ("Transfer-Encoding", "chunked"),
+            ("X-Bad", "line1\r\nHost: evil.test"),
+            ("X-Good", "ok"),
+        ]);
+        let accepted = sanitize_custom_headers(&headers, "task");
+
+        assert_eq!(accepted.len(), 1, "禁止名单与换行注入都必须被丢弃");
+        assert_eq!(accepted[0].0.as_str(), "x-good");
+        assert_eq!(accepted[0].1.to_str().unwrap(), "ok");
+    }
+
+    #[test]
+    fn invalid_names_and_control_characters_are_dropped() {
+        let headers = pairs(&[("X Space", "1"), ("X-Ctrl", "a\u{1}b"), ("X-Ok", "fine")]);
+        let accepted = sanitize_custom_headers(&headers, "task");
+
+        assert_eq!(accepted.len(), 1);
+        assert_eq!(accepted[0].0.as_str(), "x-ok");
+    }
+
+    #[test]
+    fn script_referer_replaces_the_builtin_default() {
+        let without = sanitize_custom_headers(&pairs(&[("X-A", "1")]), "task");
+        assert!(needs_default_referer(&without));
+
+        let with = sanitize_custom_headers(&pairs(&[("Referer", "https://a.test")]), "task");
+        assert!(
+            !needs_default_referer(&with),
+            "脚本自带 Referer 时不得再附加内置 Referer"
+        );
+        assert_eq!(with[0].1.to_str().unwrap(), "https://a.test");
     }
 }

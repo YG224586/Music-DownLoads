@@ -9,6 +9,7 @@ pub async fn fetch_hot_keywords(platform: String) -> Result<String, String> {
     match p {
         Platform::QqMusic => platforms::qqmusic::suggest::fetch_hot_keywords().await,
         Platform::Kuwo => platforms::kuwo::suggest::fetch_hot_keywords().await,
+        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
     }
 }
 
@@ -18,5 +19,6 @@ pub async fn fetch_suggestions(platform: String, keyword: String) -> Result<Stri
     match p {
         Platform::QqMusic => platforms::qqmusic::suggest::fetch_suggestions(keyword).await,
         Platform::Kuwo => platforms::kuwo::suggest::fetch_suggestions(keyword).await,
+        Platform::Script(_) => Err("脚本音源不支持该操作".into()),
     }
 }

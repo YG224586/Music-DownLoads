@@ -122,14 +122,15 @@ body {
     --md-state-pressed: 0.1;
     --md-state-drag: 0.16;
 
-    /* 形状（M3 Expressive：大圆角策略——lg 16→28dp，卡片 / 列表块更圆润。
-       xl 仍是 M3 规范的 28dp 一档（对话框、模态卡片、大容器），
-       **不是**全圆角：药丸形只能用 --md-shape-full 999px。
-       xs/sm/md 维持原值，保证输入框、小控件与焦点环观感稳定） */
+    /* 形状（M3 规范五档刻度 xs/sm/md/lg/xl，药丸形另用 full。
+       lg 曾一度抬到 28dp 追求「更 Expressive」，但与 xl 同值导致刻度塌陷一档，
+       也与 theme.ts 里 Naive 卡片的 16px 圆角不一致，故回落到规范的 16dp。
+       大容器 / 对话框 / 模态卡片用 xl 28dp；
+       **不是**全圆角：药丸形只能用 --md-shape-full 999px） */
     --md-shape-xs: 4px;
     --md-shape-sm: 8px;
     --md-shape-md: 12px;
-    --md-shape-lg: 28px;
+    --md-shape-lg: 16px;
     --md-shape-xl: 28px;
     --md-shape-full: 999px;
 
@@ -511,6 +512,17 @@ html.android .n-modal-container {
 /* 通知提示避开状态栏 */
 html.android .n-notification-container {
     top: calc(12px + var(--safe-area-top)) !important;
+}
+
+/* ---------- M3 Expressive：按压形变 ---------- */
+/* 药丸按钮按下时短暂收紧圆角，是 Expressive 最直观的「形状会呼吸」信号。
+   transition 只写在 :active 上：按下时用 spring 曲线过渡，松开交给 Naive 自身的
+   transition 立即复位，避免覆盖 .n-button 基类的 transition 简写（那会连带
+   关掉它自己的状态层颜色动画）。body 前缀用于压过 Naive 的
+   `.n-button { border-radius: var(--n-border-radius) }`。 */
+body .n-button:not(.n-button--disabled):active {
+    border-radius: var(--md-shape-md);
+    transition: border-radius var(--md-duration-short) var(--md-easing-spring);
 }
 
 /* ---------- 降低动效 ---------- */

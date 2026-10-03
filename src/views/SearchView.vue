@@ -24,6 +24,7 @@
                         v-for="option in SEARCH_TYPES"
                         :key="option.value"
                         :value="option.value"
+                        :disabled="isSearchTypeDisabled(option.value)"
                         class="type-segment"
                     >
                         <span class="segment-content">
@@ -259,12 +260,15 @@ import { useSongSearch } from '../composables/useSongSearch'
 import { usePlaylistSearch } from '../composables/usePlaylistSearch'
 import * as musicApi from '../api/musicApi'
 import type {
+    QualityItem,
     SearchSuggestionData,
     PlaylistSearchItem,
     SongInfo,
 } from '../types'
 import { PLATFORMS, DEFAULT_PLATFORM } from '../config/platforms'
+import type { PlatformOption } from '../config/platforms'
 import { useMusicNavigation } from '../composables/useMusicNavigation'
+import { useScriptSourceStore } from '../stores/scriptSourceStore'
 
 const router = useRouter()
 const route = useRoute()
@@ -273,8 +277,16 @@ const { openArtist, openAlbum, openRelatedArtist, openSongAlbum } =
 const keyword = ref('')
 const currentPlatform = ref(DEFAULT_PLATFORM)
 
-// 内置音源固定（QQ音乐 / 酷我音乐），不再由用户配置
-const platformOptions = computed(() => PLATFORMS)
+const scriptSourceStore = useScriptSourceStore()
+
+// 内置音源固定（QQ音乐 / 酷我音乐），自定义脚本音源在设置页安装后追加到选择器
+const platformOptions = computed<PlatformOption[]>(() => [
+    ...PLATFORMS,
+    ...scriptSourceStore.enabledSources.map((item) => ({
+        key: scriptSourceStore.platformOf(item.id),
+        label: item.name,
+    })),
+])
 watch(
     platformOptions,
     (options) => {
@@ -287,6 +299,22 @@ watch(
     },
     { immediate: true },
 )
+
+// 自定义脚本音源：标识形如 "script:<id>"（契约 §6）
+const scriptSourceId = computed<number | null>(() => {
+    const matched = /^script:(\d+)$/.exec(currentPlatform.value)
+    return matched ? Number(matched[1]) : null
+})
+const isScriptPlatform = computed(() => scriptSourceId.value !== null)
+// 展示用音源名，避免把 "script:<id>" 机器标识暴露给用户
+const currentSourceLabel = computed(
+    () =>
+        scriptSourceStore.platformLabel(currentPlatform.value) || '自定义音源',
+)
+// 脚本音源只提供歌曲搜索（契约 §3/§7），其余搜索类型不可用
+function isSearchTypeDisabled(type: SearchType) {
+    return isScriptPlatform.value && type !== 'song'
+}
 
 // 搜索类型
 type SearchType = 'song' | 'artist' | 'album' | 'playlist'
@@ -404,6 +432,8 @@ function cancelSuggestions() {
 function onKeywordInput(newVal: string) {
     if (newVal === keyword.value) return
     keyword.value = newVal
+    // 脚本音源没有搜索建议接口（契约 §3），输入时保留当前结果，不切换到建议页。
+    if (isScriptPlatform.value) return
     cancelSuggestions()
     resetSearches()
     const term = newVal.trim()
@@ -455,6 +485,11 @@ function resetSearches() {
 
 // 获取热搜
 async function fetchHotKeywords() {
+    // 脚本音源没有热搜接口，避免用 "script:<id>" 请求内置接口。
+    if (isScriptPlatform.value) {
+        hotKeywords.value = []
+        return
+    }
     hotLoading.value = true
     try {
         hotKeywords.value = await musicApi.getHotKeywords(currentPlatform.value)
@@ -467,6 +502,7 @@ async function fetchHotKeywords() {
 
 onMounted(() => {
     fetchHotKeywords()
+    void scriptSourceStore.load()
 })
 
 // 平台切换
@@ -474,6 +510,8 @@ watch(
     currentPlatform,
     () => {
         cancelSuggestions()
+        // 脚本音源只支持歌曲搜索，切换过去时回到歌曲分段。
+        if (isScriptPlatform.value) searchType.value = 'song'
         fetchHotKeywords()
         suggestions.value = {
             song: [],
@@ -512,6 +550,167 @@ function onHistoryRemove(term: string) {
     historyStore.removeHistoryItem(term)
 }
 
+// 自定义脚本音源搜索（契约 §3：返回歌曲对象数组）
+const SCRIPT_PAGE_SIZE = 20
+let scriptPage = 1
+
+// 脚本返回的歌曲对象，字段可能缺失，统一做兜底
+interface RawScriptSong {
+    id?: string | number
+    mid?: string | number
+    title?: string
+    artist?: string
+    album?: string
+    cover?: string
+    coverUrl?: string
+    qualities?: unknown
+}
+
+// 品质可能是字符串数组（契约 §3），也可能是 { quality, filename, size } 对象数组
+// （内置接口的形状）。对象形状里带着体积信息，保留下来才能在选择器里显示大小。
+function scriptQualityItems(value: unknown): QualityItem[] {
+    if (!Array.isArray(value)) return []
+    const items: QualityItem[] = []
+    for (const entry of value) {
+        if (typeof entry === 'string') {
+            if (entry.length > 0) {
+                items.push({ quality: entry, filename: '', size: 0 })
+            }
+            continue
+        }
+        if (!entry || typeof entry !== 'object') continue
+        const raw = entry as {
+            quality?: unknown
+            filename?: unknown
+            size?: unknown
+        }
+        if (typeof raw.quality !== 'string' || raw.quality.length === 0)
+            continue
+        items.push({
+            quality: raw.quality,
+            filename: typeof raw.filename === 'string' ? raw.filename : '',
+            size:
+                typeof raw.size === 'number' && Number.isFinite(raw.size)
+                    ? raw.size
+                    : 0,
+        })
+    }
+    return items
+}
+
+// 把脚本返回的歌曲映射为统一的 SongInfo
+function toScriptSongInfo(
+    raw: unknown,
+    platform: string,
+    index: number,
+    fallbackQualities: string[],
+): SongInfo {
+    const item = (raw ?? {}) as RawScriptSong
+    const rawId = item.id ?? item.mid ?? index + 1
+    const numericId = Number(rawId)
+    const ownQualities = scriptQualityItems(item.qualities)
+    // 歌曲自身没声明品质时，退回音源声明的品质列表（契约 §3）
+    const qualities: QualityItem[] =
+        ownQualities.length > 0
+            ? ownQualities
+            : fallbackQualities.map((quality) => ({
+                  quality,
+                  filename: '',
+                  size: 0,
+              }))
+    return {
+        platform,
+        id: Number.isFinite(numericId) ? numericId : index + 1,
+        mid: String(rawId),
+        title: String(item.title ?? ''),
+        artist: String(item.artist ?? ''),
+        album: String(item.album ?? ''),
+        coverUrl: item.cover ?? item.coverUrl ?? '',
+        mediaMid: '',
+        qualities,
+    }
+}
+
+// 脚本报错文案：中文可读，且不把 "script:<id>" 机器标识暴露给用户
+function scriptErrorText(error: unknown): string {
+    const label = currentSourceLabel.value
+    const detail = (
+        error instanceof Error ? error.message : String(error ?? '')
+    )
+        .replace(/script:\d+/g, label)
+        .trim()
+    return detail ? `${label}：${detail}` : `${label}暂时不可用，请稍后重试`
+}
+
+// 脚本音源搜索：复用歌曲结果状态与列表组件，分页行为与内置音源一致
+async function runScriptSearch(term: string) {
+    const sourceId = scriptSourceId.value
+    if (sourceId === null) return
+    const platform = currentPlatform.value
+    const declared = scriptSourceStore.findById(sourceId)?.qualities ?? []
+
+    scriptPage = 1
+    songSearchResults.value = []
+    songSelectedIds.value = []
+    songError.value = null
+    songHasMore.value = false
+    songHasSearched.value = true
+    songLoading.value = true
+    try {
+        const response = await scriptSourceStore.search(
+            sourceId,
+            term,
+            1,
+            SCRIPT_PAGE_SIZE,
+        )
+        songSearchResults.value = response.songs.map((raw, index) =>
+            toScriptSongInfo(raw, platform, index, declared),
+        )
+        songHasMore.value = Boolean(response.has_more)
+    } catch (error) {
+        songError.value = scriptErrorText(error)
+    } finally {
+        songLoading.value = false
+    }
+}
+
+async function loadMoreScriptSongs() {
+    const sourceId = scriptSourceId.value
+    if (
+        sourceId === null ||
+        songLoading.value ||
+        songLoadingMore.value ||
+        !songHasMore.value
+    ) {
+        return
+    }
+    const platform = currentPlatform.value
+    const declared = scriptSourceStore.findById(sourceId)?.qualities ?? []
+    const nextPage = scriptPage + 1
+    songLoadingMore.value = true
+    try {
+        const response = await scriptSourceStore.search(
+            sourceId,
+            keyword.value.trim(),
+            nextPage,
+            SCRIPT_PAGE_SIZE,
+        )
+        const known = new Set(songSearchResults.value.map((song) => song.mid))
+        const appended = response.songs
+            .map((raw, index) =>
+                toScriptSongInfo(raw, platform, index, declared),
+            )
+            .filter((song) => !known.has(song.mid))
+        songSearchResults.value = [...songSearchResults.value, ...appended]
+        songHasMore.value = Boolean(response.has_more)
+        scriptPage = nextPage
+    } catch (error) {
+        songError.value = scriptErrorText(error)
+    } finally {
+        songLoadingMore.value = false
+    }
+}
+
 // 统一搜索入口
 async function handleSearch() {
     cancelSuggestions()
@@ -525,7 +724,9 @@ async function handleSearch() {
     pageMode.value = 'results'
     suggestions.value = { song: [], singer: [], album: [], mv: [] }
     historyStore.addHistory(term)
-    if (searchType.value === 'song') {
+    if (isScriptPlatform.value) {
+        await runScriptSearch(term)
+    } else if (searchType.value === 'song') {
         await searchSongFunc(currentPlatform.value, term)
     } else if (searchType.value === 'artist') {
         await searchArtistFunc(currentPlatform.value, term)
@@ -538,6 +739,10 @@ async function handleSearch() {
 
 // 加载更多歌曲
 function loadMoreSongs() {
+    if (isScriptPlatform.value) {
+        void loadMoreScriptSongs()
+        return
+    }
     loadMoreSongsFunc(currentPlatform.value, keyword.value)
 }
 

@@ -3,12 +3,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, h, type PropType } from 'vue'
+import { defineComponent, h, ref, type PropType } from 'vue'
 import { NCheckbox, NProgress, NEllipsis } from 'naive-ui'
 import type { TaskRecord } from '../../types'
 import { formatSpeed } from '../../utils/format'
 import { renderActions } from './TaskRowActions'
 import type { TaskAction, TaskActionExtra } from './TaskRowActions'
+import { useTaskSourceLabel } from './useTaskSourceLabel'
 
 /**
  * 状态图标：状态不能只用颜色表达，chip 内始终"图标 + 文字"成对出现。
@@ -33,6 +34,17 @@ const STATUS_ICONS: Record<string, string> = {
 const EMPTY_ICON =
     '<svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true"><rect x="9" y="12" width="30" height="26" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 20h30" fill="none" stroke="currentColor" stroke-width="2"/><path d="M24 25v7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m20.6 28.6 3.4 3.4 3.4-3.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
+/** 展开/收起指示：折叠时朝下，展开后旋转朝上（16dp，跟随文字色）。 */
+const EXPAND_ICON =
+    '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="m7.5 10 4.5 4.5 4.5-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+
+/**
+ * 超过该长度的失败原因才折叠：短原因（「下载失败」等）本来就不会占满 2 行，
+ * 不给它们加展开控件，避免每一行都多一个无意义的箭头。
+ * 依据实测：390px/320px 下消息文本宽度约 203px，约 19 字/行，2 行 ≈ 38-40 字。
+ */
+const MESSAGE_CLAMP_THRESHOLD = 40
+
 export default defineComponent({
     name: 'MobileTaskList',
     props: {
@@ -51,6 +63,19 @@ export default defineComponent({
     },
     emits: ['update:selectedRowKeys', 'action'],
     setup(props, { emit }) {
+        // 音源来源标签：script:<id> → 音源名（已删除时兜底文案），与桌面表格共用同一套逻辑
+        const { sourceLabel } = useTaskSourceLabel()
+
+        // 失败原因展开状态（按任务 id 记录）：长原因默认折叠成 2 行，点击/回车展开
+        const expandedMessages = ref<Record<string, boolean>>({})
+
+        function toggleMessage(taskId: string) {
+            expandedMessages.value = {
+                ...expandedMessages.value,
+                [taskId]: !expandedMessages.value[taskId],
+            }
+        }
+
         // 进度百分比
         function progressPercent(task: TaskRecord): number {
             if (task.status === 'completed' || task.status === 'processing')
@@ -163,29 +188,73 @@ export default defineComponent({
         /** 失败/中断：图标 + 明确原因，不能只靠颜色。 */
         function renderStatusMessage(task: TaskRecord) {
             const isError = task.status === 'error'
+            const text = isError
+                ? task.errorMsg || '下载失败'
+                : '上次运行中断，等待恢复'
+            // 只有会被 2 行截断的长原因才需要展开控件
+            const expandable = isError && text.length > MESSAGE_CLAMP_THRESHOLD
+            const expanded = expandable && !!expandedMessages.value[task.id]
+
+            const children: any[] = [
+                h('span', {
+                    class: 'task-chip-icon',
+                    innerHTML: STATUS_ICONS[isError ? 'error' : 'interrupted'],
+                }),
+                h(
+                    'span',
+                    {
+                        class: [
+                            'task-row-message-text',
+                            expandable && !expanded ? 'is-clamped' : '',
+                        ],
+                    },
+                    text,
+                ),
+            ]
+
+            if (expandable) {
+                children.push(
+                    h('span', {
+                        class: [
+                            'task-row-message-toggle',
+                            expanded ? 'is-expanded' : '',
+                        ],
+                        innerHTML: EXPAND_ICON,
+                    }),
+                )
+            }
+
+            // 可展开时整块就是切换控件（Enter/Space 也能切换，整块高度 48px 满足触控目标）；
+            // 不可展开时保持 role=status，由读屏直接播报原因。
             return h(
                 'div',
                 {
                     class: [
                         'task-row-message',
                         isError ? 'is-error' : 'is-interrupted',
+                        expandable ? 'is-expandable' : '',
                     ],
-                    role: 'status',
+                    role: expandable ? 'button' : 'status',
+                    tabindex: expandable ? 0 : undefined,
+                    'aria-expanded': expandable ? expanded : undefined,
+                    'aria-live': 'polite',
+                    onClick: expandable
+                        ? () => toggleMessage(task.id)
+                        : undefined,
+                    onKeydown: expandable
+                        ? (event: KeyboardEvent) => {
+                              if (
+                                  event.key === 'Enter' ||
+                                  event.key === ' ' ||
+                                  event.key === 'Spacebar'
+                              ) {
+                                  event.preventDefault()
+                                  toggleMessage(task.id)
+                              }
+                          }
+                        : undefined,
                 },
-                [
-                    h('span', {
-                        class: 'task-chip-icon',
-                        innerHTML:
-                            STATUS_ICONS[isError ? 'error' : 'interrupted'],
-                    }),
-                    h(
-                        'span',
-                        { class: 'task-row-message-text' },
-                        isError
-                            ? task.errorMsg || '下载失败'
-                            : '上次运行中断，等待恢复',
-                    ),
-                ],
+                children,
             )
         }
 
@@ -194,6 +263,11 @@ export default defineComponent({
             const checked = props.selectedRowKeys.includes(task.id)
             const disabled = task.status === 'downloading'
             const qualityChip = renderQualityChip(task)
+            // 音源来源：script:<id> → 脚本名，已删除时兜底；空 platform 不渲染
+            const sourceText = sourceLabel(task.platform)
+            // 内置音源（qqmusic/kuwo）是应用默认值、无额外信息量，不单独占一行；
+            // 自定义脚本音源（含已删除）才需要显式展示来源，避免出现裸 script:<id>
+            const isScriptSource = (task.platform || '').startsWith('script:')
 
             // 操作按钮：无可用操作（处理中）时不渲染空容器
             const nodes = actionNodes(task)
@@ -217,7 +291,7 @@ export default defineComponent({
                             },
                             task.songTitle || '未知歌曲',
                         ),
-                        // 副标题行：歌手 + 音质 chip 同行，避免为单个 chip 多占一行
+                        // 副标题行：歌手 + 音质 chip
                         h(
                             'div',
                             { class: 'task-row-sub' },
@@ -230,6 +304,17 @@ export default defineComponent({
                                 qualityChip,
                             ].filter((node) => node !== null),
                         ),
+                        // 自定义脚本音源来源行：独立一行，宽度不足时单行省略
+                        isScriptSource && sourceText
+                            ? h(
+                                  'div',
+                                  {
+                                      class: 'task-row-source',
+                                      title: `音源：${sourceText}`,
+                                  },
+                                  `音源 ${sourceText}`,
+                              )
+                            : null,
                     ]),
                     nodes.length > 0
                         ? h('div', { class: 'task-row-actions' }, nodes)
@@ -367,8 +452,9 @@ export default defineComponent({
     text-overflow: ellipsis;
 }
 
+/* 歌手：基础信息，可收缩但优先保留（basis auto，收缩权重 1） */
 .task-row-artist {
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
     font-size: var(--md-body-medium);
     line-height: var(--md-body-medium-line);
@@ -378,7 +464,18 @@ export default defineComponent({
     text-overflow: ellipsis;
 }
 
-/* 副标题行：歌手占满剩余宽度，音质 chip 靠右且不被压缩 */
+/* 音源来源行：独立一行，比歌手弱一级的元信息，过长时单行省略（不换行、不撑高行） */
+.task-row-source {
+    margin-top: 2px;
+    font-size: var(--md-body-small);
+    line-height: var(--md-body-small-line);
+    color: var(--md-on-surface-variant);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 副标题行：歌手 + 音质 chip，音质 chip 不压缩 */
 .task-row-sub {
     display: flex;
     flex-wrap: nowrap;
@@ -479,8 +576,39 @@ export default defineComponent({
 }
 
 .task-row-message-text {
+    flex: 1;
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+/* 折叠：固定 2 行后省略号。line-clamp 从尾部截断，开头的「音源脚本错误：」前缀始终可见。 */
+.task-row-message-text.is-clamped {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 可展开的失败原因：整块即切换控件（点击/回车/空格），不是内嵌小按钮（那会挤掉文本宽度） */
+.task-row-message.is-expandable {
+    cursor: pointer;
+}
+
+.task-row-message-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    color: inherit;
+    transition: transform var(--md-duration-short) var(--md-easing-standard);
+}
+
+.task-row-message-toggle.is-expanded {
+    transform: rotate(180deg);
 }
 
 /* ---------- 文件路径 ---------- */

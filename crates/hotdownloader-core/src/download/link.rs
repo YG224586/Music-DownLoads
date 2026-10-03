@@ -8,6 +8,29 @@ use reqwest::Client;
 use crate::platforms::qqmusic::credentials::{FileQqCredentialSource, QqCredentialSource};
 use crate::platforms::Platform;
 
+/// 一次取链的结果：直链、解密密钥，以及只作用于本次下载请求的附加请求头。
+///
+/// `headers` 目前只由自定义音源脚本提供，属于**不可信输入**：传输层在发请求前会
+/// 重新做数量、总字节、名称与字符校验（见 `transfer::request_download_response`）。
+/// 因此这里不过滤，也**不得**回传前端或写入任务记录。
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct DownloadLink {
+    pub url: String,
+    pub key: String,
+    pub headers: Vec<(String, String)>,
+}
+
+impl DownloadLink {
+    /// 平台内置链路：不附加自定义请求头，请求与旧版 `(url, key)` 逐字节一致。
+    pub fn new(url: String, key: String) -> Self {
+        Self {
+            url,
+            key,
+            headers: Vec::new(),
+        }
+    }
+}
+
 /// 平台链接和凭据由运行时提供；核心只决定何时重新请求链接。
 pub trait DownloadLinkProvider: Send + Sync {
     fn fetch<'a>(
@@ -15,7 +38,7 @@ pub trait DownloadLinkProvider: Send + Sync {
         platform: Platform,
         song_mid: &'a str,
         filename: &'a str,
-    ) -> BoxFuture<'a, Result<(String, String), String>>;
+    ) -> BoxFuture<'a, Result<DownloadLink, String>>;
 }
 
 /// 两个平台共用的 HTTP 链接提供器。运行时只注入凭据来源；下载任务不接触令牌。
@@ -62,7 +85,7 @@ impl PlatformDownloadLinkProvider {
         song_mid: &str,
         filename: &str,
         primary_error: String,
-    ) -> Result<(String, String), String> {
+    ) -> Result<DownloadLink, String> {
         use crate::download::fallback::{self, FallbackOutcome};
 
         if is_retryable_link_error(&primary_error) {
@@ -78,7 +101,7 @@ impl PlatformDownloadLinkProvider {
                     fallback::platform_label(link.source),
                     link.quality
                 );
-                Ok((link.url, link.key))
+                Ok(DownloadLink::new(link.url, link.key))
             }
             FallbackOutcome::Unavailable(reason) => {
                 log::warn!("歌曲 {song_mid} 内置回退失败: {reason}");
@@ -113,7 +136,7 @@ impl DownloadLinkProvider for PlatformDownloadLinkProvider {
         platform: Platform,
         song_mid: &'a str,
         filename: &'a str,
-    ) -> BoxFuture<'a, Result<(String, String), String>> {
+    ) -> BoxFuture<'a, Result<DownloadLink, String>> {
         Box::pin(async move {
             match platform {
                 Platform::QqMusic => {
@@ -134,7 +157,7 @@ impl DownloadLinkProvider for PlatformDownloadLinkProvider {
                     };
 
                     match primary {
-                        Ok(link) => Ok(link),
+                        Ok((url, key)) => Ok(DownloadLink::new(url, key)),
                         Err(error) => {
                             self.fallback_after_failure(
                                 Platform::QqMusic,
@@ -147,13 +170,45 @@ impl DownloadLinkProvider for PlatformDownloadLinkProvider {
                     }
                 }
                 // 酷我当前接口不使用 QQ 登录态，不能因 QQ 凭据文件出错而阻止酷我任务。
-                Platform::Kuwo => {
-                    crate::platforms::kuwo::link::get_download_link(
-                        &self.client,
-                        song_mid,
-                        filename,
-                    )
-                    .await
+                Platform::Kuwo => crate::platforms::kuwo::link::get_download_link(
+                    &self.client,
+                    song_mid,
+                    filename,
+                )
+                .await
+                .map(|(url, key)| DownloadLink::new(url, key)),
+                // 自定义音源：调用脚本的 getUrl。错误文案已按重试语义分级
+                // （网络类保持 `网络错误: …` 前缀交给上层重试，确定性错误带 `音源脚本错误：` 前缀）。
+                Platform::Script(id) => {
+                    let source_id = id.get();
+                    match crate::script::fetch_url_for_link(source_id, song_mid, filename).await {
+                        Ok(link) => {
+                            if let Some(quality) = link.quality.as_deref() {
+                                if crate::script::quality_filename(quality).as_deref()
+                                    != Some(filename)
+                                {
+                                    log::warn!(
+                                        "音源 {source_id} 返回音质 {quality}，与任务文件名 {filename} 不一致（容器一致，可正常播放）"
+                                    );
+                                }
+                            }
+                            if !link.headers.is_empty() {
+                                // 只记录条数，不记录取值（可能含 Cookie 等凭据）。
+                                log::info!(
+                                    "音源 {source_id} 为本次下载附加 {} 个请求头",
+                                    link.headers.len()
+                                );
+                            }
+                            // 自定义请求头原样交给传输层：它只作用于本次下载请求，
+                            // 并由 transfer.rs 重新做上限/禁止名单/字符校验后再附加。
+                            Ok(DownloadLink {
+                                url: link.url,
+                                key: String::new(),
+                                headers: link.headers,
+                            })
+                        }
+                        Err(message) => Err(message),
+                    }
                 }
             }
         })
@@ -167,7 +222,7 @@ pub async fn fetch_download_link_with_retry(
     filename: &str,
     task_id: &str,
     platform: Platform,
-) -> Result<(String, String), String> {
+) -> Result<DownloadLink, String> {
     let mut last_error = String::new();
 
     for attempt in 0..3 {
@@ -208,7 +263,8 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     use super::{
-        fetch_download_link_with_retry, DownloadLinkProvider, PlatformDownloadLinkProvider,
+        fetch_download_link_with_retry, DownloadLink, DownloadLinkProvider,
+        PlatformDownloadLinkProvider,
     };
     use crate::platforms::Platform;
     use futures_util::future::BoxFuture;
@@ -227,7 +283,7 @@ mod tests {
             _platform: Platform,
             _song_mid: &'a str,
             _filename: &'a str,
-        ) -> BoxFuture<'a, Result<(String, String), String>> {
+        ) -> BoxFuture<'a, Result<DownloadLink, String>> {
             self.attempts.fetch_add(1, Ordering::SeqCst);
             Box::pin(async { Err("平台拒绝: 104003".to_string()) })
         }
@@ -239,13 +295,16 @@ mod tests {
             _platform: Platform,
             _song_mid: &'a str,
             _filename: &'a str,
-        ) -> BoxFuture<'a, Result<(String, String), String>> {
+        ) -> BoxFuture<'a, Result<DownloadLink, String>> {
             let attempt = self.attempts.fetch_add(1, Ordering::SeqCst);
             Box::pin(async move {
                 if attempt == 0 {
                     Err("网络错误: 连接超时".to_string())
                 } else {
-                    Ok(("https://example.test/audio".to_string(), String::new()))
+                    Ok(DownloadLink::new(
+                        "https://example.test/audio".to_string(),
+                        String::new(),
+                    ))
                 }
             })
         }
@@ -284,11 +343,21 @@ mod tests {
         .await;
 
         assert_eq!(
-            result.unwrap().0,
+            result.unwrap().url,
             "https://example.test/audio",
             "第二次请求成功后应立即返回真实链接"
         );
         assert_eq!(provider.attempts.load(Ordering::SeqCst), 2);
+    }
+
+    #[test]
+    fn builtin_link_carries_no_custom_headers() {
+        // 内置链路（QQ/酷我及多音源回退）必须与旧版 (url, key) 行为一致：
+        // 不携带任何自定义请求头，传输层因此得到与改动前逐字节相同的请求。
+        let link = DownloadLink::new("https://cdn.test/a.mp3".to_string(), "key".to_string());
+        assert_eq!(link.url, "https://cdn.test/a.mp3");
+        assert_eq!(link.key, "key");
+        assert!(link.headers.is_empty());
     }
 
     #[tokio::test]

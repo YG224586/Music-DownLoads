@@ -387,7 +387,7 @@ function openLicense(item: ComponentInfo) {
 }
 
 :global(.license-modal) {
-    border-radius: var(--md-shape-lg);
+    border-radius: var(--md-shape-xl);
 }
 
 /* Naive 卡片内置的关闭按钮只有 18dp；放大到 48dp 命中区并保留圆形状态层 */
