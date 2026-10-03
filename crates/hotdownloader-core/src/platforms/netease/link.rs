@@ -105,7 +105,8 @@ async fn player_url_request(client: &Client, song_id: &str, br: u32) -> Result<V
     Ok(parsed)
 }
 
-fn parse_song_id(song_mid: &str) -> Result<String, String> {
+/// 解析网易云歌曲 ID；内置多音源回退（`download/fallback.rs`）也用它反查歌曲详情。
+pub(crate) fn parse_song_id(song_mid: &str) -> Result<String, String> {
     let id = song_mid.split('|').next().unwrap_or_default().trim();
 
     if id.is_empty() || !id.chars().all(|ch| ch.is_ascii_digit()) {

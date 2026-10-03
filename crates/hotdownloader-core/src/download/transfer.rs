@@ -42,11 +42,17 @@ pub fn sanitize_custom_headers(
     let mut accepted: Vec<(HeaderName, HeaderValue)> = Vec::new();
     let mut bytes = 0usize;
     let mut dropped = 0usize;
+    // 字节预算用尽后不再接受任何请求头（与「达到上限后其余请求头全部丢弃」一致），
+    // 避免超限请求头之后的小请求头又把总预算撑回去。
+    let mut budget_exhausted = false;
 
     for (name, value) in headers {
-        if accepted.len() >= MAX_CUSTOM_HEADERS
-            || bytes + name.len() + value.len() > MAX_CUSTOM_HEADER_BYTES
-        {
+        if accepted.len() >= MAX_CUSTOM_HEADERS || budget_exhausted {
+            dropped += 1;
+            continue;
+        }
+        if bytes + name.len() + value.len() > MAX_CUSTOM_HEADER_BYTES {
+            budget_exhausted = true;
             dropped += 1;
             continue;
         }
@@ -494,8 +500,9 @@ mod tests {
         assert_eq!(accepted.len(), 1, "单条超字节上限的请求头必须整条丢弃");
         assert_eq!(accepted[0].0.as_str(), "referer");
 
-        // 累计字节数同样受限：第二条连同其后的请求头一起被丢弃。
-        let big = "b".repeat(MAX_CUSTOM_HEADER_BYTES / 2);
+        // 累计字节数同样受限：第二条撑爆剩余预算，它与其后的请求头一起被丢弃。
+        // 取值长度必须大于「上限 − 第一条的 name+value」，否则根本触发不了累计上限。
+        let big = "b".repeat(MAX_CUSTOM_HEADER_BYTES - 8);
         let headers = vec![
             ("referer".to_string(), "https://y.qq.com".to_string()),
             ("cookie".to_string(), big),

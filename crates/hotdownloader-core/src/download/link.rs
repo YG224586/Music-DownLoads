@@ -97,7 +97,8 @@ impl PlatformDownloadLinkProvider {
         match fallback::fetch_from_other_sources(&self.client, platform, song_mid, filename).await {
             FallbackOutcome::Linked(link) => {
                 log::info!(
-                    "歌曲 {song_mid} 从 QQ 音乐回退到{}成功，实际音质 {}",
+                    "歌曲 {song_mid} 从{}回退到{}成功，实际音质 {}",
+                    fallback::platform_label(platform),
                     fallback::platform_label(link.source),
                     link.quality
                 );
@@ -105,13 +106,9 @@ impl PlatformDownloadLinkProvider {
             }
             FallbackOutcome::Unavailable(reason) => {
                 log::warn!("歌曲 {song_mid} 内置回退失败: {reason}");
-                if matches!(platform, Platform::QqMusic) {
-                    // QQ 的原始错误（如 104003「无法获取下载链接」）对用户没有指导意义，
-                    // 换成「需要登录或曲目受限 + 没找到替代」的说明。
-                    Err(fallback::NO_MATCH_MESSAGE.to_string())
-                } else {
-                    Err(primary_error)
-                }
+                // 回退失败时不改变用户可见的主平台错误；只有 QQ 的原始错误
+                // （如 104003「无法获取下载链接」）对用户没有指导意义，换成明确文案。
+                Err(fallback::no_match_message(platform, &primary_error))
             }
             FallbackOutcome::Transient(reason) => {
                 log::warn!("歌曲 {song_mid} 内置回退遇到临时错误: {reason}");
@@ -179,21 +176,47 @@ impl DownloadLinkProvider for PlatformDownloadLinkProvider {
                 .map(|(url, key)| DownloadLink::new(url, key)),
                 // 网易云：匿名只拿得到 128k/320k 明文 mp3（无损会被静默降级，
                 // 因此 qualities 里不提供 flac/hires），付费曲返回试听片段会被拒绝。
-                Platform::Netease => crate::platforms::netease::link::get_download_link(
-                    &self.client,
-                    song_mid,
-                    filename,
-                )
-                .await
-                .map(|(url, key)| DownloadLink::new(url, key)),
+                // 付费/试听类确定性失败由内置多音源回退接手。
+                Platform::Netease => {
+                    let primary = crate::platforms::netease::link::get_download_link(
+                        &self.client,
+                        song_mid,
+                        filename,
+                    )
+                    .await;
+
+                    match primary {
+                        Ok((url, key)) => Ok(DownloadLink::new(url, key)),
+                        Err(error) => {
+                            self.fallback_after_failure(
+                                Platform::Netease,
+                                song_mid,
+                                filename,
+                                error,
+                            )
+                            .await
+                        }
+                    }
+                }
                 // 咪咕：匿名只声明 128kmp3（toneFlag 被忽略，实测所有档位同一条明文 mp3）。
-                Platform::Migu => crate::platforms::migu::link::get_download_link(
-                    &self.client,
-                    song_mid,
-                    filename,
-                )
-                .await
-                .map(|(url, key)| DownloadLink::new(url, key)),
+                // VIP 独占曲目 listenSong.do 只回「暂不提供试听地址」，这类确定性失败
+                // 由内置多音源回退接手（`resourceinfo.do` 仍能反查出标题/歌手/时长）。
+                Platform::Migu => {
+                    let primary = crate::platforms::migu::link::get_download_link(
+                        &self.client,
+                        song_mid,
+                        filename,
+                    )
+                    .await;
+
+                    match primary {
+                        Ok((url, key)) => Ok(DownloadLink::new(url, key)),
+                        Err(error) => {
+                            self.fallback_after_failure(Platform::Migu, song_mid, filename, error)
+                                .await
+                        }
+                    }
+                }
                 // 哔哩哔哩：mid 就是 bvid，容器固定 m4a/AAC（192kbps 音轨），不加密。
                 Platform::Bilibili => crate::platforms::bilibili::link::get_download_link(
                     &self.client,
@@ -203,13 +226,24 @@ impl DownloadLinkProvider for PlatformDownloadLinkProvider {
                 .await
                 .map(|(url, key)| DownloadLink::new(url, key)),
                 // 酷狗：mid 里编码了三个档位的 hash（复合编码见 kugou/parser.rs）。
-                Platform::Kugou => crate::platforms::kugou::link::get_download_link(
-                    &self.client,
-                    song_mid,
-                    filename,
-                )
-                .await
-                .map(|(url, key)| DownloadLink::new(url, key)),
+                // 付费/VIP 曲目匿名拿不到直链（实测服务端签发权益），
+                // 这类确定性失败由内置多音源回退接手。
+                Platform::Kugou => {
+                    let primary = crate::platforms::kugou::link::get_download_link(
+                        &self.client,
+                        song_mid,
+                        filename,
+                    )
+                    .await;
+
+                    match primary {
+                        Ok((url, key)) => Ok(DownloadLink::new(url, key)),
+                        Err(error) => {
+                            self.fallback_after_failure(Platform::Kugou, song_mid, filename, error)
+                                .await
+                        }
+                    }
+                }
                 // 自定义音源：调用脚本的 getUrl。错误文案已按重试语义分级
                 // （网络类保持 `网络错误: …` 前缀交给上层重试，确定性错误带 `音源脚本错误：` 前缀）。
                 Platform::Script(id) => {
@@ -394,7 +428,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn kuwo_link_does_not_read_qq_credential_file() {
+    async fn kugou_and_migu_rejections_route_through_the_builtin_fallback() {
         let path = std::env::temp_dir().join(format!(
             "hotdownloader-invalid-qq-{:x}.json",
             rand::random::<u64>()
@@ -402,12 +436,23 @@ mod tests {
         tokio::fs::write(&path, "{").await.unwrap();
         let provider = PlatformDownloadLinkProvider::from_credentials_file(&path);
 
-        // 非法酷我 ID 在请求前失败；若错误来自 QQ 文件，说明平台隔离失效。
-        let error = provider
-            .fetch(Platform::Kuwo, "invalid-id", "320.mp3")
+        // 非法 mid 在主平台与回退链路里都在发请求之前失败，因此这个测试全程不联网：
+        // 它证明酷狗/咪咕的确定性失败确实走到了内置回退（错误文案里带上了回退结论），
+        // 并且没有去读 QQ 凭据文件。
+        let kugou = provider
+            .fetch(Platform::Kugou, "not-a-hash", "128.mp3")
             .await
             .unwrap_err();
-        assert!(error.contains("无效的歌曲 ID"));
+        assert!(kugou.contains("无效的酷狗歌曲标识"), "{kugou}");
+        assert!(kugou.contains("已在其它内置音源搜索"), "{kugou}");
+
+        let migu = provider
+            .fetch(Platform::Migu, "invalid-mid", "PQ.mp3")
+            .await
+            .unwrap_err();
+        assert!(migu.contains("无效的咪咕歌曲标识"), "{migu}");
+        assert!(migu.contains("已在其它内置音源搜索"), "{migu}");
+
         tokio::fs::remove_file(path).await.unwrap();
     }
 }

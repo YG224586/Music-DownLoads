@@ -428,10 +428,14 @@ mod tests {
 
     #[test]
     fn returned_container_must_match_requested_quality() {
-        assert!(validate_returned_url(&url(Some("flac")), "flac").is_ok());
-        assert!(validate_returned_url(&url(Some("hires")), "flac").is_ok());
+        // 同容器、音质更低：放行。
+        assert!(validate_returned_url(&url(Some("128kmp3")), "320kmp3").is_ok());
+        // 请求无损却返回 mp3：容器不一致，拒绝。
+        assert!(validate_returned_url(&url(Some("320kmp3")), "flac").is_err());
         assert!(validate_returned_url(&url(Some("96kogg")), "128kmp3").is_err());
         assert!(validate_returned_url(&url(Some("unknown")), "128kmp3").is_err());
+        // flac 家族的其它档位容器相同，但音质高于请求，同样拒绝。
+        assert!(validate_returned_url(&url(Some("hires")), "flac").is_err());
     }
 
     #[test]
