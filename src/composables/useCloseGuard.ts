@@ -27,9 +27,13 @@ export function useCloseGuard() {
                 return new Promise<boolean>((resolve) => {
                     dialog.warning({
                         title: '确认退出',
+                        // M3：对话框动作是文字按钮，且不画前置图标。
+                        showIcon: false,
                         content: `有 ${activeTasks.length} 个下载任务尚未完成，退出后任务会中断。确认退出吗？`,
                         positiveText: '确认退出',
                         negativeText: '取消',
+                        positiveButtonProps: { text: true },
+                        negativeButtonProps: { text: true },
                         onPositiveClick: () => resolve(true),
                         onNegativeClick: () => resolve(false),
                         onClose: () => resolve(false),

@@ -22,7 +22,7 @@
                         :aria-label="`重新搜索 ${item}`"
                         @click="$emit('select', item)"
                     >
-                        {{ item }}
+                        <span class="chip-text">{{ item }}</span>
                     </button>
                     <button
                         type="button"
@@ -95,10 +95,14 @@ defineEmits<{
     --n-height: var(--md-target-min);
 }
 
+/*
+ * 行间距 16dp = 两个内部控件各自上下外扩 8dp 的命中区之和，相邻两行刚好拼满不重叠。
+ */
 .history-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--md-space-2);
+    column-gap: var(--md-space-2);
+    row-gap: var(--md-space-4);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -110,35 +114,61 @@ defineEmits<{
     min-width: 0;
 }
 
-/* 描边芯片外形，高度 48dp；两个内部控件各自达到 48dp 命中区域。 */
+/*
+ * M3 chip：视觉高 32dp、圆角 8dp。box-sizing: border-box 让 1px 上下描边算进 32dp，
+ * 否则内容盒 + 两侧描边会渲染成 34dp。容器本身不能挂 ::after（会盖住内部两个按钮、
+ * 导致点不动），命中区由 .chip-label / .chip-remove 各自外扩 9dp 撑到 48dp。
+ */
 .history-chip {
+    box-sizing: border-box;
     display: inline-flex;
     align-items: stretch;
     max-width: 100%;
-    min-height: var(--md-target-min);
+    height: 32px;
     border: 1px solid var(--md-outline);
-    border-radius: var(--md-shape-full);
+    border-radius: var(--md-shape-chip);
     background-color: var(--md-surface);
 }
 
 .chip-label {
+    position: relative;
+    display: flex;
+    align-items: center;
     flex: 1 1 auto;
-    min-width: var(--md-target-min);
-    min-height: var(--md-target-min);
+    min-width: 32px;
     padding: 0 var(--md-space-3) 0 var(--md-space-4);
     border: none;
-    border-radius: var(--md-shape-full) 0 0 var(--md-shape-full);
+    border-radius: var(--md-shape-chip) 0 0 var(--md-shape-chip);
     background-color: transparent;
     color: var(--md-on-surface);
     font-family: inherit;
     font-size: var(--md-label-large);
     line-height: var(--md-label-large-line);
     text-align: left;
-    white-space: normal;
-    overflow-wrap: anywhere;
     cursor: pointer;
     transition: background-color var(--md-duration-short)
         var(--md-easing-standard);
+}
+
+/*
+ * 省略号必须落在内部 span 上：按钮自身要 overflow: visible，
+ * 否则 ::after 撑出的命中区会一起被裁掉（实测裁剪后上下 4dp 已经点不到芯片）。
+ */
+.chip-text {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.chip-label::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -9px;
+    bottom: -9px;
 }
 
 .chip-label:hover {
@@ -146,20 +176,30 @@ defineEmits<{
 }
 
 .chip-remove {
+    position: relative;
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: var(--md-target-min);
-    min-height: var(--md-target-min);
+    width: 32px;
     padding: 0;
     border: none;
-    border-radius: 0 var(--md-shape-full) var(--md-shape-full) 0;
+    border-radius: 0 var(--md-shape-chip) var(--md-shape-chip) 0;
     background-color: transparent;
     color: var(--md-on-surface-variant);
     cursor: pointer;
     transition: background-color var(--md-duration-short)
         var(--md-easing-standard);
+}
+
+/* 命中区只做上下外扩：向左右扩会盖住 .chip-label，反而抢走它的点击。 */
+.chip-remove::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -9px;
+    bottom: -9px;
 }
 
 .chip-remove:hover {

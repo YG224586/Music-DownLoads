@@ -20,9 +20,14 @@ export function useDownloadActions() {
             const compRef = ref<InstanceType<typeof QualitySelector>>()
             const d = dialog.create({
                 title: '选择下载音质',
+                // M3：对话框不画前置图标（Naive 默认 showIcon 会画实心圆 info 图标）。
+                showIcon: false,
                 content: () => h(QualitySelector, { qualities, ref: compRef }),
                 positiveText: '确定',
                 negativeText: '取消',
+                // M3：对话框动作是文字按钮；Naive 默认「确定」是实心主色、取消是 ghost 描边药丸。
+                positiveButtonProps: { text: true },
+                negativeButtonProps: { text: true },
                 onPositiveClick: () => {
                     const val = compRef.value?.selected
                     if (val) {
@@ -46,12 +51,15 @@ export function useDownloadActions() {
         return new Promise((resolve) => {
             const d = dialog.create({
                 title: '文件已存在',
+                showIcon: false,
                 content: `歌曲“${songTitle}”在下载目录中已存在同名文件，请选择处理方式：`,
+                // M3：对话框动作是文字按钮（text），不用实心/描边按钮。
                 action: () => [
                     h(
                         NButton,
                         {
                             size: 'small',
+                            text: true,
                             onClick: () => {
                                 resolve('overwrite')
                                 d.destroy()
@@ -63,6 +71,7 @@ export function useDownloadActions() {
                         NButton,
                         {
                             size: 'small',
+                            text: true,
                             type: 'primary',
                             onClick: () => {
                                 resolve('rename')
@@ -75,6 +84,7 @@ export function useDownloadActions() {
                         NButton,
                         {
                             size: 'small',
+                            text: true,
                             type: 'error',
                             onClick: () => {
                                 resolve('cancel')

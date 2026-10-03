@@ -271,10 +271,13 @@ function toggle(item: ScriptSourceItem, value: boolean) {
 function confirmRemove(item: ScriptSourceItem) {
     dialog.error({
         title: `删除音源「${item.name}」`,
+        // M3：对话框动作是文字按钮，且不画前置图标。
+        showIcon: false,
         content: '删除后本机保存的脚本会被移除，且无法恢复。',
         positiveText: '删除',
         negativeText: '取消',
-        positiveButtonProps: { type: 'error' },
+        positiveButtonProps: { type: 'error', text: true },
+        negativeButtonProps: { text: true },
         onPositiveClick: () => {
             removingId.value = item.id
             void store

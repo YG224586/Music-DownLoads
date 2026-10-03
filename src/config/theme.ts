@@ -378,6 +378,16 @@ function buildOverrides(p: MdPalette): GlobalThemeOverrides {
             iconColor: p.onSurfaceVariant,
         },
 
+        // M3 菜单：4dp 圆角 + surface-container 底 + 48dp 行高。
+        // Naive 的 Dropdown 圆角取自 common.borderRadius（当前 16px），
+        // 会把平台选择等菜单画成 16px 大圆角卡片，与 M3 menu 不符。
+        // 底色 Naive 取 common.popoverColor（surfaceContainerHigh #e3eae4），
+        // M3 菜单容器角色是 surface-container（#e9efea），故在此单独覆盖 color。
+        Dropdown: {
+            borderRadius: '4px',
+            color: p.surfaceContainer,
+        },
+
         Select: {
             menuBoxShadow: p.elevation2,
         },

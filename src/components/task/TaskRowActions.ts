@@ -6,7 +6,7 @@ import {
     type PropType,
     type VNode,
 } from 'vue'
-import { NButton, NCheckbox, NPopover } from 'naive-ui'
+import { NButton, NCheckbox, NPopover, useDialog } from 'naive-ui'
 import type { TaskRecord } from '../../types'
 
 export type TaskAction =
@@ -31,13 +31,14 @@ export interface TaskActionContext {
 const MORE_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="1.7" /><circle cx="5.5" cy="12" r="1.7" /><circle cx="18.5" cy="12" r="1.7" /></svg>'
 
-type MenuStage = 'menu' | 'confirm-remove' | 'confirm-cancel'
-
 const MENU_STYLE: Record<string, string> = {
     display: 'flex',
     flexDirection: 'column',
     minWidth: '180px',
     padding: 'var(--md-space-1)',
+    borderRadius: 'var(--md-shape-xs)',
+    backgroundColor: 'var(--md-surface-container)',
+    boxShadow: 'var(--md-elevation-2)',
 }
 
 const MENU_ITEM_STYLE: Record<string, string> = {
@@ -57,28 +58,6 @@ const MENU_ITEM_STYLE: Record<string, string> = {
     fontWeight: 'var(--md-weight-medium)',
     textAlign: 'left',
     cursor: 'pointer',
-}
-
-const CONFIRM_STYLE: Record<string, string> = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 'var(--md-space-3)',
-    minWidth: '240px',
-    maxWidth: 'calc(100vw - 48px)',
-    padding: 'var(--md-space-3)',
-}
-
-const CONFIRM_TEXT_STYLE: Record<string, string> = {
-    margin: '0',
-    color: 'var(--md-on-surface)',
-    fontSize: 'var(--md-body-medium)',
-    lineHeight: 'var(--md-body-medium-line)',
-}
-
-const CONFIRM_ACTIONS_STYLE: Record<string, string> = {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: 'var(--md-space-2)',
 }
 
 /**
@@ -102,7 +81,7 @@ const TaskRowMenu = defineComponent({
     },
     setup(props) {
         const show = ref(false)
-        const stage = ref<MenuStage>('menu')
+        const dialog = useDialog()
         const deleteFile = ref(false)
 
         // 已完成 / 失败 / 中断：危险动作是「删除记录」；其余状态是「取消任务」
@@ -130,7 +109,6 @@ const TaskRowMenu = defineComponent({
         )
 
         const reset = () => {
-            stage.value = 'menu'
             deleteFile.value = false
         }
 
@@ -143,42 +121,30 @@ const TaskRowMenu = defineComponent({
             })
         }
 
-        const renderConfirm = () =>
-            h('div', { style: CONFIRM_STYLE }, [
-                h('p', { style: CONFIRM_TEXT_STYLE }, confirmTitle.value),
-                h(
-                    NCheckbox,
-                    {
-                        checked: deleteFile.value,
-                        'onUpdate:checked': (value: boolean) => {
-                            deleteFile.value = value
-                        },
-                    },
-                    { default: () => checkboxLabel.value },
-                ),
-                h('div', { style: CONFIRM_ACTIONS_STYLE }, [
+        const openConfirm = () => {
+            deleteFile.value = false
+            dialog.warning({
+                title: confirmTitle.value,
+                content: () =>
                     h(
-                        NButton,
+                        NCheckbox,
                         {
-                            size: 'small',
-                            quaternary: true,
-                            onClick: () => {
-                                show.value = false
+                            checked: deleteFile.value,
+                            'onUpdate:checked': (value: boolean) => {
+                                deleteFile.value = value
                             },
                         },
-                        { default: () => '返回' },
+                        { default: () => checkboxLabel.value },
                     ),
-                    h(
-                        NButton,
-                        {
-                            size: 'small',
-                            type: 'error',
-                            onClick: handleConfirm,
-                        },
-                        { default: () => '确认' },
-                    ),
-                ]),
-            ])
+                positiveText: '确认',
+                negativeText: '返回',
+                showIcon: false,
+                positiveButtonProps: { text: true, type: 'error' },
+                negativeButtonProps: { text: true },
+                style: { borderRadius: 'var(--md-shape-xl)' },
+                onPositiveClick: () => handleConfirm(),
+            })
+        }
 
         return () =>
             h(
@@ -192,7 +158,13 @@ const TaskRowMenu = defineComponent({
                     trigger: 'click',
                     placement: 'bottom-end',
                     showArrow: false,
-                    contentStyle: { maxWidth: 'calc(100vw - 32px)' },
+                    contentStyle: {
+                        maxWidth: 'calc(100vw - 32px)',
+                        padding: '0',
+                        borderRadius: 'var(--md-shape-xs)',
+                        backgroundColor: 'var(--md-surface-container)',
+                        boxShadow: 'var(--md-elevation-2)',
+                    },
                 },
                 {
                     trigger: () =>
@@ -222,25 +194,22 @@ const TaskRowMenu = defineComponent({
                             },
                         ),
                     default: () =>
-                        stage.value === 'menu'
-                            ? h('div', { style: MENU_STYLE, role: 'menu' }, [
-                                  h(
-                                      'button',
-                                      {
-                                          type: 'button',
-                                          class: 'task-menu-item is-danger',
-                                          role: 'menuitem',
-                                          style: MENU_ITEM_STYLE,
-                                          onClick: () => {
-                                              stage.value = removeFlow.value
-                                                  ? 'confirm-remove'
-                                                  : 'confirm-cancel'
-                                          },
-                                      },
-                                      dangerLabel.value,
-                                  ),
-                              ])
-                            : renderConfirm(),
+                        h('div', { style: MENU_STYLE, role: 'menu' }, [
+                            h(
+                                'button',
+                                {
+                                    type: 'button',
+                                    class: 'task-menu-item is-danger',
+                                    role: 'menuitem',
+                                    style: MENU_ITEM_STYLE,
+                                    onClick: () => {
+                                        show.value = false
+                                        openConfirm()
+                                    },
+                                },
+                                dangerLabel.value,
+                            ),
+                        ]),
                 },
             )
     },

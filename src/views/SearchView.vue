@@ -827,12 +827,27 @@ function onBatchDownload() {
 }
 
 /*
- * 选中态用填充表达（M3 segmented button），不叠加下划线：
- * Naive 默认把选中段的下边框涂成主色，这里改回中性描边，
- * 只保留 secondary-container 实底填充 + on-secondary-container 文字。
- * Naive 的 --n-* 变量是内联样式，类选择器覆盖不动，必须写真实 CSS 属性。
+ * M3 segmented button 整组是一个胶囊外轮廓，首尾段各承担一端圆角（48dp 高 → 24dp 视觉圆角）。
+ * Naive 只在 :first-child / :last-child 上画左右边框，中间分隔靠 __splitor，
+ * 所以圆角必须分别落在首尾两段，四角才连续无缝。
  */
-.type-switch :deep(.n-radio-button--checked) {
+.type-switch :deep(.n-radio-group .n-radio-button:first-child) {
+    border-radius: var(--md-shape-full) 0 0 var(--md-shape-full);
+}
+
+.type-switch :deep(.n-radio-group .n-radio-button:last-child) {
+    border-radius: 0 var(--md-shape-full) var(--md-shape-full) 0;
+}
+
+/*
+ * 选中态只用填充表达（M3 segmented button），不叠边框、不叠下划线：
+ * Naive 在 cM('checked') 里把 border-color 涂成主色（就是那条绿色描边），
+ * 而 --n-* 变量是内联样式，类选择器压不住，必须写真实 CSS 属性。
+ * 选择器加权到 (0,5,0)，避免与 Naive 的 hover / focus 规则同权重后靠注入顺序定胜负。
+ * border-color 取中性描边而不是 transparent：中间段只有上下边框，
+ * 透明会在胶囊外轮廓上咬出一个缺口。
+ */
+.type-switch :deep(.n-radio-group .n-radio-button.n-radio-button--checked) {
     background-color: var(--md-secondary-container);
     border-color: var(--md-outline-variant);
     box-shadow: none;
@@ -842,8 +857,33 @@ function onBatchDownload() {
     color: var(--md-on-secondary-container);
 }
 
-.type-switch :deep(.n-radio-button--checked .n-radio-button__state-border) {
+/*
+ * 绿色光圈的第二个来源：Naive 把 focus 态 box-shadow 画在 __state-border 上
+ * （buttonBoxShadowFocus = inset 1px 主色 + 0 0 0 2px 主色淡环），而鼠标点击也会
+ * focus 隐藏 input，所以点一下就冒绿环。这里加权到 (0,6,0) 把默认 / hover / focus 一并归零。
+ */
+.type-switch
+    :deep(
+        .n-radio-group
+            .n-radio-button.n-radio-button
+            .n-radio-button__state-border
+    ) {
     box-shadow: none;
+}
+
+/* 紧邻选中段的分隔线 Naive 也会涂成主色，一并改回中性描边。 */
+.type-switch :deep(.n-radio-group__splitor--checked) {
+    background-color: var(--md-outline-variant);
+}
+
+/*
+ * 键盘可达性：鼠标点击不出外框，只有键盘 focus-visible 时补 2dp 主色外框。
+ * :has() 不支持的浏览器会整条失效（降级为无外框），不影响布局。
+ */
+.type-switch
+    :deep(.n-radio-group .n-radio-button:has(.n-radio-input:focus-visible)) {
+    outline: 2px solid var(--md-primary);
+    outline-offset: 2px;
 }
 
 .segment-content {

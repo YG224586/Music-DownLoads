@@ -355,10 +355,11 @@ watch(
     margin-top: var(--md-space-1);
 }
 
+/* M3 只读元数据标签：高度保持 22px（不可点，无需 48dp 命中区），圆角用 chip 的 8dp */
 .quality-tag.n-tag {
     height: 22px;
     padding: 0 var(--md-space-2);
-    border-radius: var(--md-shape-full);
+    border-radius: var(--md-shape-chip);
     background-color: var(--md-surface-container-high);
     color: var(--md-on-surface-variant);
     font-size: var(--md-label-medium);
@@ -371,7 +372,7 @@ watch(
     align-items: center;
     height: 22px;
     padding: 0 var(--md-space-2);
-    border-radius: var(--md-shape-full);
+    border-radius: var(--md-shape-chip);
     background-color: var(--md-secondary-container);
     color: var(--md-on-secondary-container);
     font-size: var(--md-label-medium);

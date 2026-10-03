@@ -134,6 +134,12 @@ body {
     --md-shape-xl: 28px;
     --md-shape-full: 999px;
 
+    /* 芯片圆角（M3 chip = corner-small 8dp，不是药丸）。
+       热搜 / 历史 / 音质 / 来源 / 分段等「标签类」一律用它；
+       --md-shape-full 只留给真正的药丸：按钮、搜索框、导航指示器、
+       焦点环、头像与开关轨道。 */
+    --md-shape-chip: 8px;
+
     /* 高度（M3 elevation level 1-3） */
     --md-elevation-1:
         0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
@@ -411,6 +417,16 @@ body .n-dialog {
 
 body .n-dialog__action {
     flex-wrap: wrap;
+}
+
+/*
+ * M3 对话框动作用文字按钮（无底色、无描边）。实测（_dev/probe/out-lead-verify2.json）
+ * 「取消」「确定」为 28×48：高度够、宽度不足 48dp，命中区只有文字那么宽。
+ * 用 min-width 补齐命中区，同时居中文字（文字按钮 padding 为 0，不补会把内容顶到左侧）。
+ */
+body .n-dialog .n-button {
+    min-width: var(--md-target-min);
+    justify-content: center;
 }
 
 /* Naive 组件补齐 M3 形状：文字输入使用 M3 outlined 字段的 4dp 圆角。 */

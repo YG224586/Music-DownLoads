@@ -101,7 +101,7 @@ const tabs = computed(() => [
     min-height: var(--md-target-min);
     padding: 0 var(--md-space-4);
     border: 1px solid var(--md-outline-variant);
-    border-radius: var(--md-shape-full);
+    border-radius: var(--md-shape-chip);
     background-color: transparent;
     color: var(--md-on-surface-variant);
     font-family: inherit;

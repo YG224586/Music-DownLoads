@@ -27,10 +27,13 @@ const dialog = useDialog()
 function confirmClearHistory() {
     dialog.error({
         title: '清除搜索历史',
+        // M3：对话框动作是文字按钮，且不画前置图标。
+        showIcon: false,
         content: '将删除本机保存的全部搜索关键词，且无法撤销。',
         positiveText: '清除',
         negativeText: '取消',
-        positiveButtonProps: { type: 'error' },
+        positiveButtonProps: { type: 'error', text: true },
+        negativeButtonProps: { text: true },
         onPositiveClick: () => {
             historyStore.clearHistory()
         },

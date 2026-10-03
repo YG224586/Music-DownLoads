@@ -52,10 +52,15 @@ defineEmits<{
     color: var(--md-on-surface-variant);
 }
 
+/*
+ * 行间距 16dp = 芯片上下各外扩 8dp 的命中区之和，相邻两行刚好拼满不重叠；
+ * 列间距保持 8dp，横向用 pointer 精度，不需要额外补偿。
+ */
 .hot-list {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--md-space-2);
+    column-gap: var(--md-space-2);
+    row-gap: var(--md-space-4);
     margin: 0;
     padding: 0;
     list-style: none;
@@ -67,13 +72,17 @@ defineEmits<{
     min-width: 0;
 }
 
+/*
+ * M3 chip：视觉高 32dp、圆角 8dp（不是胶囊）。命中区仍要 48dp，
+ * 用 ::after 上下各外扩 8dp 撑到 48dp —— 事件照常冒泡到 n-tag 自身。
+ */
 .hot-tag.n-tag {
     box-sizing: border-box;
-    height: auto;
-    min-height: var(--md-target-min);
-    padding: var(--md-space-1) var(--md-space-4);
+    position: relative;
+    height: 32px;
+    padding: 0 var(--md-space-3);
     border: 1px solid var(--md-outline-variant);
-    border-radius: var(--md-shape-full);
+    border-radius: var(--md-shape-chip);
     background-color: var(--md-surface-container-low);
     color: var(--md-on-surface);
     cursor: pointer;
@@ -81,14 +90,25 @@ defineEmits<{
         var(--md-easing-standard);
 }
 
+.hot-tag.n-tag::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -8px;
+    bottom: -8px;
+}
+
 .hot-tag.n-tag:hover {
     background-color: var(--md-surface-container-high);
 }
 
+/* 芯片固定 32dp 高，文字必须单行，过长时省略号截断。 */
 .hot-tag :deep(.n-tag__content) {
     min-width: 0;
-    white-space: normal;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: var(--md-label-large);
     line-height: var(--md-label-large-line);
 }

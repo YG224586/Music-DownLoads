@@ -365,7 +365,7 @@ function downloadSelected() {
     margin-top: 2px;
 }
 
-/* 分段按钮：整组等宽，选中段用勾选标记 + 颜色双重表达。 */
+/* 分段按钮：整组等宽胶囊，选中段用填充 + 勾选标记双重表达。 */
 .artist-tabs {
     min-width: 0;
 }
@@ -387,6 +387,52 @@ function downloadSelected() {
     display: flex;
     justify-content: center;
     min-width: 0;
+}
+
+/* 首尾段各承担一端圆角（48dp 高 → 24dp 视觉圆角），四角才连续无缝。 */
+.artist-tabs :deep(.n-radio-group .n-radio-button:first-child) {
+    border-radius: var(--md-shape-full) 0 0 var(--md-shape-full);
+}
+
+.artist-tabs :deep(.n-radio-group .n-radio-button:last-child) {
+    border-radius: 0 var(--md-shape-full) var(--md-shape-full) 0;
+}
+
+/*
+ * 选中态只用填充表达：Naive 默认把选中段的 border-color 和文字色都涂成主色（绿色描边），
+ * 而 --n-* 变量是内联样式，类选择器压不住，必须写真实 CSS 属性。
+ * border-color 取中性描边而非 transparent，否则会在胶囊外轮廓上咬出缺口。
+ */
+.artist-tabs :deep(.n-radio-group .n-radio-button.n-radio-button--checked) {
+    background-color: var(--md-secondary-container);
+    border-color: var(--md-outline-variant);
+    box-shadow: none;
+}
+
+.artist-tabs :deep(.n-radio-button--checked .n-radio__label) {
+    color: var(--md-on-secondary-container);
+}
+
+/* 绿色光圈的来源：Naive 把 focus 态 box-shadow 画在 __state-border 上，鼠标点击也会触发。 */
+.artist-tabs
+    :deep(
+        .n-radio-group
+            .n-radio-button.n-radio-button
+            .n-radio-button__state-border
+    ) {
+    box-shadow: none;
+}
+
+/* 紧邻选中段的分隔线 Naive 也会涂成主色，一并改回中性描边。 */
+.artist-tabs :deep(.n-radio-group__splitor--checked) {
+    background-color: var(--md-outline-variant);
+}
+
+/* 键盘可达性：只有键盘 focus-visible 时才补 2dp 主色外框。 */
+.artist-tabs
+    :deep(.n-radio-group .n-radio-button:has(.n-radio-input:focus-visible)) {
+    outline: 2px solid var(--md-primary);
+    outline-offset: 2px;
 }
 
 .segment-content {
