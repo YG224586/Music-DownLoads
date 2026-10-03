@@ -252,10 +252,11 @@ mod tests {
         // 网易云的 id 是数字字符串，与酷我的数字形态等价。
         assert_eq!(song_id_to_u64("2652820720"), 2_652_820_720);
         // 哔哩哔哩的 id 是 BV 号：稳定且不同视频不同值。
-        let bvid = song_id_to_u64("BV1BZbSzZEGT");
-        assert_eq!(bvid, song_id_to_u64("BV1BZbSzZEGT"));
-        assert_ne!(bvid, song_id_to_u64("BV1BZbSzZEGU"));
-        assert_eq!(song_id_to_u64(""), song_id_to_u64(""));
+        // 期望值必须是硬编码的字面量——自比自的断言连哈希实现写错都测不出来。
+        assert_eq!(song_id_to_u64("BV1BZbSzZEGT"), 18_341_355_057_555_561_881);
+        assert_eq!(song_id_to_u64("BV1BZbSzZEGU"), 18_341_353_958_043_933_670);
+        // 空串走哈希分支，等于 FNV-1a 的偏移基准。
+        assert_eq!(song_id_to_u64(""), 0xcbf2_9ce4_8422_2325);
     }
 
     #[test]
