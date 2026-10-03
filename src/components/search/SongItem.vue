@@ -219,7 +219,12 @@ watch(
 .song-item :deep(.n-checkbox) {
     flex-shrink: 0;
     /* 全局规则已给 .n-checkbox min-height:48px，这里补齐宽度得到 48x48 命中区；
-       左右负 margin 抵消多出来的 32px 占位，视觉位置与行内排版保持不变。 */
+       左右负 margin 抵消多出来的 32px 占位，视觉位置与行内排版保持不变。
+       右侧负 margin 会让 48dp 框的最后 4dp 与封面矩形重叠，封面在 DOM 中靠后、
+       会盖住这部分导致命中区实测只有 44x48（独立验证 P3-2）；
+       抬到封面之上即可恢复完整 48x48，且不改变任何布局尺寸。 */
+    position: relative;
+    z-index: 1;
     width: var(--md-target-min);
     justify-content: center;
     margin-left: calc(-1 * var(--md-space-4));

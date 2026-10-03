@@ -74,7 +74,9 @@ defineEmits<{
 
 /*
  * M3 chip：视觉高 32dp、圆角 8dp（不是胶囊）。命中区仍要 48dp，
- * 用 ::after 上下各外扩 8dp 撑到 48dp —— 事件照常冒泡到 n-tag 自身。
+ * 用 ::after 上下各外扩 9dp 撑到 48dp —— 事件照常冒泡到 n-tag 自身。
+ * 注意外扩取 9dp 而非 8dp：绝对定位伪元素的包含块是**内边距盒**，
+ * 1px 边框会被排除在外，8dp 只能得到 46dp（独立验证 P3-1 实测）。
  */
 .hot-tag.n-tag {
     box-sizing: border-box;
@@ -95,8 +97,8 @@ defineEmits<{
     position: absolute;
     left: 0;
     right: 0;
-    top: -8px;
-    bottom: -8px;
+    top: -9px;
+    bottom: -9px;
 }
 
 .hot-tag.n-tag:hover {
